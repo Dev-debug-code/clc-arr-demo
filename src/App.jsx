@@ -2,24 +2,30 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import AppHeader from './components/AppHeader.jsx';
 import ConnectionBar from './components/ConnectionBar.jsx';
 import StepTimeline from './components/StepTimeline.jsx';
+import PdfOverlayViewer from './components/PdfOverlayViewer.jsx';
 import {
   ARR_CONNECTION,
   ARR_PROCESSING_STEPS,
   ARR_PROCESSING_MESSAGES,
-  ARR_COMMENTARY,
   AUDIT_OPTIONS,
   AUDIT_CONNECTION,
   AUDIT_PROCESSING_STEPS,
-  FINDING_SUMMARY,
-  AUDIT_FINDINGS,
-  DOCUMENT_TABS,
   REPORT_SUMMARY,
   STEP_CONFIG
 } from './data/mockData.js';
+import arrOverlayPlaceholder from './data/arrOverlayPlaceholder.js';
+import {
+  auditDocuments as caseDocuments,
+  auditFindings,
+  buildSummaryCards
+} from './data/auditDataset.js';
 
-const ARR_PDF_URL = '/assets/CLC_ARR_2022.pdf';
+const ARR_PDF_URL = 'assets/CLC_ARR_2022.pdf';
 
 export default function App() {
+  const arrOverlay = arrOverlayPlaceholder;
+  const arrBoxes = arrOverlay.boxes ?? [];
+
   const [currentStep, setCurrentStep] = useState(1);
   const [maxStepUnlocked, setMaxStepUnlocked] = useState(1);
   const [analysisRunning, setAnalysisRunning] = useState(false);
@@ -27,14 +33,23 @@ export default function App() {
   const [auditRunning, setAuditRunning] = useState(false);
   const [auditProgress, setAuditProgress] = useState(0);
   const [auditCards, setAuditCards] = useState(() => AUDIT_OPTIONS.map((option) => ({ ...option })));
-  const [selectedQaId, setSelectedQaId] = useState(ARR_COMMENTARY[0].id);
-  const [qaPulse, setQaPulse] = useState(null);
+
+  const [showArrBoxes, setShowArrBoxes] = useState(true);
+  const [activeArrBoxId, setActiveArrBoxId] = useState(arrBoxes[0]?.id ?? null);
+
   const [docPulse, setDocPulse] = useState(null);
-  const [activeDocTab, setActiveDocTab] = useState('policy');
   const [filterSeverity, setFilterSeverity] = useState([]);
-  const pdfScrollRef = useRef(null);
+  const [activeDocId, setActiveDocId] = useState(caseDocuments[0]?.id ?? '');
+  const [activeDocBoxId, setActiveDocBoxId] = useState(
+    caseDocuments[0]?.overlay?.boxes?.[0]?.id ?? null
+  );
+  const [showDocBoxes, setShowDocBoxes] = useState(true);
+  const [activeFindingId, setActiveFindingId] = useState(null);
+
   const commentaryRefs = useRef({});
   const docViewerRef = useRef(null);
+  const docPdfScrollRef = useRef(null);
+  const findingRefs = useRef({});
 
   useEffect(() => {
     if (!analysisRunning || currentStep !== 2) {
@@ -88,12 +103,6 @@ export default function App() {
   }, [currentStep, analysisRunning, auditRunning]);
 
   useEffect(() => {
-    if (!qaPulse) return;
-    const timer = setTimeout(() => setQaPulse(null), 1200);
-    return () => clearTimeout(timer);
-  }, [qaPulse]);
-
-  useEffect(() => {
     if (!docPulse) return;
     const timer = setTimeout(() => setDocPulse(null), 1200);
     return () => clearTimeout(timer);
@@ -102,6 +111,33 @@ export default function App() {
   useEffect(() => {
     setMaxStepUnlocked((prev) => (currentStep > prev ? currentStep : prev));
   }, [currentStep]);
+
+  const documentsById = useMemo(() => {
+    const entries = caseDocuments.map((doc) => [doc.id, doc]);
+    return new Map(entries);
+  }, []);
+
+  const findingByDocAndBox = useMemo(() => {
+    const map = new Map();
+    auditFindings.forEach((finding) => {
+      if (finding.documentId && finding.boxId) {
+        map.set(`${finding.documentId}:${finding.boxId}`, finding);
+      }
+    });
+    return map;
+  }, []);
+
+  const activeDocument = documentsById.get(activeDocId) ?? caseDocuments[0] ?? null;
+  const activeDocBoxes = activeDocument?.overlay?.boxes ?? [];
+
+  useEffect(() => {
+    const doc = documentsById.get(activeDocId);
+    if (!doc) return;
+    const fallbackBox = doc.overlay?.boxes?.[0]?.id ?? null;
+    if (!doc.overlay?.boxes?.some((box) => box.id === activeDocBoxId)) {
+      setActiveDocBoxId(fallbackBox);
+    }
+  }, [activeDocId, documentsById, activeDocBoxId]);
 
   const analysisStageIndex = Math.min(
     ARR_PROCESSING_STEPS.length - 1,
@@ -117,20 +153,27 @@ export default function App() {
     Math.floor((auditProgress / 100) * AUDIT_PROCESSING_STEPS.length)
   );
 
-  const severityCounts = useMemo(() => FINDING_SUMMARY, []);
+  const severityCounts = useMemo(() => buildSummaryCards(), []);
 
   const filteredFindings =
     filterSeverity.length === 0
-      ? AUDIT_FINDINGS
-      : AUDIT_FINDINGS.filter((finding) => filterSeverity.includes(finding.severity));
+      ? auditFindings
+      : auditFindings.filter((finding) => filterSeverity.includes(finding.severity));
 
   const hiddenFindings =
-    filterSeverity.length === 0 ? 0 : Math.max(AUDIT_FINDINGS.length - filteredFindings.length, 0);
+    filterSeverity.length === 0 ? 0 : Math.max(auditFindings.length - filteredFindings.length, 0);
 
   const selectedAudits = auditCards.filter((audit) => audit.selected);
 
-  const currentDocument =
-    DOCUMENT_TABS.find((doc) => doc.id === activeDocTab) ?? DOCUMENT_TABS[0] ?? null;
+  useEffect(() => {
+    if (filteredFindings.length === 0) {
+      setActiveFindingId(null);
+      return;
+    }
+    if (!filteredFindings.some((finding) => finding.id === activeFindingId)) {
+      setActiveFindingId(filteredFindings[0].id);
+    }
+  }, [filteredFindings, activeFindingId]);
 
   const handleNavigate = (targetStep) => {
     if (targetStep <= maxStepUnlocked) {
@@ -157,25 +200,12 @@ export default function App() {
     );
   };
 
-  const handleSelectQa = (qaId) => {
-    setSelectedQaId(qaId);
-    const qa = ARR_COMMENTARY.find((item) => item.id === qaId);
-
-    if (pdfScrollRef.current && qa) {
-      const scrollHeight = pdfScrollRef.current.scrollHeight - pdfScrollRef.current.clientHeight;
-      const targetTop = (qa.boundingBox.top / 100) * pdfScrollRef.current.scrollHeight - 80;
-      pdfScrollRef.current.scrollTo({
-        top: Math.min(Math.max(targetTop, 0), scrollHeight),
-        behavior: 'smooth'
-      });
-    }
-
-    const node = commentaryRefs.current[qaId];
+  const handleSelectQa = (boxId) => {
+    setActiveArrBoxId(boxId);
+    const node = commentaryRefs.current[boxId];
     if (node) {
       node.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
-
-    setQaPulse(qaId);
   };
 
   const handleToggleFilter = (severity) => {
@@ -184,11 +214,42 @@ export default function App() {
     );
   };
 
-  const handleViewDocument = (documentId) => {
-    setActiveDocTab(documentId);
+  const handleSelectDocTab = (docId) => {
+    setActiveDocId(docId);
+    const doc = documentsById.get(docId);
+    setActiveDocBoxId(doc?.overlay?.boxes?.[0]?.id ?? null);
+    const firstFinding = auditFindings.find((finding) => finding.documentId === docId);
+    setActiveFindingId(firstFinding?.id ?? null);
+  };
+
+  const handleViewDocument = (documentId, boxId, findingId) => {
+    setActiveDocId(documentId);
+    const doc = documentsById.get(documentId);
+    const fallbackBox = boxId ?? doc?.overlay?.boxes?.[0]?.id ?? null;
+    setActiveDocBoxId(fallbackBox);
+    const lookupKey = `${documentId}:${fallbackBox}`;
+    const resolvedFinding = findingId
+      ? auditFindings.find((item) => item.id === findingId)
+      : findingByDocAndBox.get(lookupKey);
+    setActiveFindingId(resolvedFinding?.id ?? null);
+    if (resolvedFinding?.id && findingRefs.current[resolvedFinding.id]) {
+      findingRefs.current[resolvedFinding.id].scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
     setDocPulse(documentId);
     if (docViewerRef.current) {
       docViewerRef.current.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+  };
+
+  const handleSelectDocBox = (boxId) => {
+    setActiveDocBoxId(boxId);
+    const key = `${activeDocId}:${boxId}`;
+    const match = findingByDocAndBox.get(key);
+    if (match) {
+      setActiveFindingId(match.id);
+      if (findingRefs.current[match.id]) {
+        findingRefs.current[match.id].scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
     }
   };
 
@@ -220,38 +281,31 @@ export default function App() {
         <div className="panel pdf-panel">
           <div className="panel-header">
             <div>
-              <h3>ARR_2022.pdf</h3>
-              <p className="panel-subtitle">Click any bounding box to jump to the commentary.</p>
+              <h3>{arrOverlay.source.displayName}</h3>
+              <p className="panel-subtitle">{arrOverlay.source.summary}</p>
             </div>
-            <a href={ARR_PDF_URL} target="_blank" rel="noreferrer" className="link-button">
-              Open PDF ↗
-            </a>
+            <div className="overlay-controls">
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={showArrBoxes}
+                  onChange={(event) => setShowArrBoxes(event.target.checked)}
+                />
+                <span>Show highlights</span>
+              </label>
+              <a href={ARR_PDF_URL} target="_blank" rel="noreferrer" className="link-button">
+                Open PDF ↗
+              </a>
+            </div>
           </div>
-          <div className="pdf-frame" ref={pdfScrollRef}>
-            <object className="pdf-embed" data={`${ARR_PDF_URL}#toolbar=0`} type="application/pdf">
-              <p>Your browser cannot display embedded PDFs. Download instead.</p>
-            </object>
-            <div className="pdf-overlay">
-              {ARR_COMMENTARY.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`pdf-box severity-${item.severity} ${
-                    selectedQaId === item.id ? 'active' : ''
-                  } ${qaPulse === item.id ? 'pulse' : ''}`}
-                  style={{
-                    top: `${item.boundingBox.top}%`,
-                    left: `${item.boundingBox.left}%`,
-                    width: `${item.boundingBox.width}%`,
-                    height: `${item.boundingBox.height}%`
-                  }}
-                  onClick={() => handleSelectQa(item.id)}
-                  aria-label={`Highlight ${item.id}`}
-                >
-                  {item.id}
-                </button>
-              ))}
-            </div>
+          <div className="pdf-overlay-panel">
+            <PdfOverlayViewer
+              pdfUrl={ARR_PDF_URL}
+              boxes={arrBoxes}
+              showBoxes={showArrBoxes}
+              activeBoxId={activeArrBoxId}
+              onSelectBox={handleSelectQa}
+            />
           </div>
         </div>
         <div className="panel commentary-panel">
@@ -261,15 +315,25 @@ export default function App() {
               <p className="panel-subtitle">Bidirectional sync with the PDF view.</p>
             </div>
           </div>
+          {Array.isArray(arrOverlay.insights) && arrOverlay.insights.length > 0 ? (
+            <div className="insights-card">
+              <h4>ARR Insights</h4>
+              <ul>
+                {arrOverlay.insights.map((insight, index) => (
+                  <li key={`insight-${index}`}>{insight}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <div className="commentary-list">
-            {ARR_COMMENTARY.map((item) => (
+            {arrBoxes.map((item) => (
               <article
                 key={item.id}
                 ref={(node) => {
                   commentaryRefs.current[item.id] = node;
                 }}
                 className={`commentary-item severity-${item.severity} ${
-                  selectedQaId === item.id ? 'active' : ''
+                  activeArrBoxId === item.id ? 'active' : ''
                 }`}
                 onClick={() => handleSelectQa(item.id)}
               >
@@ -278,7 +342,7 @@ export default function App() {
                   <span className={`severity-pill ${item.severity}`}>{item.severity}</span>
                 </div>
                 <h4>{item.title}</h4>
-                <p>{item.detail}</p>
+                <p>{item.details}</p>
                 <button type="button" className="link-button ghost">
                   Click to view in PDF
                 </button>
@@ -309,7 +373,7 @@ export default function App() {
               path={ARR_CONNECTION.path}
               lastSynced={ARR_CONNECTION.lastSynced}
             />
-            <div className='document-detection'>
+            <div className="document-detection">
               <div className="document-icon">📋</div>
               <h3>{ARR_CONNECTION.document.name}</h3>
               <p className="document-filename">{ARR_CONNECTION.document.filename}</p>
@@ -358,19 +422,27 @@ export default function App() {
                   type="button"
                   className={`audit-card ${audit.selected ? 'selected' : ''}`}
                   onClick={() => toggleAuditSelection(audit.id)}
+                  aria-pressed={audit.selected}
                 >
-                  <div className="audit-card__header">
-                    <h3>{audit.title}</h3>
-                    {audit.arrFlags ? (
-                      <span className="audit-flags">ARR flags: {audit.arrFlags.join(', ')}</span>
-                    ) : (
-                      <span className="audit-badge">{audit.badge}</span>
-                    )}
+                  <div className="audit-card__top">
+                    <div className={`audit-checkbox${audit.selected ? ' checked' : ''}`}>
+                      <span>✓</span>
+                    </div>
+                    <div>
+                      <div className="audit-card__title-row">
+                        <h3>{audit.title}</h3>
+                        {audit.arrFlags ? (
+                          <span className="audit-flags">ARR flags: {audit.arrFlags.join(', ')}</span>
+                        ) : (
+                          <span className="audit-badge">{audit.badge}</span>
+                        )}
+                      </div>
+                      <p className="audit-description">{audit.description}</p>
+                    </div>
                   </div>
-                  <p>{audit.description}</p>
                   <p className="audit-stats">{audit.stats}</p>
                   <div className="audit-select-indicator">
-                    {audit.selected ? 'Selected' : 'Click to include'}
+                    {audit.selected ? 'Ready to run' : 'Select to include'}
                   </div>
                 </button>
               ))}
@@ -427,6 +499,62 @@ export default function App() {
               ))}
             </div>
             <div className="split-view findings-view">
+              <div className="panel doc-panel" ref={docViewerRef}>
+                <div className="doc-tabs">
+                  {caseDocuments.map((doc) => (
+                    <button
+                      key={doc.id}
+                      type="button"
+                      className={`doc-tab ${activeDocId === doc.id ? 'active' : ''} severity-${doc.severity} ${
+                        docPulse === doc.id ? 'pulse' : ''
+                      }`}
+                      onClick={() => handleSelectDocTab(doc.id)}
+                    >
+                      <span className="status-dot" />
+                      {doc.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="overlay-controls">
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      checked={showDocBoxes}
+                      onChange={(event) => setShowDocBoxes(event.target.checked)}
+                    />
+                    <span>Show highlights</span>
+                  </label>
+                </div>
+                <div className="pdf-overlay-panel">
+                  <PdfOverlayViewer
+                    pdfUrl={activeDocument?.pdf}
+                    boxes={activeDocBoxes}
+                    showBoxes={showDocBoxes}
+                    activeBoxId={activeDocBoxId}
+                    onSelectBox={handleSelectDocBox}
+                    scrollRef={docPdfScrollRef}
+                  />
+                </div>
+                <div className="doc-details">
+                  {activeDocument ? (
+                    <>
+                      <h3>{activeDocument.label}</h3>
+                      <p className="panel-subtitle">{activeDocument.filename}</p>
+                      {activeDocument.findings?.length ? (
+                        <ul>
+                          {activeDocument.findings.map((finding) => (
+                            <li key={finding.id ?? finding.title}>{finding.title}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="muted">No issues detected in this document.</p>
+                      )}
+                    </>
+                  ) : (
+                    <p>No document selected.</p>
+                  )}
+                </div>
+              </div>
               <div className="panel findings-panel">
                 <div className="panel-header">
                   <div>
@@ -438,70 +566,40 @@ export default function App() {
                   <div className="filter-hint">{hiddenFindings} findings hidden by filter.</div>
                 ) : null}
                 <div className="findings-list">
-                  {filteredFindings.map((finding) => (
-                    <article key={finding.id} className={`finding-item severity-${finding.severity}`}>
-                      <div className="finding-meta">
-                        <span className="badge">{finding.rule}</span>
-                        <span className={`severity-pill ${finding.severity}`}>{finding.severity}</span>
-                      </div>
-                      <h4>
-                        {finding.title} — <span className="muted">{finding.matter}</span>
-                      </h4>
-                      <p>{finding.detail}</p>
-                      <div className="finding-actions">
-                        {finding.actions.policy ? (
+                  {filteredFindings.map((finding) => {
+                    const relatedDoc = documentsById.get(finding.documentId);
+                    const isActive = activeFindingId === finding.id;
+                    return (
+                      <article
+                        key={finding.id}
+                        ref={(node) => {
+                          findingRefs.current[finding.id] = node || null;
+                        }}
+                        className={`finding-item severity-${finding.severity} ${isActive ? 'active' : ''}`}
+                      >
+                        <div className="finding-meta">
+                          <span className="badge">{finding.id}</span>
+                          <span className={`severity-pill ${finding.severity}`}>{finding.severity}</span>
+                        </div>
+                        <h4>
+                          {finding.title} — <span className="muted">{relatedDoc?.label ?? 'Document'}</span>
+                        </h4>
+                        <p>{finding.detail || 'See linked document for further detail.'}</p>
+                        <div className="finding-actions">
                           <button
                             type="button"
                             className="btn ghost"
-                            onClick={() => handleViewDocument('policy')}
+                            onClick={() => {
+                              setActiveFindingId(finding.id);
+                              handleViewDocument(finding.documentId, finding.boxId, finding.id);
+                            }}
                           >
-                            View in Policy
+                            View in Document
                           </button>
-                        ) : null}
-                        {finding.actions.matter ? (
-                          <button
-                            type="button"
-                            className="btn ghost"
-                            onClick={() => handleViewDocument(`matter_${finding.actions.matter.split('_')[1]}`)}
-                          >
-                            View in Matter
-                          </button>
-                        ) : null}
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </div>
-              <div className="panel doc-panel" ref={docViewerRef}>
-                <div className="doc-tabs">
-                  {DOCUMENT_TABS.map((doc) => (
-                    <button
-                      key={doc.id}
-                      type="button"
-                      className={`doc-tab ${activeDocTab === doc.id ? 'active' : ''} severity-${doc.status} ${
-                        docPulse === doc.id ? 'pulse' : ''
-                      }`}
-                      onClick={() => setActiveDocTab(doc.id)}
-                    >
-                      <span className="status-dot" />
-                      {doc.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="doc-details">
-                  {currentDocument ? (
-                    <>
-                      <h3>{currentDocument.label}</h3>
-                      <p className="panel-subtitle">{currentDocument.summary}</p>
-                      <ul>
-                        {currentDocument.highlights.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    </>
-                  ) : (
-                    <p>No document selected.</p>
-                  )}
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               </div>
             </div>

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import { NAV_TABS } from '../data/mockData.js';
 
-const LOGO_SRC = '/assets/sumplexity_horizontal_logo.png';
+const LOGO_SRC = 'assets/sumplexity_horizontal_logo.png';
 
 export default function AppHeader({ currentStep, onNavigate, maxStepUnlocked }) {
   const resolveActiveTab = () => {
