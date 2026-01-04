@@ -1,0 +1,31 @@
+{
+  "file_id": "00_Firm_AML_Policy",
+  "filename": "00_Firm_AML_Policy.pdf",
+  "document_type": "AML Policy",
+  "severity": "critical",
+  "findings": [
+    {
+      "id": "CRIT-003",
+      "type": "critical",
+      "title": "Policy Deviation from CLC Guidance - Utility Bill Validity Period",
+      
+      "source": {
+        "file": "00_Firm_AML_Policy.pdf",
+        "page": 1,
+        "section": "Section 2.3.2",
+        "text": "Policy permits utility bills dated within the last 6 months for address verification",
+        "bbox": [43.0, 493.4, 504.6, 526.5]
+      },
+      
+      "reference": {
+        "file": "CLC_Anti_Money_Laundering_Guidance_Jan2025.pdf",
+        "page": 2,
+        "section": "Section 2, Procedure 3.2",
+        "text": "a person of that name lives at the address given, for example, by a utility bill less than 3 months old or mortgage statement",
+        "bbox": [90.8, 382.7, 533.7, 406.7]
+      },
+      
+      "deviation": "Firm policy permits utility bills up to 6 months old for address verification, but CLC guidance requires utility bills to be less than 3 months old. This is a direct contradiction of regulatory guidance."
+    }
+  ]
+}

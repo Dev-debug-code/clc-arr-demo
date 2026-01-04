@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AppHeader from './components/AppHeader.jsx';
 import ConnectionBar from './components/ConnectionBar.jsx';
 import StepTimeline from './components/StepTimeline.jsx';
@@ -36,6 +36,7 @@ export default function App() {
 
   const [showArrBoxes, setShowArrBoxes] = useState(true);
   const [activeArrBoxId, setActiveArrBoxId] = useState(arrBoxes[0]?.id ?? null);
+  const [arrFocusSignal, setArrFocusSignal] = useState(0);
 
   const [docPulse, setDocPulse] = useState(null);
   const [filterSeverity, setFilterSeverity] = useState([]);
@@ -45,11 +46,13 @@ export default function App() {
   );
   const [showDocBoxes, setShowDocBoxes] = useState(true);
   const [activeFindingId, setActiveFindingId] = useState(null);
+  const [docFocusSignal, setDocFocusSignal] = useState(0);
 
   const commentaryRefs = useRef({});
   const docViewerRef = useRef(null);
   const docPdfScrollRef = useRef(null);
   const findingRefs = useRef({});
+  const pendingDocBoxRef = useRef(null);
 
   useEffect(() => {
     if (!analysisRunning || currentStep !== 2) {
@@ -111,6 +114,12 @@ export default function App() {
   useEffect(() => {
     setMaxStepUnlocked((prev) => (currentStep > prev ? currentStep : prev));
   }, [currentStep]);
+
+  useEffect(() => {
+    if (!activeArrBoxId && arrBoxes.length > 0) {
+      setActiveArrBoxId(arrBoxes[0].id);
+    }
+  }, [arrBoxes, activeArrBoxId]);
 
   const documentsById = useMemo(() => {
     const entries = caseDocuments.map((doc) => [doc.id, doc]);
@@ -200,13 +209,20 @@ export default function App() {
     );
   };
 
-  const handleSelectQa = (boxId) => {
-    setActiveArrBoxId(boxId);
-    const node = commentaryRefs.current[boxId];
-    if (node) {
-      node.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
-  };
+  const handleSelectQa = useCallback(
+    (boxId, { scrollCommentary = true } = {}) => {
+      if (!boxId) return;
+      setActiveArrBoxId(boxId);
+      setArrFocusSignal((prev) => prev + 1);
+      if (scrollCommentary) {
+        const node = commentaryRefs.current[boxId];
+        if (node) {
+          node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      }
+    },
+    []
+  );
 
   const handleToggleFilter = (severity) => {
     setFilterSeverity((prev) =>
@@ -214,19 +230,33 @@ export default function App() {
     );
   };
 
-  const handleSelectDocTab = (docId) => {
-    setActiveDocId(docId);
-    const doc = documentsById.get(docId);
-    setActiveDocBoxId(doc?.overlay?.boxes?.[0]?.id ?? null);
-    const firstFinding = auditFindings.find((finding) => finding.documentId === docId);
-    setActiveFindingId(firstFinding?.id ?? null);
-  };
+  const handleSelectDocBox = useCallback(
+    (boxId, { scrollFinding = true } = {}) => {
+      if (!boxId) return;
+      setActiveDocBoxId(boxId);
+      setDocFocusSignal((prev) => prev + 1);
+      const key = `${activeDocId}:${boxId}`;
+      const match = findingByDocAndBox.get(key);
+      if (match && scrollFinding) {
+        setActiveFindingId(match.id);
+        if (findingRefs.current[match.id]) {
+          findingRefs.current[match.id].scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      }
+    },
+    [activeDocId, findingByDocAndBox]
+  );
 
   const handleViewDocument = (documentId, boxId, findingId) => {
-    setActiveDocId(documentId);
     const doc = documentsById.get(documentId);
     const fallbackBox = boxId ?? doc?.overlay?.boxes?.[0]?.id ?? null;
-    setActiveDocBoxId(fallbackBox);
+    if (documentId === activeDocId) {
+      handleSelectDocBox(fallbackBox);
+    } else {
+      pendingDocBoxRef.current = fallbackBox;
+      setActiveDocId(documentId);
+      setActiveDocBoxId(fallbackBox);
+    }
     const lookupKey = `${documentId}:${fallbackBox}`;
     const resolvedFinding = findingId
       ? auditFindings.find((item) => item.id === findingId)
@@ -241,17 +271,68 @@ export default function App() {
     }
   };
 
-  const handleSelectDocBox = (boxId) => {
-    setActiveDocBoxId(boxId);
-    const key = `${activeDocId}:${boxId}`;
-    const match = findingByDocAndBox.get(key);
-    if (match) {
-      setActiveFindingId(match.id);
-      if (findingRefs.current[match.id]) {
-        findingRefs.current[match.id].scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const handleSelectDocTab = useCallback(
+    (docId) => {
+      setActiveDocId(docId);
+      const doc = documentsById.get(docId);
+      const firstBoxId = doc?.overlay?.boxes?.[0]?.id ?? null;
+      if (firstBoxId) {
+        setActiveDocBoxId(firstBoxId);
+        handleSelectDocBox(firstBoxId, { scrollFinding: false });
+      } else {
+        setActiveDocBoxId(null);
       }
+      const firstFinding = auditFindings.find((finding) => finding.documentId === docId);
+      setActiveFindingId(firstFinding?.id ?? null);
+    },
+    [documentsById, auditFindings, handleSelectDocBox]
+  );
+
+  useEffect(() => {
+    if (currentStep !== 3) {
+      return;
     }
-  };
+    const firstBoxId = arrBoxes[0]?.id;
+    if (!firstBoxId) return;
+    handleSelectQa(firstBoxId);
+  }, [currentStep, arrBoxes, handleSelectQa]);
+
+  useEffect(() => {
+    if (currentStep !== 6) return;
+    const pendingBoxId = pendingDocBoxRef.current;
+    if (pendingBoxId && activeDocBoxes.some((box) => box.id === pendingBoxId)) {
+      pendingDocBoxRef.current = null;
+      handleSelectDocBox(pendingBoxId);
+      return;
+    }
+    const firstBoxId = activeDocBoxes[0]?.id;
+    if (firstBoxId) {
+      handleSelectDocBox(firstBoxId, { scrollFinding: false });
+    }
+  }, [currentStep, activeDocBoxes, handleSelectDocBox]);
+
+  useEffect(() => {
+    if (currentStep !== 3) {
+      return;
+    }
+    const firstBoxId = arrBoxes[0]?.id;
+    if (!firstBoxId) return;
+    handleSelectQa(firstBoxId);
+  }, [currentStep, arrBoxes, handleSelectQa]);
+
+  useEffect(() => {
+    if (currentStep !== 6) return;
+    const pendingBoxId = pendingDocBoxRef.current;
+    if (pendingBoxId && activeDocBoxes.some((box) => box.id === pendingBoxId)) {
+      pendingDocBoxRef.current = null;
+      handleSelectDocBox(pendingBoxId);
+      return;
+    }
+    const firstBoxId = activeDocBoxes[0]?.id;
+    if (firstBoxId) {
+      handleSelectDocBox(firstBoxId, { scrollFinding: false });
+    }
+  }, [currentStep, activeDocBoxes, handleSelectDocBox]);
 
   const renderProgressSteps = (steps, stageIndex) => (
     <div className="progress-steps">
@@ -305,6 +386,7 @@ export default function App() {
               showBoxes={showArrBoxes}
               activeBoxId={activeArrBoxId}
               onSelectBox={handleSelectQa}
+              focusSignal={arrFocusSignal}
             />
           </div>
         </div>
@@ -525,6 +607,11 @@ export default function App() {
                     <span>Show highlights</span>
                   </label>
                 </div>
+                {activeDocBoxes.length === 0 ? (
+                  <div className="alert alert-warning small">
+                    No bounding boxes are available for this document yet.
+                  </div>
+                ) : null}
                 <div className="pdf-overlay-panel">
                   <PdfOverlayViewer
                     pdfUrl={activeDocument?.pdf}
@@ -533,6 +620,7 @@ export default function App() {
                     activeBoxId={activeDocBoxId}
                     onSelectBox={handleSelectDocBox}
                     scrollRef={docPdfScrollRef}
+                    focusSignal={docFocusSignal}
                   />
                 </div>
                 <div className="doc-details">
@@ -570,12 +658,17 @@ export default function App() {
                     const relatedDoc = documentsById.get(finding.documentId);
                     const isActive = activeFindingId === finding.id;
                     return (
-                      <article
+                      <button
                         key={finding.id}
                         ref={(node) => {
                           findingRefs.current[finding.id] = node || null;
                         }}
+                        type="button"
                         className={`finding-item severity-${finding.severity} ${isActive ? 'active' : ''}`}
+                        onClick={() => {
+                          setActiveFindingId(finding.id);
+                          handleViewDocument(finding.documentId, finding.boxId, finding.id);
+                        }}
                       >
                         <div className="finding-meta">
                           <span className="badge">{finding.id}</span>
@@ -585,19 +678,7 @@ export default function App() {
                           {finding.title} — <span className="muted">{relatedDoc?.label ?? 'Document'}</span>
                         </h4>
                         <p>{finding.detail || 'See linked document for further detail.'}</p>
-                        <div className="finding-actions">
-                          <button
-                            type="button"
-                            className="btn ghost"
-                            onClick={() => {
-                              setActiveFindingId(finding.id);
-                              handleViewDocument(finding.documentId, finding.boxId, finding.id);
-                            }}
-                          >
-                            View in Document
-                          </button>
-                        </div>
-                      </article>
+                      </button>
                     );
                   })}
                 </div>

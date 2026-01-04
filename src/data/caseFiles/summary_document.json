@@ -1,0 +1,81 @@
+{
+  "case": {
+    "reference": "DEMO/2024/001",
+    "client": "Joe Bloggs",
+    "property": "123 Example Street, London SW1 1AA",
+    "price": "£875,000",
+    "type": "Purchase - Cash with Gift"
+  },
+  
+  "summary": {
+    "total_documents": 11,
+    "critical": 3,
+    "warning": 2,
+    "pass": 5,
+    "best_practice": 1
+  },
+  
+  "findings": [
+    {
+      "id": "CRIT-001",
+      "type": "critical",
+      "source_file": "03_Client_Risk_Assessment.pdf",
+      "reference_file": "00_Firm_AML_Policy.pdf",
+      "title": "Incorrect Risk Classification - Overseas Client"
+    },
+    {
+      "id": "CRIT-002",
+      "type": "critical",
+      "source_file": "01_Client_ID_Verification.pdf",
+      "reference_file": "CLC_Anti_Money_Laundering_Guidance_Jan2025.pdf",
+      "title": "Identity Document Does Not Match Client"
+    },
+    {
+      "id": "CRIT-003",
+      "type": "critical",
+      "source_file": "00_Firm_AML_Policy.pdf",
+      "reference_file": "CLC_Anti_Money_Laundering_Guidance_Jan2025.pdf",
+      "title": "Policy Deviation from CLC Guidance - Utility Bill Validity Period"
+    },
+    {
+      "id": "WARN-001",
+      "type": "warning",
+      "source_file": "05_Bank_Statements_Client.pdf",
+      "reference_file": "00_Firm_AML_Policy.pdf",
+      "title": "Insufficient Bank Statement Period"
+    },
+    {
+      "id": "WARN-002",
+      "type": "warning",
+      "source_file": "08_Giftor_Source_of_Funds.pdf",
+      "reference_file": "00_Firm_AML_Policy.pdf",
+      "title": "No Supporting Evidence for Giftor Source of Wealth"
+    },
+    {
+      "id": "BP-001",
+      "type": "best_practice",
+      "source_file": "10_PEP_Screening.pdf",
+      "reference_file": "00_Firm_AML_Policy.pdf",
+      "title": "Exemplary PEP Screening Procedures"
+    }
+  ],
+  
+  "documents": [
+    {"file": "00_Firm_AML_Policy.pdf", "type": "AML Policy", "severity": "critical"},
+    {"file": "01_Client_ID_Verification.pdf", "type": "Identity Verification", "severity": "critical"},
+    {"file": "02_Proof_of_Address.pdf", "type": "Proof of Address", "severity": "pass"},
+    {"file": "03_Client_Risk_Assessment.pdf", "type": "Client Risk Assessment", "severity": "critical"},
+    {"file": "04_Source_of_Funds_Declaration.pdf", "type": "SOF Declaration", "severity": "pass"},
+    {"file": "05_Bank_Statements_Client.pdf", "type": "Bank Statements", "severity": "warning"},
+    {"file": "06_Gift_Letter.pdf", "type": "Gift Letter", "severity": "pass"},
+    {"file": "07_Giftor_ID_Verification.pdf", "type": "Giftor ID", "severity": "pass"},
+    {"file": "08_Giftor_Source_of_Funds.pdf", "type": "Giftor SOF", "severity": "warning"},
+    {"file": "09_Sanctions_Screening.pdf", "type": "Sanctions Screening", "severity": "pass"},
+    {"file": "10_PEP_Screening.pdf", "type": "PEP Screening", "severity": "pass"}
+  ],
+  
+  "reference_documents": [
+    {"file": "00_Firm_AML_Policy.pdf", "type": "Firm AML Policy"},
+    {"file": "CLC_Anti_Money_Laundering_Guidance_Jan2025.pdf", "type": "CLC Regulatory Guidance"}
+  ]
+}

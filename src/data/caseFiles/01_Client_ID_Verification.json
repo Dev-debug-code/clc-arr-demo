@@ -1,0 +1,31 @@
+{
+  "file_id": "01_Client_ID_Verification",
+  "filename": "01_Client_ID_Verification.pdf",
+  "document_type": "Identity Verification",
+  "severity": "critical",
+  "findings": [
+    {
+      "id": "CRIT-002",
+      "type": "critical",
+      "title": "Identity Document Does Not Match Client",
+      
+      "source": {
+        "file": "01_Client_ID_Verification.pdf",
+        "page": 1,
+        "section": "Client Details / Attached Passport",
+        "text": "Verification form states client is 'Joe Bloggs' but attached passport shows 'SUMMERS, BENEDICT JAMES LAWRENCE'",
+        "bbox": [28.0, 61.9, 390.0, 381.9]
+      },
+      
+      "reference": {
+        "file": "CLC_Anti_Money_Laundering_Guidance_Jan2025.pdf",
+        "page": 2,
+        "section": "Section 2, Procedure 3.1",
+        "text": "the client is the person he or she claims to be, for example, by a current signed passport or current UK photo driving licence or by using an electronic ID system",
+        "bbox": [90.8, 409.7, 492.0, 433.7]
+      },
+      
+      "deviation": "The passport on file belongs to a different person than the client. This is a fundamental CDD failure - the wrong identity document has been verified and attached to the matter file."
+    }
+  ]
+}

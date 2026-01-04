@@ -1,0 +1,31 @@
+{
+  "file_id": "03_Client_Risk_Assessment",
+  "filename": "03_Client_Risk_Assessment.pdf",
+  "document_type": "Client Risk Assessment",
+  "severity": "critical",
+  "findings": [
+    {
+      "id": "CRIT-001",
+      "type": "critical",
+      "title": "Incorrect Risk Classification - Overseas Client",
+      
+      "source": {
+        "file": "03_Client_Risk_Assessment.pdf",
+        "page": 1,
+        "section": "Risk Factor Assessment / Overall Classification",
+        "text": "Client Location shows 'Dubai, UAE (8 years resident)'. Overall classification is STANDARD RISK with Standard CDD selected.",
+        "bbox": [57.0, 449.9, 218.0, 467.6]
+      },
+      
+      "reference": {
+        "file": "00_Firm_AML_Policy.pdf",
+        "page": 1,
+        "section": "Section 3.2.1",
+        "text": "Clients resident outside the UK shall be classified as HIGH RISK and subject to Enhanced Due Diligence regardless of nationality. This includes British nationals who are resident overseas.",
+        "bbox": [43.0, 291.4, 458.8, 324.5]
+      },
+      
+      "deviation": "Client has been resident in Dubai, UAE for 8 years but was classified as STANDARD RISK with only Standard CDD applied. Should have been classified HIGH RISK with Enhanced Due Diligence."
+    }
+  ]
+}

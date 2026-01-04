@@ -928,6 +928,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
+    text-align: left;
+    cursor: pointer;
 }
 
 .finding-item.severity-critical {
@@ -976,6 +978,7 @@ body {
 ------------------------------------------------------------ */
 .doc-panel {
     gap: var(--spacing-lg);
+    min-height: 0;
 }
 
 .doc-tabs {
@@ -1034,6 +1037,15 @@ body {
     padding-bottom: var(--spacing-md);
     color: var(--text-secondary);
     max-height: 260px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    background: var(--bg-white);
+}
+
+.doc-panel .pdf-overlay-panel {
+    flex: 1;
+    min-height: 0;
 }
 
 .doc-details ul {

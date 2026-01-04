@@ -1,0 +1,31 @@
+{
+  "file_id": "08_Giftor_Source_of_Funds",
+  "filename": "08_Giftor_Source_of_Funds.pdf",
+  "document_type": "Giftor Source of Funds",
+  "severity": "warning",
+  "findings": [
+    {
+      "id": "WARN-002",
+      "type": "warning",
+      "title": "No Supporting Evidence for Giftor Source of Wealth",
+      
+      "source": {
+        "file": "08_Giftor_Source_of_Funds.pdf",
+        "page": 1,
+        "section": "Supporting Evidence Checklist / Verification Decision",
+        "text": "Giftor claims £200,000 from pension and property sale. All 6 evidence items marked 'Not obtained'. Verification decision shows 'Accepted on self-declaration' selected.",
+        "bbox": [25.0, 486.8, 420.0, 617.6]
+      },
+      
+      "reference": {
+        "file": "00_Firm_AML_Policy.pdf",
+        "page": 1,
+        "section": "Section 4.3.1",
+        "text": "For gifts exceeding £10,000, self-declaration alone is not sufficient. Documentary evidence of the giftor's source of wealth must be obtained, such as pension statements, bank statements, or property sale completion statements.",
+        "bbox": [43.0, 151.4, 496.6, 194.5]
+      },
+      
+      "deviation": "£200,000 gift accepted on self-declaration alone with no supporting documentary evidence. Policy requires documentary evidence for gifts exceeding £10,000."
+    }
+  ]
+}
