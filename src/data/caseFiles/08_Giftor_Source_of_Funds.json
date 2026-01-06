@@ -14,7 +14,7 @@
         "page": 1,
         "section": "Supporting Evidence Checklist / Verification Decision",
         "text": "Giftor claims £200,000 from pension and property sale. All 6 evidence items marked 'Not obtained'. Verification decision shows 'Accepted on self-declaration' selected.",
-        "bbox": [25.0, 486.8, 420.0, 617.6]
+        "bbox": [12, 475, 452, 617]
       },
       
       "reference": {
@@ -22,7 +22,7 @@
         "page": 1,
         "section": "Section 4.3.1",
         "text": "For gifts exceeding £10,000, self-declaration alone is not sufficient. Documentary evidence of the giftor's source of wealth must be obtained, such as pension statements, bank statements, or property sale completion statements.",
-        "bbox": [43.0, 151.4, 496.6, 194.5]
+        "bbox": [0, 0, 0, 0]
       },
       
       "deviation": "£200,000 gift accepted on self-declaration alone with no supporting documentary evidence. Policy requires documentary evidence for gifts exceeding £10,000."

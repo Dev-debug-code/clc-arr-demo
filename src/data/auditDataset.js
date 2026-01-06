@@ -47,11 +47,13 @@ function buildOverlayBoxes(doc) {
         return null;
       }
       const page = Number.isFinite(finding?.source?.page) ? finding.source.page : 1;
+      const zeroBasedPage = Math.max(Math.round(page - 1), 0);
       const id = finding.id ?? `${doc.file_id || doc.filename}-box-${index + 1}`;
       return {
         id,
         bbox,
-        pageno: page,
+        page,
+        pageno: zeroBasedPage,
         category: finding?.source?.section ?? doc.document_type,
         severity: normaliseSeverity(finding?.type, doc.severity),
         title: finding.title ?? doc.document_type,

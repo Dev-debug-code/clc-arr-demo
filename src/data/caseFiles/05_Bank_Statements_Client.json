@@ -11,10 +11,10 @@
       
       "source": {
         "file": "05_Bank_Statements_Client.pdf",
-        "page": 1,
+        "page": 2,
         "section": "Statement Header",
         "text": "Bank statements cover September 2024 to October 2024 only - a total of 2 months coverage for an £875,000 transaction by an overseas client.",
-        "bbox": [340.0, 742.8, 565.0, 762.8]
+        "bbox": [346, 744, 532, 769]
       },
       
       "reference": {
@@ -22,7 +22,7 @@
         "page": 1,
         "section": "Section 4.1.1",
         "text": "For high-value transactions exceeding £500,000 or overseas clients, a minimum of 6 months bank statements must be obtained to evidence legitimate accumulation of funds.",
-        "bbox": [43.0, 218.4, 505.5, 251.5]
+        "bbox": [0, 0, 0, 0]
       },
       
       "deviation": "Only 2 months of bank statements obtained. Transaction value is £875,000 and client is overseas resident - policy requires minimum 6 months coverage."

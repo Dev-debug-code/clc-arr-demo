@@ -14,7 +14,8 @@
         "page": 1,
         "section": "Section 2.3.2",
         "text": "Policy permits utility bills dated within the last 6 months for address verification",
-        "bbox": [43.0, 493.4, 504.6, 526.5]
+        "bbox": [40, 497, 556, 530],
+        "BL": ""
       },
       
       "reference": {
@@ -22,7 +23,7 @@
         "page": 2,
         "section": "Section 2, Procedure 3.2",
         "text": "a person of that name lives at the address given, for example, by a utility bill less than 3 months old or mortgage statement",
-        "bbox": [90.8, 382.7, 533.7, 406.7]
+        "bbox": [0, 0, 0, 0]
       },
       
       "deviation": "Firm policy permits utility bills up to 6 months old for address verification, but CLC guidance requires utility bills to be less than 3 months old. This is a direct contradiction of regulatory guidance."

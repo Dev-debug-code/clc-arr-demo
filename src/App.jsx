@@ -20,7 +20,7 @@ import {
   buildSummaryCards
 } from './data/auditDataset.js';
 
-const ARR_PDF_URL = 'assets/CLC_ARR_2022.pdf';
+const ARR_PDF_URL = 'assets/Handwritten_ARR_updated.pdf';
 
 export default function App() {
   const arrOverlay = arrOverlayPlaceholder;
@@ -184,6 +184,22 @@ export default function App() {
     }
   }, [filteredFindings, activeFindingId]);
 
+  const totalSteps = STEP_CONFIG.length;
+  const canGoPrevious = currentStep > 1;
+  const canGoNext = currentStep < Math.min(maxStepUnlocked, totalSteps);
+
+  const handlePrevious = () => {
+    if (canGoPrevious) {
+      setCurrentStep((prev) => Math.max(prev - 1, 1));
+    }
+  };
+
+  const handleNext = () => {
+    if (canGoNext) {
+      setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
+    }
+  };
+
   const handleNavigate = (targetStep) => {
     if (targetStep <= maxStepUnlocked) {
       setCurrentStep(targetStep);
@@ -224,6 +240,12 @@ export default function App() {
     []
   );
 
+  useEffect(() => {
+    const firstBoxId = arrBoxes[0]?.id;
+    if (!firstBoxId) return;
+    handleSelectQa(firstBoxId, { scrollCommentary: false });
+  }, [arrBoxes, handleSelectQa]);
+
   const handleToggleFilter = (severity) => {
     setFilterSeverity((prev) =>
       prev.includes(severity) ? prev.filter((item) => item !== severity) : [...prev, severity]
@@ -231,36 +253,55 @@ export default function App() {
   };
 
   const handleSelectDocBox = useCallback(
-    (boxId, { scrollFinding = true } = {}) => {
-      if (!boxId) return;
-      setActiveDocBoxId(boxId);
+    (boxId, { scrollFinding = true, documentId } = {}) => {
+      const targetDocId = documentId ?? activeDocId;
+      const doc = documentsById.get(targetDocId);
+      const availableBoxes = doc?.overlay?.boxes ?? [];
+
+      if (availableBoxes.length === 0) {
+        setActiveDocBoxId(null);
+        return;
+      }
+
+      const resolvedBoxId =
+        boxId && availableBoxes.some((box) => box.id === boxId) ? boxId : availableBoxes[0].id;
+
+      setActiveDocBoxId(resolvedBoxId);
       setDocFocusSignal((prev) => prev + 1);
-      const key = `${activeDocId}:${boxId}`;
+
+      const key = `${targetDocId}:${resolvedBoxId}`;
       const match = findingByDocAndBox.get(key);
       if (match && scrollFinding) {
         setActiveFindingId(match.id);
-        if (findingRefs.current[match.id]) {
-          findingRefs.current[match.id].scrollIntoView({ block: 'center', behavior: 'smooth' });
+        const node = findingRefs.current[match.id];
+        if (node) {
+          node.scrollIntoView({ block: 'center', behavior: 'smooth' });
         }
       }
     },
-    [activeDocId, findingByDocAndBox]
+    [activeDocId, documentsById, findingByDocAndBox]
   );
 
   const handleViewDocument = (documentId, boxId, findingId) => {
     const doc = documentsById.get(documentId);
-    const fallbackBox = boxId ?? doc?.overlay?.boxes?.[0]?.id ?? null;
+    const availableBoxes = doc?.overlay?.boxes ?? [];
+    const fallbackBox =
+      boxId && availableBoxes.some((entry) => entry.id === boxId)
+        ? boxId
+        : availableBoxes[0]?.id ?? null;
     if (documentId === activeDocId) {
-      handleSelectDocBox(fallbackBox);
+      handleSelectDocBox(fallbackBox, { documentId });
     } else {
       pendingDocBoxRef.current = fallbackBox;
       setActiveDocId(documentId);
-      setActiveDocBoxId(fallbackBox);
+      setActiveDocBoxId(fallbackBox ?? null);
     }
-    const lookupKey = `${documentId}:${fallbackBox}`;
+    const lookupKey = fallbackBox ? `${documentId}:${fallbackBox}` : null;
     const resolvedFinding = findingId
       ? auditFindings.find((item) => item.id === findingId)
-      : findingByDocAndBox.get(lookupKey);
+      : lookupKey
+        ? findingByDocAndBox.get(lookupKey)
+        : null;
     setActiveFindingId(resolvedFinding?.id ?? null);
     if (resolvedFinding?.id && findingRefs.current[resolvedFinding.id]) {
       findingRefs.current[resolvedFinding.id].scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -276,12 +317,7 @@ export default function App() {
       setActiveDocId(docId);
       const doc = documentsById.get(docId);
       const firstBoxId = doc?.overlay?.boxes?.[0]?.id ?? null;
-      if (firstBoxId) {
-        setActiveDocBoxId(firstBoxId);
-        handleSelectDocBox(firstBoxId, { scrollFinding: false });
-      } else {
-        setActiveDocBoxId(null);
-      }
+      handleSelectDocBox(firstBoxId, { scrollFinding: false, documentId: docId });
       const firstFinding = auditFindings.find((finding) => finding.documentId === docId);
       setActiveFindingId(firstFinding?.id ?? null);
     },
@@ -300,37 +336,10 @@ export default function App() {
   useEffect(() => {
     if (currentStep !== 6) return;
     const pendingBoxId = pendingDocBoxRef.current;
-    if (pendingBoxId && activeDocBoxes.some((box) => box.id === pendingBoxId)) {
-      pendingDocBoxRef.current = null;
-      handleSelectDocBox(pendingBoxId);
-      return;
-    }
-    const firstBoxId = activeDocBoxes[0]?.id;
-    if (firstBoxId) {
-      handleSelectDocBox(firstBoxId, { scrollFinding: false });
-    }
-  }, [currentStep, activeDocBoxes, handleSelectDocBox]);
-
-  useEffect(() => {
-    if (currentStep !== 3) {
-      return;
-    }
-    const firstBoxId = arrBoxes[0]?.id;
-    if (!firstBoxId) return;
-    handleSelectQa(firstBoxId);
-  }, [currentStep, arrBoxes, handleSelectQa]);
-
-  useEffect(() => {
-    if (currentStep !== 6) return;
-    const pendingBoxId = pendingDocBoxRef.current;
-    if (pendingBoxId && activeDocBoxes.some((box) => box.id === pendingBoxId)) {
-      pendingDocBoxRef.current = null;
-      handleSelectDocBox(pendingBoxId);
-      return;
-    }
-    const firstBoxId = activeDocBoxes[0]?.id;
-    if (firstBoxId) {
-      handleSelectDocBox(firstBoxId, { scrollFinding: false });
+    pendingDocBoxRef.current = null;
+    const nextBoxId = pendingBoxId ?? activeDocBoxes[0]?.id ?? null;
+    if (nextBoxId || activeDocBoxes.length === 0) {
+      handleSelectDocBox(nextBoxId, { scrollFinding: false });
     }
   }, [currentStep, activeDocBoxes, handleSelectDocBox]);
 
@@ -381,6 +390,7 @@ export default function App() {
           </div>
           <div className="pdf-overlay-panel">
             <PdfOverlayViewer
+              key="arr-pdf-viewer"
               pdfUrl={ARR_PDF_URL}
               boxes={arrBoxes}
               showBoxes={showArrBoxes}
@@ -582,65 +592,70 @@ export default function App() {
             </div>
             <div className="split-view findings-view">
               <div className="panel doc-panel" ref={docViewerRef}>
-                <div className="doc-tabs">
-                  {caseDocuments.map((doc) => (
-                    <button
-                      key={doc.id}
-                      type="button"
-                      className={`doc-tab ${activeDocId === doc.id ? 'active' : ''} severity-${doc.severity} ${
-                        docPulse === doc.id ? 'pulse' : ''
-                      }`}
-                      onClick={() => handleSelectDocTab(doc.id)}
-                    >
-                      <span className="status-dot" />
-                      {doc.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="overlay-controls">
-                  <label className="toggle">
-                    <input
-                      type="checkbox"
-                      checked={showDocBoxes}
-                      onChange={(event) => setShowDocBoxes(event.target.checked)}
-                    />
-                    <span>Show highlights</span>
-                  </label>
+                <div className="doc-panel-header">
+                  <div className="doc-tabs">
+                    {caseDocuments.map((doc) => (
+                      <button
+                        key={doc.id}
+                        type="button"
+                        className={`doc-tab ${activeDocId === doc.id ? 'active' : ''} severity-${doc.severity} ${
+                          docPulse === doc.id ? 'pulse' : ''
+                        }`}
+                        onClick={() => handleSelectDocTab(doc.id)}
+                      >
+                        <span className="status-dot" />
+                        {doc.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="overlay-controls">
+                    <label className="toggle">
+                      <input
+                        type="checkbox"
+                        checked={showDocBoxes}
+                        onChange={(event) => setShowDocBoxes(event.target.checked)}
+                      />
+                      <span>Show highlights</span>
+                    </label>
+                  </div>
                 </div>
                 {activeDocBoxes.length === 0 ? (
                   <div className="alert alert-warning small">
                     No bounding boxes are available for this document yet.
                   </div>
                 ) : null}
-                <div className="pdf-overlay-panel">
-                  <PdfOverlayViewer
-                    pdfUrl={activeDocument?.pdf}
-                    boxes={activeDocBoxes}
-                    showBoxes={showDocBoxes}
-                    activeBoxId={activeDocBoxId}
-                    onSelectBox={handleSelectDocBox}
-                    scrollRef={docPdfScrollRef}
-                    focusSignal={docFocusSignal}
-                  />
-                </div>
-                <div className="doc-details">
-                  {activeDocument ? (
-                    <>
-                      <h3>{activeDocument.label}</h3>
-                      <p className="panel-subtitle">{activeDocument.filename}</p>
-                      {activeDocument.findings?.length ? (
-                        <ul>
-                          {activeDocument.findings.map((finding) => (
-                            <li key={finding.id ?? finding.title}>{finding.title}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="muted">No issues detected in this document.</p>
-                      )}
-                    </>
-                  ) : (
-                    <p>No document selected.</p>
-                  )}
+                <div className="doc-panel-body">
+                  <div className="pdf-overlay-panel">
+                    <PdfOverlayViewer
+                      key={activeDocument?.id || activeDocument?.pdf || 'doc-viewer'}
+                      pdfUrl={activeDocument?.pdf}
+                      boxes={activeDocBoxes}
+                      showBoxes={showDocBoxes}
+                      activeBoxId={activeDocBoxId}
+                      onSelectBox={handleSelectDocBox}
+                      scrollRef={docPdfScrollRef}
+                      focusSignal={docFocusSignal}
+                    />
+                  </div>
+                  <div className="doc-details">
+                    {activeDocument ? (
+                      <>
+                        <h3>{activeDocument.label}</h3>
+                        <p className="panel-subtitle">{activeDocument.filename}</p>
+                        {activeDocument.findings?.length ? (
+                          <ul>
+                            {activeDocument.findings.map((finding) => (
+                              <li key={finding.id ?? finding.title}>{finding.title}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="muted">No issues detected in this document.</p>
+                        )}
+                      </>
+                    ) : (
+                      <p>No document selected.</p>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="panel findings-panel">
@@ -733,6 +748,17 @@ export default function App() {
       <AppHeader currentStep={currentStep} maxStepUnlocked={maxStepUnlocked} onNavigate={handleNavigate} />
       <main className="workspace-main">
         <StepTimeline steps={STEP_CONFIG} currentStep={currentStep} />
+        <div className="workspace-nav">
+          <button type="button" className="btn ghost" onClick={handlePrevious} disabled={!canGoPrevious}>
+            ← Previous
+          </button>
+          <span className="workspace-nav__status">
+            Stage {currentStep} of {totalSteps}
+          </span>
+          <button type="button" className="btn primary" onClick={handleNext} disabled={!canGoNext}>
+            Next →
+          </button>
+        </div>
         {renderStepContent()}
       </main>
     </div>

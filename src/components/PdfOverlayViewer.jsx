@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/build/pdf';
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.js?url';
@@ -6,24 +6,48 @@ import workerSrc from 'pdfjs-dist/build/pdf.worker.min.js?url';
 const FileType = typeof File !== 'undefined' ? PropTypes.instanceOf(File) : PropTypes.any;
 const BlobType = typeof Blob !== 'undefined' ? PropTypes.instanceOf(Blob) : PropTypes.any;
 const DEFAULT_SCALE = 1.4;
+const MIN_SCALE = 0.55;
 
 if (!GlobalWorkerOptions.workerSrc) {
   GlobalWorkerOptions.workerSrc = workerSrc;
 }
 
-function convertBoxToViewport(box, viewport) {
-  const [x1, y1, x2, y2] = box.bbox;
-  const [vx1, vy1] = viewport.convertToViewportPoint(x1, y1);
-  const [vx2, vy2] = viewport.convertToViewportPoint(x2, y2);
+function isRectWithinViewport(rect, viewport) {
+  if (!rect || !viewport) return false;
+  const withinHorizontal =
+    rect.left >= -viewport.width * 0.2 && rect.left + rect.width <= viewport.width * 1.2;
+  const withinVertical =
+    rect.top >= -viewport.height * 0.2 && rect.top + rect.height <= viewport.height * 1.2;
+  const hasArea = rect.width > 0 && rect.height > 0;
+  return hasArea && withinHorizontal && withinVertical;
+}
 
-  const left = Math.min(vx1, vx2);
-  const top = Math.min(vy1, vy2);
-  const width = Math.abs(vx2 - vx1);
-  const height = Math.abs(vy2 - vy1);
+function convertBoxToViewport(box, viewport) {
+  const [x1Raw, y1Raw, x2Raw, y2Raw] = box.bbox;
+  const viewBox = viewport?.viewBox;
+  const pdfHeight = (viewBox && viewBox[3]) || viewport.height / viewport.scale || 0;
+
+  const project = (flipY) => {
+    const normaliseY = (value) => (flipY && pdfHeight ? pdfHeight - value : value);
+    const [vx1, vy1] = viewport.convertToViewportPoint(x1Raw, normaliseY(y1Raw));
+    const [vx2, vy2] = viewport.convertToViewportPoint(x2Raw, normaliseY(y2Raw));
+    return {
+      left: Math.min(vx1, vx2),
+      top: Math.min(vy1, vy2),
+      width: Math.abs(vx2 - vx1),
+      height: Math.abs(vy2 - vy1)
+    };
+  };
+
+  const candidates = [project(false)];
+  if (pdfHeight) {
+    candidates.push(project(true));
+  }
+  const rect = candidates.find((entry) => isRectWithinViewport(entry, viewport)) ?? candidates[0];
 
   return {
     ...box,
-    rect: { left, top, width, height }
+    rect
   };
 }
 
@@ -52,37 +76,41 @@ function PdfPage({
   activeBoxId,
   onSelectBox,
   docVersion,
-  onRendered
+  availableWidth,
+  onBoxesRendered
 }) {
   const canvasRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [viewportBoxes, setViewportBoxes] = useState([]);
   const [renderError, setRenderError] = useState('');
-  const [wrapperWidth, setWrapperWidth] = useState(0);
+  const [renderRetryToken, setRenderRetryToken] = useState(0);
+  const retryCountRef = useRef(0);
+  const retryTimeoutRef = useRef(null);
 
   useEffect(() => {
-    function measure() {
-      const wrapper = canvasRef.current?.parentElement;
-      if (!wrapper) return;
-      setWrapperWidth(wrapper.clientWidth || 0);
-    }
-
-    measure();
-
-    const wrapper = canvasRef.current?.parentElement;
-    if (wrapper && typeof ResizeObserver === 'function') {
-      const observer = new ResizeObserver(() => measure());
-      observer.observe(wrapper);
-      return () => observer.disconnect();
-    }
-
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
+    retryCountRef.current = 0;
+    setRenderError('');
+    return () => {
+      if (retryTimeoutRef.current && typeof window !== 'undefined') {
+        window.clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
+  }, [docVersion, pageIndex]);
 
   useEffect(() => {
     let cancelled = false;
-    let renderTask = null;
+
+    const scheduleRetry = () => {
+      if (typeof window === 'undefined') return;
+      if (retryTimeoutRef.current) {
+        window.clearTimeout(retryTimeoutRef.current);
+      }
+      retryTimeoutRef.current = window.setTimeout(() => {
+        retryTimeoutRef.current = null;
+        setRenderRetryToken((prev) => prev + 1);
+      }, 220);
+    };
 
     async function renderPage() {
       const pdfDoc = pdfDocRef.current;
@@ -90,42 +118,57 @@ function PdfPage({
 
       try {
         const page = await pdfDoc.getPage(pageIndex + 1);
-        if (cancelled) return;
-
+        if (cancelled || pdfDoc !== pdfDocRef.current) return;
         const baseViewport = page.getViewport({ scale: 1 });
-        const baseWidth = baseViewport.width;
-        const targetWidth =
-          wrapperWidth > 0 ? wrapperWidth : baseWidth * DEFAULT_SCALE;
-        const derivedScale = targetWidth / baseWidth;
-        const scale = Math.min(DEFAULT_SCALE, derivedScale || DEFAULT_SCALE);
-        const viewport = page.getViewport({ scale });
+        let scale = DEFAULT_SCALE;
+
+        if (Number.isFinite(availableWidth) && availableWidth > 0) {
+          const desiredWidth = baseViewport.width * DEFAULT_SCALE;
+          if (desiredWidth > availableWidth) {
+            const fitScale = availableWidth / baseViewport.width;
+            scale = Math.max(Math.min(DEFAULT_SCALE, fitScale), MIN_SCALE);
+          }
+        }
+
+        const viewport = page.getViewport({ scale, rotation: page.rotate || 0 });
         const canvasEl = canvasRef.current;
         if (!canvasEl) return;
 
         const context = canvasEl.getContext('2d', { alpha: false });
+        if (!context) {
+          setRenderError('Unable to display this page.');
+          return;
+        }
         canvasEl.width = viewport.width;
         canvasEl.height = viewport.height;
+        context.fillStyle = '#fff';
+        context.fillRect(0, 0, canvasEl.width, canvasEl.height);
 
-        renderTask = page.render({ canvasContext: context, viewport });
-        await renderTask.promise;
-        if (cancelled) return;
+        await page.render({ canvasContext: context, viewport }).promise;
+        if (cancelled || pdfDoc !== pdfDocRef.current) return;
 
         const converted = Array.isArray(boxes)
           ? boxes.map((entry) => convertBoxToViewport(entry, viewport))
           : [];
 
         setViewportBoxes(converted);
-        const nextDimensions = { width: viewport.width, height: viewport.height };
-        setDimensions(nextDimensions);
-        onRendered?.(nextDimensions);
+        setDimensions({ width: viewport.width, height: viewport.height });
         setRenderError('');
-      } catch (error) {
-        if (error?.name === 'RenderingCancelledException') {
-          return;
+        if (typeof onBoxesRendered === 'function') {
+          onBoxesRendered(pageIndex);
         }
+      } catch (error) {
         if (!cancelled) {
+          if (error?.name === 'RenderingCancelledException') {
+            return;
+          }
           console.error(`Failed to render PDF page ${pageIndex + 1}`, error);
-          setRenderError('Unable to display this page.');
+          if (retryCountRef.current < 2) {
+            retryCountRef.current += 1;
+            scheduleRetry();
+          } else {
+            setRenderError('Unable to display this page.');
+          }
         }
       }
     }
@@ -134,11 +177,12 @@ function PdfPage({
 
     return () => {
       cancelled = true;
-      if (renderTask && typeof renderTask.cancel === 'function') {
-        renderTask.cancel();
+      if (retryTimeoutRef.current && typeof window !== 'undefined') {
+        window.clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
       }
     };
-  }, [pdfDocRef, pageIndex, boxes, docVersion, wrapperWidth, onRendered]);
+  }, [pdfDocRef, pageIndex, boxes, docVersion, availableWidth, onBoxesRendered, renderRetryToken]);
 
   const handleBoxClick = (boxId) => {
     if (typeof onSelectBox === 'function') {
@@ -167,14 +211,19 @@ function PdfPage({
                 height: `${rect.height}px`
               };
               const isActive = activeBoxId === box.id;
+              const severity = (box.severity || '').toLowerCase();
+              const classes = ['pdf-overlay-box'];
+              if (isActive) classes.push('is-active');
+              if (severity) classes.push(`severity-${severity}`);
               return (
                 <button
                   key={box.id}
                   type="button"
-                  className={`pdf-overlay-box${isActive ? ' is-active' : ''}`}
+                  className={classes.join(' ')}
                   data-box-id={box.id}
                   style={style}
                   data-category={box.category}
+                  data-severity={severity || undefined}
                   onClick={() => handleBoxClick(box.id)}
                   title={box.details || box.title || `Bounding box ${box.id}`}
                 >
@@ -200,14 +249,16 @@ PdfPage.propTypes = {
       bbox: PropTypes.arrayOf(PropTypes.number).isRequired,
       category: PropTypes.string,
       details: PropTypes.string,
-      title: PropTypes.string
+      title: PropTypes.string,
+      severity: PropTypes.string
     })
   ),
   showBoxes: PropTypes.bool,
   activeBoxId: PropTypes.string,
   onSelectBox: PropTypes.func,
   docVersion: PropTypes.number.isRequired,
-  onRendered: PropTypes.func
+  availableWidth: PropTypes.number,
+  onBoxesRendered: PropTypes.func
 };
 
 export default function PdfOverlayViewer({
@@ -222,11 +273,26 @@ export default function PdfOverlayViewer({
 }) {
   const [pageCount, setPageCount] = useState(0);
   const [loadError, setLoadError] = useState('');
-  const [pageDimensions, setPageDimensions] = useState({});
+  const [viewerWidth, setViewerWidth] = useState(null);
+  const [boxesReadySignal, setBoxesReadySignal] = useState(0);
   const pdfDocRef = useRef(null);
   const docVersionRef = useRef(0);
   const internalScrollRef = useRef(null);
   const scrollContainerRef = scrollRef ?? internalScrollRef;
+
+  const resolvedPdfUrl = useMemo(() => {
+    if (!pdfUrl) return null;
+    if (typeof window === 'undefined') return pdfUrl;
+    try {
+      return new URL(pdfUrl, window.location.href).toString();
+    } catch {
+      return pdfUrl;
+    }
+  }, [pdfUrl]);
+
+  const handleBoxesRendered = useCallback(() => {
+    setBoxesReadySignal((prev) => prev + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -243,7 +309,7 @@ export default function PdfOverlayViewer({
       }
 
       const hasFile = pdfFile instanceof Blob;
-      if (!hasFile && !pdfUrl) {
+      if (!hasFile && !resolvedPdfUrl) {
         return;
       }
 
@@ -254,7 +320,7 @@ export default function PdfOverlayViewer({
           if (cancelled) return;
           params = { data: new Uint8Array(buffer) };
         } else {
-          params = { url: pdfUrl };
+          params = { url: resolvedPdfUrl };
         }
 
         loadingTask = getDocument(params);
@@ -288,20 +354,58 @@ export default function PdfOverlayViewer({
         pdfDocRef.current = null;
       }
     };
-  }, [pdfUrl, pdfFile]);
+  }, [resolvedPdfUrl, pdfFile]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return undefined;
+
+    const measureWidth = () => {
+      const rawWidth = container.clientWidth;
+      if (typeof window === 'undefined') {
+        setViewerWidth(rawWidth || null);
+        return;
+      }
+      const styles = window.getComputedStyle(container);
+      const paddingLeft = Number.parseFloat(styles.paddingLeft) || 0;
+      const paddingRight = Number.parseFloat(styles.paddingRight) || 0;
+      const innerWidth = Math.max(rawWidth - paddingLeft - paddingRight, 0);
+      setViewerWidth((prev) => {
+        const next = innerWidth || rawWidth || null;
+        if (prev !== null && next !== null && Math.abs(prev - next) < 0.5) {
+          return prev;
+        }
+        return next;
+      });
+    };
+
+    measureWidth();
+
+    if (typeof window !== 'undefined' && 'ResizeObserver' in window) {
+      const observer = new ResizeObserver(() => measureWidth());
+      observer.observe(container);
+      return () => observer.disconnect();
+    }
+
+    if (typeof window !== 'undefined') {
+      const handleResize = () => measureWidth();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+
+    return undefined;
+  }, [scrollContainerRef]);
 
   const boxesByPage = useMemo(() => {
     if (!Array.isArray(boxes)) return new Map();
     const map = new Map();
     boxes.forEach((box) => {
-      let pageIndex;
-      if (Number.isFinite(box.page)) {
-        pageIndex = Math.max(Math.round(box.page - 1), 0);
-      } else if (Number.isFinite(box.pageno)) {
-        pageIndex = Math.max(Math.round(box.pageno), 0);
-      } else {
-        pageIndex = 0;
-      }
+      const rawPage = Number.isFinite(box.pageno)
+        ? box.pageno
+        : Number.isFinite(box.page)
+          ? box.page - 1
+          : 0;
+      const pageIndex = Math.max(Math.round(rawPage), 0);
       if (!map.has(pageIndex)) {
         map.set(pageIndex, []);
       }
@@ -318,15 +422,46 @@ export default function PdfOverlayViewer({
     if (!container || typeof window === 'undefined') {
       return undefined;
     }
-    const target = container.querySelector(`button[data-box-id="${activeBoxId}"]`);
-    if (!target) {
-      return undefined;
-    }
-    const raf = window.requestAnimationFrame(() => {
-      centerElementWithin(container, target);
-    });
-    return () => window.cancelAnimationFrame(raf);
-  }, [activeBoxId, showBoxes, pageCount, boxesByPage, scrollContainerRef, focusSignal, pageDimensions]);
+
+    let raf = null;
+    let retryTimeout = null;
+    let attempts = 0;
+
+    const locateAndCenter = () => {
+      const target = container.querySelector(`button[data-box-id="${activeBoxId}"]`);
+      if (!target && attempts < 8) {
+        attempts += 1;
+        retryTimeout = window.setTimeout(locateAndCenter, 80);
+        return;
+      }
+      if (!target) {
+        return;
+      }
+      raf = window.requestAnimationFrame(() => {
+        centerElementWithin(container, target);
+      });
+    };
+
+    locateAndCenter();
+
+    return () => {
+      if (raf) {
+        window.cancelAnimationFrame(raf);
+      }
+      if (retryTimeout) {
+        window.clearTimeout(retryTimeout);
+      }
+    };
+  }, [
+    activeBoxId,
+    showBoxes,
+    pageCount,
+    boxesByPage,
+    scrollContainerRef,
+    focusSignal,
+    viewerWidth,
+    boxesReadySignal
+  ]);
 
   if (loadError) {
     return <div className="alert alert-danger">{loadError}</div>;
@@ -351,14 +486,8 @@ export default function PdfOverlayViewer({
             activeBoxId={activeBoxId}
             onSelectBox={onSelectBox}
             docVersion={docVersionRef.current}
-            onRendered={(dims) =>
-              setPageDimensions((prev) => {
-                if (prev[index]?.width === dims.width && prev[index]?.height === dims.height) {
-                  return prev;
-                }
-                return { ...prev, [index]: dims };
-              })
-            }
+            availableWidth={viewerWidth}
+            onBoxesRendered={handleBoxesRendered}
           />
         ))
       )}

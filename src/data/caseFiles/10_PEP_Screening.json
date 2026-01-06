@@ -7,25 +7,25 @@
     {
       "id": "BP-001",
       "type": "best_practice",
-      "title": "Exemplary PEP Screening Procedures",
+      "title": "Exemplary Enhanced Due Diligence - Exceeds CLC Requirements",
       
       "source": {
         "file": "10_PEP_Screening.pdf",
-        "page": 1,
-        "section": "Enhanced Due Diligence Checks",
-        "text": "All 4 best practice checks completed: (1) Employer Background Verification, (2) Role Analysis, (3) Senior Management PEP Screen, (4) Adverse Media Search.",
-        "bbox": [32.0, 413.8, 565.0, 533.6]
+        "page": 2,
+        "section": "Section 3: Enhanced Due Diligence Checks",
+        "text": "Given the client's employment in financial services and residence in a higher-risk jurisdiction (UAE), the following additional verification checks were conducted: (1) Employer Background Verification - regulatory status verified via DFSA register, (2) Role & Position Analysis - confirmed mid-level with no political exposure, (3) Senior Management & Board PEP Screen - all 5 executives screened, (4) Adverse Media Search - 10-year search across multiple databases.",
+        "bbox": [40, 229, 548, 331]
       },
       
       "reference": {
-        "file": "00_Firm_AML_Policy.pdf",
-        "page": 1,
-        "section": "Section 5.2.1",
-        "text": "Best Practice: For clients working in financial services or in jurisdictions with elevated risk, additional checks are encouraged: employer background verification, role analysis, senior management PEP screening, and adverse media searches.",
-        "bbox": [43.0, 45.4, 476.1, 88.5]
+        "file": "CLC_Anti_Money_Laundering_Guidance_Jan2025.pdf",
+        "page": 2,
+        "section": "Section 2 - Procedures",
+        "text": "CLC guidance requires firms to identify whether a client is a PEP and apply enhanced due diligence where appropriate. The minimum requirement is PEP database screening.",
+        "bbox": [0, 0, 0, 0]
       },
       
-      "deviation": "File demonstrates all four recommended best practice checks for a client in financial services based in an elevated risk jurisdiction. Exceeds minimum screening requirements."
+      "deviation": "This file demonstrates due diligence significantly beyond CLC minimum requirements. While CLC guidance only mandates PEP database screening, this firm conducted four additional enhanced checks: employer regulatory verification, role analysis for political exposure, senior management PEP screening, and comprehensive adverse media searches. This thoroughness is commendable for a client in financial services based in an elevated-risk jurisdiction."
     }
   ]
 }
