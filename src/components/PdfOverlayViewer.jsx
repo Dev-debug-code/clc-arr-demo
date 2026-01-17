@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/build/pdf';
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.js?url';
@@ -76,8 +76,7 @@ function PdfPage({
   activeBoxId,
   onSelectBox,
   docVersion,
-  availableWidth,
-  onBoxesRendered
+  availableWidth
 }) {
   const canvasRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -130,7 +129,7 @@ function PdfPage({
           }
         }
 
-        const viewport = page.getViewport({ scale, rotation: page.rotate || 0 });
+        const viewport = page.getViewport({ scale });
         const canvasEl = canvasRef.current;
         if (!canvasEl) return;
 
@@ -154,9 +153,6 @@ function PdfPage({
         setViewportBoxes(converted);
         setDimensions({ width: viewport.width, height: viewport.height });
         setRenderError('');
-        if (typeof onBoxesRendered === 'function') {
-          onBoxesRendered(pageIndex);
-        }
       } catch (error) {
         if (!cancelled) {
           if (error?.name === 'RenderingCancelledException') {
@@ -182,20 +178,25 @@ function PdfPage({
         retryTimeoutRef.current = null;
       }
     };
-  }, [pdfDocRef, pageIndex, boxes, docVersion, availableWidth, onBoxesRendered, renderRetryToken]);
+  }, [pdfDocRef, pageIndex, boxes, docVersion, availableWidth, renderRetryToken]);
 
   const handleBoxClick = (boxId) => {
     if (typeof onSelectBox === 'function') {
-      onSelectBox(boxId);
+      onSelectBox(boxId, { origin: 'pdf' });
     }
   };
 
+  const wrapperStyle = useMemo(
+    () => ({
+      width: dimensions.width ? `${dimensions.width}px` : undefined,
+      height: dimensions.height ? `${dimensions.height}px` : undefined
+    }),
+    [dimensions.height, dimensions.width]
+  );
+
   return (
     <div className="pdf-overlay-page" role="group" aria-label={`Page ${pageIndex + 1}`}>
-      <div
-        className="pdf-overlay-canvas-wrapper"
-        style={{ width: dimensions.width || undefined, height: dimensions.height || undefined }}
-      >
+      <div className="pdf-overlay-canvas-wrapper" style={wrapperStyle}>
         <canvas
           ref={canvasRef}
           className="pdf-overlay-canvas"
@@ -257,8 +258,7 @@ PdfPage.propTypes = {
   activeBoxId: PropTypes.string,
   onSelectBox: PropTypes.func,
   docVersion: PropTypes.number.isRequired,
-  availableWidth: PropTypes.number,
-  onBoxesRendered: PropTypes.func
+  availableWidth: PropTypes.number
 };
 
 export default function PdfOverlayViewer({
@@ -274,9 +274,9 @@ export default function PdfOverlayViewer({
   const [pageCount, setPageCount] = useState(0);
   const [loadError, setLoadError] = useState('');
   const [viewerWidth, setViewerWidth] = useState(null);
-  const [boxesReadySignal, setBoxesReadySignal] = useState(0);
   const pdfDocRef = useRef(null);
   const docVersionRef = useRef(0);
+  const focusVersionRef = useRef(focusSignal);
   const internalScrollRef = useRef(null);
   const scrollContainerRef = scrollRef ?? internalScrollRef;
 
@@ -289,10 +289,6 @@ export default function PdfOverlayViewer({
       return pdfUrl;
     }
   }, [pdfUrl]);
-
-  const handleBoxesRendered = useCallback(() => {
-    setBoxesReadySignal((prev) => prev + 1);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -361,17 +357,22 @@ export default function PdfOverlayViewer({
     if (!container) return undefined;
 
     const measureWidth = () => {
-      const rawWidth = container.clientWidth;
+      const rect = container.getBoundingClientRect();
+      const parentRect = container.parentElement?.getBoundingClientRect();
+      const baseWidth = rect.width || container.clientWidth || 0;
+      const parentWidth = parentRect?.width || 0;
+      const effectiveWidth =
+        parentWidth > 0 ? Math.min(baseWidth || parentWidth, parentWidth) : baseWidth;
       if (typeof window === 'undefined') {
-        setViewerWidth(rawWidth || null);
+        setViewerWidth(effectiveWidth || null);
         return;
       }
       const styles = window.getComputedStyle(container);
       const paddingLeft = Number.parseFloat(styles.paddingLeft) || 0;
       const paddingRight = Number.parseFloat(styles.paddingRight) || 0;
-      const innerWidth = Math.max(rawWidth - paddingLeft - paddingRight, 0);
+      const innerWidth = Math.max(effectiveWidth - paddingLeft - paddingRight, 0);
       setViewerWidth((prev) => {
-        const next = innerWidth || rawWidth || null;
+        const next = innerWidth || effectiveWidth || null;
         if (prev !== null && next !== null && Math.abs(prev - next) < 0.5) {
           return prev;
         }
@@ -418,10 +419,14 @@ export default function PdfOverlayViewer({
     if (!showBoxes || !activeBoxId) {
       return undefined;
     }
+    if (focusSignal === focusVersionRef.current) {
+      return undefined;
+    }
     const container = scrollContainerRef.current;
     if (!container || typeof window === 'undefined') {
       return undefined;
     }
+    focusVersionRef.current = focusSignal;
 
     let raf = null;
     let retryTimeout = null;
@@ -452,16 +457,7 @@ export default function PdfOverlayViewer({
         window.clearTimeout(retryTimeout);
       }
     };
-  }, [
-    activeBoxId,
-    showBoxes,
-    pageCount,
-    boxesByPage,
-    scrollContainerRef,
-    focusSignal,
-    viewerWidth,
-    boxesReadySignal
-  ]);
+  }, [focusSignal, showBoxes, activeBoxId, scrollContainerRef]);
 
   if (loadError) {
     return <div className="alert alert-danger">{loadError}</div>;
@@ -474,22 +470,23 @@ export default function PdfOverlayViewer({
   return (
     <div className="pdf-overlay-viewer" ref={scrollContainerRef}>
       {pageCount === 0 ? (
-        <div className="text-muted py-5 text-center">Loading PDF…</div>
+        <div className="pdf-overlay-placeholder">Loading PDF…</div>
       ) : (
-        Array.from({ length: pageCount }, (_, index) => (
-          <PdfPage
-            key={`page-${index}`}
-            pdfDocRef={pdfDocRef}
-            pageIndex={index}
-            boxes={boxesByPage.get(index) || []}
-            showBoxes={showBoxes}
-            activeBoxId={activeBoxId}
-            onSelectBox={onSelectBox}
-            docVersion={docVersionRef.current}
-            availableWidth={viewerWidth}
-            onBoxesRendered={handleBoxesRendered}
-          />
-        ))
+        <div className="pdf-overlay-stack">
+          {Array.from({ length: pageCount }, (_, index) => (
+            <PdfPage
+              key={`page-${index}`}
+              pdfDocRef={pdfDocRef}
+              pageIndex={index}
+              boxes={boxesByPage.get(index) || []}
+              showBoxes={showBoxes}
+              activeBoxId={activeBoxId}
+              onSelectBox={onSelectBox}
+              docVersion={docVersionRef.current}
+              availableWidth={viewerWidth}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

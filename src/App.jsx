@@ -226,10 +226,12 @@ export default function App() {
   };
 
   const handleSelectQa = useCallback(
-    (boxId, { scrollCommentary = true } = {}) => {
+    (boxId, { scrollCommentary = true, origin } = {}) => {
       if (!boxId) return;
       setActiveArrBoxId(boxId);
-      setArrFocusSignal((prev) => prev + 1);
+      if (origin !== 'pdf') {
+        setArrFocusSignal((prev) => prev + 1);
+      }
       if (scrollCommentary) {
         const node = commentaryRefs.current[boxId];
         if (node) {
@@ -253,7 +255,7 @@ export default function App() {
   };
 
   const handleSelectDocBox = useCallback(
-    (boxId, { scrollFinding = true, documentId } = {}) => {
+    (boxId, { scrollFinding = true, documentId, origin } = {}) => {
       const targetDocId = documentId ?? activeDocId;
       const doc = documentsById.get(targetDocId);
       const availableBoxes = doc?.overlay?.boxes ?? [];
@@ -267,7 +269,9 @@ export default function App() {
         boxId && availableBoxes.some((box) => box.id === boxId) ? boxId : availableBoxes[0].id;
 
       setActiveDocBoxId(resolvedBoxId);
-      setDocFocusSignal((prev) => prev + 1);
+      if (origin !== 'pdf') {
+        setDocFocusSignal((prev) => prev + 1);
+      }
 
       const key = `${targetDocId}:${resolvedBoxId}`;
       const match = findingByDocAndBox.get(key);
