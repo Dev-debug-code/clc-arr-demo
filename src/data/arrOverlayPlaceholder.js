@@ -11,21 +11,21 @@ const arrOverlayPlaceholder = {
   boxes: [
     {
       id: 'Q30 - PEPs acted for',
-      bbox: [58.969106674194336, 81.10894572734833, 492.03263372182846, 214.06082570552826],
+      bbox: [58, 90, 500, 230],
       page: 7,
       pageno: 6,
       category: 'PEPs acted for in last 12 months',
       severity: 'warning',
       title: 'High volume of PEP matters',
       details:
-        'Practice acted for greater than 10 PEPs in the last 12 months. Consider whether AML procedures are sufficient to cover the increased risk.'
+        'Practice acted for greater than 10 PEPs in the last 12 months, consider if AML procedures are sufficient to cover the increased risk.'
     },
     {
       id: 'Q32 - Clients based overseas',
-      bbox: [72.19293732196093, 737.96668612957, 127.05008640885353, 774.7039649784565],
+      bbox: [58, 275, 500, 735],
       page: 8,
       pageno: 7,
-      category: 'Clients overseas',
+      category: 'Acted for clients overseas in last 12 months',
       severity: 'note',
       title: 'Clients based overseas in last 12 months',
       details:
@@ -33,10 +33,10 @@ const arrOverlayPlaceholder = {
     },
     {
       id: 'Q34 - AML Independent Audits',
-      bbox: [66.41457915306091, 94.36732649803162, 471.30383402109146, 167.02431106567383],
+      bbox: [58, 100, 500, 180],
       page: 8,
       pageno: 7,
-      category: 'Independent AML audit',
+      category: 'Date of last independent audit of AML procedures',
       severity: 'critical',
       title: 'No independent AML audit completed',
       details:

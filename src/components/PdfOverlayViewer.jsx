@@ -203,7 +203,7 @@ function PdfPage({
           aria-label={`PDF page ${pageIndex + 1}`}
         />
         {showBoxes
-          ? viewportBoxes.map((box) => {
+          ? viewportBoxes.map((box, index) => {
               const { rect } = box;
               const style = {
                 left: `${rect.left}px`,
@@ -218,7 +218,7 @@ function PdfPage({
               if (severity) classes.push(`severity-${severity}`);
               return (
                 <button
-                  key={box.id}
+                  key={`${box.id}-${index}`}
                   type="button"
                   className={classes.join(' ')}
                   data-box-id={box.id}

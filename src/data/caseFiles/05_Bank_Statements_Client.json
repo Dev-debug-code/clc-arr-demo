@@ -11,10 +11,11 @@
       
       "source": {
         "file": "05_Bank_Statements_Client.pdf",
-        "page": 2,
+        "page": [1, 2],
         "section": "Statement Header",
         "text": "Bank statements cover September 2024 to October 2024 only - a total of 2 months coverage for an £875,000 transaction by an overseas client.",
-        "bbox": [346, 744, 532, 769]
+        "bbox": [346, 744, 532, 769],
+        "bbox2": [346, 744, 532, 769]
       },
       
       "reference": {
