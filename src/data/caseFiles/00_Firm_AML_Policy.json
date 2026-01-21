@@ -11,10 +11,10 @@
       
       "source": {
         "file": "00_Firm_AML_Policy.pdf",
-        "page": 1,
+        "page": [1],
         "section": "Section 2.3.2",
         "text": "Policy permits utility bills dated within the last 6 months for address verification",
-        "bbox": [40, 497, 556, 530],
+        "bbox": [56, 354, 540, 379],
         "BL": ""
       },
       

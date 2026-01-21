@@ -21,6 +21,23 @@ import {
 } from './data/auditDataset.js';
 
 const ARR_PDF_URL = 'assets/Handwritten_ARR_updated.pdf';
+const STAGE_TARGET_DURATION_MS = 30000;
+const ANALYSIS_TICK_INTERVAL_MS = 1500;
+const AUDIT_TICK_INTERVAL_MS = 1500;
+
+const computeProgressIncrement = (duration, interval) => {
+  const stepCount = Math.max(Math.round(duration / interval), 1);
+  return 100 / stepCount;
+};
+
+const ANALYSIS_PROGRESS_INCREMENT = computeProgressIncrement(
+  STAGE_TARGET_DURATION_MS,
+  ANALYSIS_TICK_INTERVAL_MS
+);
+const AUDIT_PROGRESS_INCREMENT = computeProgressIncrement(
+  STAGE_TARGET_DURATION_MS,
+  AUDIT_TICK_INTERVAL_MS
+);
 
 export default function App() {
   const arrOverlay = arrOverlayPlaceholder;
@@ -68,8 +85,11 @@ export default function App() {
     }
 
     const timer = setTimeout(() => {
-      setAnalysisProgress((prev) => Math.min(100, prev + 12 + Math.random() * 12));
-    }, 850);
+      const jitter = 0.9 + Math.random() * 0.2;
+      setAnalysisProgress((prev) =>
+        Math.min(100, prev + ANALYSIS_PROGRESS_INCREMENT * jitter)
+      );
+    }, ANALYSIS_TICK_INTERVAL_MS);
 
     return () => clearTimeout(timer);
   }, [analysisRunning, analysisProgress, currentStep]);
@@ -88,8 +108,11 @@ export default function App() {
     }
 
     const timer = setTimeout(() => {
-      setAuditProgress((prev) => Math.min(100, prev + 14));
-    }, 900);
+      const jitter = 0.9 + Math.random() * 0.2;
+      setAuditProgress((prev) =>
+        Math.min(100, prev + AUDIT_PROGRESS_INCREMENT * jitter)
+      );
+    }, AUDIT_TICK_INTERVAL_MS);
 
     return () => clearTimeout(timer);
   }, [auditRunning, auditProgress, currentStep]);

@@ -11,10 +11,10 @@
       
       "source": {
         "file": "03_Client_Risk_Assessment.pdf",
-        "page": 1,
+        "page": [1],
         "section": "Risk Factor Assessment / Overall Classification",
         "text": "Client Location shows 'Dubai, UAE (8 years resident)' marked as LOW risk. Overall classification is STANDARD RISK with Standard CDD selected.",
-        "bbox": [27, 605, 492, 603]
+        "bbox": [27, 601, 492, 623]
       },
       
       "reference": {
