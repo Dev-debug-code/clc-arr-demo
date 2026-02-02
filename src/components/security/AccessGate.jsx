@@ -23,6 +23,8 @@ const FORM_LABELS = {
   }
 };
 
+const LOGO_SRC = `${import.meta.env.BASE_URL ?? '/'}assets/sumplexity_icon_logo.png`;
+
 export default function AccessGate({ config = DEFAULT_CONFIG, onUnlock }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -111,11 +113,7 @@ export default function AccessGate({ config = DEFAULT_CONFIG, onUnlock }) {
       <div className="access-gate__panel-wrapper">
         <div className="access-gate__panel">
           <div className="access-gate__header">
-            <img
-              src="/assets/sumplexity_icon_logo.png"
-              alt="Sumplexity"
-              className="access-gate__logo"
-            />
+            <img src={LOGO_SRC} alt="Sumplexity" className="access-gate__logo" />
             <h1 className="access-gate__title">{config.heading}</h1>
             <p className="access-gate__supporting">{config.supporting}</p>
           </div>
