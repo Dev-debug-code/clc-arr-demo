@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import AppHeader from './components/AppHeader.jsx';
 import ConnectionBar from './components/ConnectionBar.jsx';
 import StepTimeline from './components/StepTimeline.jsx';
 import PdfOverlayViewer from './components/PdfOverlayViewer.jsx';
+import LoginPage from './pages/LoginPage.jsx';
 import {
   ARR_CONNECTION,
   ARR_PROCESSING_STEPS,
@@ -19,6 +21,7 @@ import {
   auditFindings,
   buildSummaryCards
 } from './data/auditDataset.js';
+import { getFirebaseAuth } from './config/firebase.js';
 
 const ARR_PDF_URL = 'assets/Handwritten_ARR_updated.pdf';
 const STAGE_TARGET_DURATION_MS = 30000;
@@ -40,6 +43,54 @@ const AUDIT_PROGRESS_INCREMENT = computeProgressIncrement(
 );
 
 export default function App() {
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  const gateConfig = useMemo(() => {
+    const heading = import.meta.env.VITE_ACCESS_GATE_HEADING ?? 'Restricted access';
+    const supporting =
+      import.meta.env.VITE_ACCESS_GATE_SUPPORTING ??
+      'Sign in with your work email to access the workspace.';
+    return { heading, supporting };
+  }, []);
+
+  useEffect(() => {
+    const auth = getFirebaseAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setIsAuthReady(true);
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    try {
+      await signOut(getFirebaseAuth());
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to sign out', error);
+    }
+  }, []);
+
+  if (!isAuthReady) {
+    return (
+      <div className="auth-loading" role="status" aria-live="polite">
+        <span className="auth-loading__spinner" />
+        <p className="auth-loading__text">Loading workspace...</p>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return <LoginPage gateConfig={gateConfig} />;
+  }
+
+  return <WorkspaceApp currentUser={currentUser} onSignOut={handleSignOut} />;
+}
+
+function WorkspaceApp({ currentUser, onSignOut }) {
+  const currentUserEmail = currentUser?.email ?? '';
+
   const arrOverlay = arrOverlayPlaceholder;
   const arrBoxes = arrOverlay.boxes ?? [];
 
@@ -772,7 +823,13 @@ export default function App() {
 
   return (
     <div className="arr-app-shell">
-      <AppHeader currentStep={currentStep} maxStepUnlocked={maxStepUnlocked} onNavigate={handleNavigate} />
+      <AppHeader
+        currentStep={currentStep}
+        maxStepUnlocked={maxStepUnlocked}
+        onNavigate={handleNavigate}
+        currentUserEmail={currentUserEmail}
+        onSignOut={onSignOut}
+      />
       <main className="workspace-main">
         <StepTimeline steps={STEP_CONFIG} currentStep={currentStep} />
         <div className="workspace-nav">

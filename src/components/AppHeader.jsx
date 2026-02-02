@@ -3,7 +3,13 @@ import { NAV_TABS } from '../data/mockData.js';
 
 const LOGO_SRC = 'assets/sumplexity_horizontal_logo.png';
 
-export default function AppHeader({ currentStep, onNavigate, maxStepUnlocked }) {
+export default function AppHeader({
+  currentStep,
+  onNavigate,
+  maxStepUnlocked,
+  currentUserEmail,
+  onSignOut
+}) {
   const resolveActiveTab = () => {
     return NAV_TABS.find((tab) => currentStep >= tab.stepRange[0] && currentStep <= tab.stepRange[1])?.id;
   };
@@ -35,6 +41,20 @@ export default function AppHeader({ currentStep, onNavigate, maxStepUnlocked }) 
           );
         })}
       </nav>
+      {currentUserEmail || onSignOut ? (
+        <div className="workspace-header__actions">
+          {currentUserEmail ? (
+            <span className="workspace-header__user" title={currentUserEmail}>
+              {currentUserEmail}
+            </span>
+          ) : null}
+          {onSignOut ? (
+            <button type="button" className="btn-sumplexity btn-secondary" onClick={onSignOut}>
+              Sign out
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </header>
   );
 }
@@ -42,5 +62,12 @@ export default function AppHeader({ currentStep, onNavigate, maxStepUnlocked }) 
 AppHeader.propTypes = {
   currentStep: PropTypes.number.isRequired,
   onNavigate: PropTypes.func.isRequired,
-  maxStepUnlocked: PropTypes.number.isRequired
+  maxStepUnlocked: PropTypes.number.isRequired,
+  currentUserEmail: PropTypes.string,
+  onSignOut: PropTypes.func
+};
+
+AppHeader.defaultProps = {
+  currentUserEmail: '',
+  onSignOut: null
 };

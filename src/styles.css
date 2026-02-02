@@ -228,6 +228,181 @@ body {
     color: var(--text-secondary);
 }
 
+.workspace-header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.workspace-header__user {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.w-100 {
+    width: 100%;
+}
+
+.login-page {
+    position: relative;
+    min-height: 100vh;
+    background: var(--bg-light);
+}
+
+body.access-gate-active {
+    overflow: hidden;
+}
+
+.login-page__backdrop {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at top, rgba(7, 88, 27, 0.2), rgba(7, 88, 27, 0.65));
+    filter: blur(12px);
+    transform: scale(1.05);
+    z-index: 900;
+}
+
+.login-page__backdrop::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(232, 245, 232, 0.25));
+}
+
+.access-gate {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    background: radial-gradient(circle at top, rgba(7, 88, 27, 0.12), rgba(7, 88, 27, 0.75));
+    backdrop-filter: blur(6px);
+    z-index: 2200;
+    padding: var(--spacing-3xl) var(--spacing-xl);
+    min-height: 100vh;
+    overflow-y: auto;
+}
+
+.access-gate__panel-wrapper {
+    width: min(420px, calc(100% - 32px));
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    margin: 0 auto;
+}
+
+.access-gate__panel {
+    width: 100%;
+    background: var(--bg-white);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    padding: var(--spacing-3xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+}
+
+.access-gate__header {
+    text-align: center;
+}
+
+.access-gate__logo {
+    height: 40px;
+    margin-bottom: var(--spacing-sm);
+}
+
+.access-gate__title {
+    margin: 0;
+    font-size: 1.6rem;
+    color: var(--primary-green);
+}
+
+.access-gate__supporting {
+    color: var(--text-secondary);
+    margin: var(--spacing-sm) 0 0;
+    font-size: 0.95rem;
+}
+
+.access-gate__form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.access-gate__form-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.access-gate__label {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.access-gate__input {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    font-size: 1rem;
+    transition: border var(--transition-fast);
+}
+
+.access-gate__input:focus {
+    outline: none;
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 3px rgba(7, 88, 27, 0.15);
+}
+
+.access-gate__remember {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.access-gate__error {
+    color: var(--danger);
+    font-weight: 600;
+    margin: 0;
+}
+
+.access-gate__toggle {
+    margin: var(--spacing-md) 0 0;
+    text-align: center;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+}
+
+.access-gate__toggle-button {
+    background: none;
+    border: none;
+    color: var(--primary-green);
+    font-weight: 600;
+    padding: 0;
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.access-gate__toggle-button:hover,
+.access-gate__toggle-button:focus {
+    color: var(--primary-green-hover);
+    text-decoration: underline;
+}
+
+.access-gate__toggle-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    text-decoration: none;
+}
+
 /* ------------------------------------------------------------
    STEP TIMELINE
 ------------------------------------------------------------ */
@@ -2715,12 +2890,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .auth-loading {
-    min-height: 60vh;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: var(--spacing-lg);
+    background: var(--bg-light);
     color: var(--text-secondary);
 }
 
@@ -2728,14 +2904,15 @@ h1, h2, h3, h4, h5, h6 {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    border: 4px solid var(--border-light);
+    border: 4px solid rgba(7, 88, 27, 0.15);
     border-top-color: var(--primary-green);
-    animation: spin 1s linear infinite;
+    animation: spin 0.8s linear infinite;
 }
 
 .auth-loading__text {
+    margin: 0;
     font-weight: 600;
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
 @keyframes spin {
