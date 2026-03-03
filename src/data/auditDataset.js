@@ -109,6 +109,39 @@ function buildOverlayBoxes(doc) {
   });
 }
 
+function inferCodeArea(doc, finding) {
+  const haystack = [
+    doc?.file_id,
+    doc?.filename,
+    doc?.document_type,
+    finding?.title,
+    finding?.deviation,
+    finding?.source?.section,
+    finding?.reference?.section
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (haystack.includes('complaint')) return 'complaints';
+  if (haystack.includes('undertaking')) return 'undertakings';
+  if (haystack.includes('account') || haystack.includes('reconciliation')) return 'accounts';
+  if (haystack.includes('management') || haystack.includes('supervision')) return 'management';
+  if (
+    haystack.includes('aml') ||
+    haystack.includes('money laundering') ||
+    haystack.includes('ctf') ||
+    haystack.includes('source of funds') ||
+    haystack.includes('risk assessment') ||
+    haystack.includes('sanction') ||
+    haystack.includes('pep') ||
+    haystack.includes('identity')
+  ) {
+    return 'aml';
+  }
+  return 'aml';
+}
+
 export const auditDocuments = rawDocuments.map((doc) => ({
   ...doc,
   id: doc.file_id ?? doc.filename,
@@ -129,6 +162,7 @@ export const auditFindings = rawDocuments.flatMap((doc) => {
     return {
       id: derivedId,
       severity: normaliseSeverity(finding.type, doc.severity),
+      codeArea: inferCodeArea(doc, finding),
       title: finding.title ?? doc.document_type,
       detail: finding.deviation ?? finding?.source?.text ?? '',
       documentId: doc.file_id ?? doc.filename,

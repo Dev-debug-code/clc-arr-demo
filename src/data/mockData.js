@@ -1,17 +1,16 @@
 export const NAV_TABS = [
-  { id: 'arr', label: 'ARR Analysis', stepRange: [1, 3] },
-  { id: 'audits', label: 'Compliance Audits', stepRange: [4, 6] },
-  { id: 'reports', label: 'Reports', stepRange: [7, 7] }
+  { id: 'intake', label: 'Case Intake', stepRange: [1, 2] },
+  { id: 'review', label: 'Review', stepRange: [3, 4] },
+  { id: 'reports', label: 'Report', stepRange: [5, 6] }
 ];
 
 export const STEP_CONFIG = [
-  { id: 1, title: 'ARR Connection', subtitle: 'Auto-detect ARR document inside workspace' },
-  { id: 2, title: 'ARR Processing', subtitle: 'Extraction + risk detection' },
-  { id: 3, title: 'ARR Results', subtitle: 'PDF + commentary view' },
-  { id: 4, title: 'Audit Selection', subtitle: 'Choose which audits to run' },
-  { id: 5, title: 'Audit Processing', subtitle: 'Cross-checking policies and matters' },
-  { id: 6, title: 'Audit Findings', subtitle: 'Interactive findings dashboard' },
-  { id: 7, title: 'Export Report', subtitle: 'Distribute polished PDF output' }
+  { id: 1, title: 'Documents', subtitle: 'Upload, classify and verify documents' },
+  { id: 2, title: 'AI Processing', subtitle: 'Process and classify uploaded evidence' },
+  { id: 3, title: 'Overview', subtitle: 'Review findings and leads' },
+  { id: 4, title: 'Document Viewer', subtitle: 'Inspect evidence and annotate' },
+  { id: 5, title: 'Report', subtitle: 'Review and export output' },
+  { id: 6, title: 'Case History', subtitle: 'Review processing and user activity (manual)' }
 ];
 
 export const ARR_CONNECTION = {
@@ -88,8 +87,16 @@ export const AUDIT_PROCESSING_STEPS = [
 ];
 
 export const REPORT_SUMMARY = {
-  filename: 'CLC_Audit_Report_Case001.pdf',
-  pages: 18,
-  size: '2.4 MB',
-  sections: ['Executive Summary', 'ARR Analysis', 'AML Findings', 'Cyber Findings', 'Remediation Steps']
+  filename: 'CLC_Inspection_Report_Hartley_12458.pdf',
+  pages: 14,
+  size: '1.9 MB',
+  sections: [
+    'Practice details',
+    'Interviews conducted',
+    'Compliance summary',
+    'Areas of good practice',
+    'Areas requiring attention',
+    'Action plan',
+    'Appendix'
+  ]
 };

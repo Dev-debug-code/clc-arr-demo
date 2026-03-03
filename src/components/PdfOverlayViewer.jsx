@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/build/pdf';
-import workerSrc from 'pdfjs-dist/build/pdf.worker.min.js?url';
+import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
+import workerSrc from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
 const FileType = typeof File !== 'undefined' ? PropTypes.instanceOf(File) : PropTypes.any;
 const BlobType = typeof Blob !== 'undefined' ? PropTypes.instanceOf(Blob) : PropTypes.any;
@@ -23,7 +23,47 @@ function isRectWithinViewport(rect, viewport) {
 }
 
 function convertBoxToViewport(box, viewport) {
-  const [x1Raw, y1Raw, x2Raw, y2Raw] = box.bbox;
+  const [x1Raw, y1Raw, x2Raw, y2Raw] = Array.isArray(box?.bbox)
+    ? box.bbox.map((value) => Number(value))
+    : [NaN, NaN, NaN, NaN];
+
+  if (![x1Raw, y1Raw, x2Raw, y2Raw].every(Number.isFinite)) {
+    return {
+      ...box,
+      rect: { left: 0, top: 0, width: 0, height: 0 }
+    };
+  }
+
+  // Support both raw PDF coordinates and normalized [0..1] coordinates.
+  const isNormalised = [x1Raw, y1Raw, x2Raw, y2Raw].every((value) => value >= -0.001 && value <= 1.001);
+  if (isNormalised) {
+    const nx1 = Math.min(1, Math.max(0, x1Raw));
+    const ny1 = Math.min(1, Math.max(0, y1Raw));
+    const nx2 = Math.min(1, Math.max(0, x2Raw));
+    const ny2 = Math.min(1, Math.max(0, y2Raw));
+
+    const projectNormalised = (flipY) => {
+      const leftRatio = Math.min(nx1, nx2);
+      const rightRatio = Math.max(nx1, nx2);
+      const topRatio = flipY ? 1 - Math.max(ny1, ny2) : Math.min(ny1, ny2);
+      const bottomRatio = flipY ? 1 - Math.min(ny1, ny2) : Math.max(ny1, ny2);
+      const left = leftRatio * viewport.width;
+      const top = topRatio * viewport.height;
+      const width = Math.max((rightRatio - leftRatio) * viewport.width, 1);
+      const height = Math.max((bottomRatio - topRatio) * viewport.height, 1);
+      return { left, top, width, height };
+    };
+
+    const normalisedCandidates = [projectNormalised(false), projectNormalised(true)];
+    const normalisedRect =
+      normalisedCandidates.find((entry) => isRectWithinViewport(entry, viewport)) ?? normalisedCandidates[0];
+
+    return {
+      ...box,
+      rect: normalisedRect
+    };
+  }
+
   const viewBox = viewport?.viewBox;
   const pdfHeight = (viewBox && viewBox[3]) || viewport.height / viewport.scale || 0;
 
