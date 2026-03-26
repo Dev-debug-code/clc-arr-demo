@@ -1,2 +1,6 @@
-"*Zone.Identifier*" 
-"*sec.endpointdlp*" 
+node_modules/
+dist/
+*.Zone.Identifier*
+*.sec.endpointdlp*
+*:Zone.Identifier*
+*:sec.endpointdlp*

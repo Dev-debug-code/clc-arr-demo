@@ -253,9 +253,13 @@ function PdfPage({
               };
               const isActive = activeBoxId === box.id;
               const severity = (box.severity || '').toLowerCase();
+              const polarity = (box.polarity || '').toLowerCase();
+              const certainty = (box.certainty || '').toLowerCase();
               const classes = ['pdf-overlay-box'];
               if (isActive) classes.push('is-active');
               if (severity) classes.push(`severity-${severity}`);
+              if (polarity) classes.push(`polarity-${polarity}`);
+              if (certainty) classes.push(`certainty-${certainty}`);
               return (
                 <button
                   key={`${box.id}-${index}`}
@@ -265,6 +269,8 @@ function PdfPage({
                   style={style}
                   data-category={box.category}
                   data-severity={severity || undefined}
+                  data-polarity={polarity || undefined}
+                  data-certainty={certainty || undefined}
                   onClick={() => handleBoxClick(box.id)}
                   title={box.details || box.title || `Bounding box ${box.id}`}
                 >
@@ -291,7 +297,9 @@ PdfPage.propTypes = {
       category: PropTypes.string,
       details: PropTypes.string,
       title: PropTypes.string,
-      severity: PropTypes.string
+      severity: PropTypes.string,
+      polarity: PropTypes.string,
+      certainty: PropTypes.string
     })
   ),
   showBoxes: PropTypes.bool,
@@ -440,20 +448,23 @@ export default function PdfOverlayViewer({
   const boxesByPage = useMemo(() => {
     if (!Array.isArray(boxes)) return new Map();
     const map = new Map();
+    const maxPageIndex = Number.isFinite(pageCount) && pageCount > 0 ? pageCount - 1 : null;
     boxes.forEach((box) => {
       const rawPage = Number.isFinite(box.pageno)
         ? box.pageno
         : Number.isFinite(box.page)
           ? box.page - 1
           : 0;
-      const pageIndex = Math.max(Math.round(rawPage), 0);
+      const unclampedPageIndex = Math.max(Math.round(rawPage), 0);
+      const pageIndex =
+        maxPageIndex === null ? unclampedPageIndex : Math.min(unclampedPageIndex, maxPageIndex);
       if (!map.has(pageIndex)) {
         map.set(pageIndex, []);
       }
       map.get(pageIndex).push(box);
     });
     return map;
-  }, [boxes]);
+  }, [boxes, pageCount]);
 
   useEffect(() => {
     if (!showBoxes || !activeBoxId) {

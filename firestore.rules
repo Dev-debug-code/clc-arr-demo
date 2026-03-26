@@ -1,0 +1,192 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function userDocPath(orgId, userId) {
+      return /databases/$(database)/documents/organizations/$(orgId)/users/$(userId);
+    }
+
+    function requesterDocPath(orgId) {
+      return userDocPath(orgId, request.auth.uid);
+    }
+
+    function caseDocPath(orgId, caseId) {
+      return /databases/$(database)/documents/organizations/$(orgId)/cases/$(caseId);
+    }
+
+    function isOrgMember(orgId) {
+      return signedIn() && exists(requesterDocPath(orgId));
+    }
+
+    function requesterRole(orgId) {
+      return isOrgMember(orgId) ? get(requesterDocPath(orgId)).data.role : null;
+    }
+
+    function requesterEmail() {
+      return signedIn() ? request.auth.token.email : null;
+    }
+
+    function isPrivilegedUser(orgId) {
+      return requesterRole(orgId) in ['admin', 'owner', 'full_access'];
+    }
+
+    function isTeamLead(orgId) {
+      return requesterRole(orgId) in ['team_lead', 'reviewer'] || isPrivilegedUser(orgId);
+    }
+
+    function preservesRoleAndStatus() {
+      return request.resource.data.role == resource.data.role
+        && request.resource.data.status == resource.data.status;
+    }
+
+    function isCaseAssignedToRequester(caseData) {
+      return signedIn() && (
+        caseData.assignedInspectorUserId == request.auth.uid
+        || caseData.inspectorUserId == request.auth.uid
+        || caseData.createdByUserId == request.auth.uid
+        || (
+          requesterEmail() != null
+          && (
+            caseData.assignedInspectorEmail == requesterEmail()
+            || caseData.inspectorEmail == requesterEmail()
+            || caseData.ownerEmail == requesterEmail()
+            || caseData.inspector == requesterEmail()
+            || caseData.owner == requesterEmail()
+          )
+        )
+      );
+    }
+
+    function canReadCaseData(orgId, caseData) {
+      return isOrgMember(orgId) && (
+        isTeamLead(orgId) || isCaseAssignedToRequester(caseData)
+      );
+    }
+
+    function canReadCase(orgId, caseId) {
+      return exists(caseDocPath(orgId, caseId))
+        && canReadCaseData(orgId, get(caseDocPath(orgId, caseId)).data);
+    }
+
+    function preservesAssignmentFields() {
+      return request.resource.data.assignedInspectorUserId == resource.data.assignedInspectorUserId
+        && request.resource.data.assignedInspectorEmail == resource.data.assignedInspectorEmail
+        && request.resource.data.assignedInspectorName == resource.data.assignedInspectorName
+        && request.resource.data.inspectorUserId == resource.data.inspectorUserId
+        && request.resource.data.inspectorEmail == resource.data.inspectorEmail
+        && request.resource.data.inspector == resource.data.inspector
+        && request.resource.data.owner == resource.data.owner
+        && request.resource.data.ownerEmail == resource.data.ownerEmail
+        && request.resource.data.createdByUserId == resource.data.createdByUserId;
+    }
+
+    function canCreateOwnCase(orgId) {
+      return isOrgMember(orgId)
+        && request.resource.data.createdByUserId == request.auth.uid
+        && isCaseAssignedToRequester(request.resource.data);
+    }
+
+    function canUpdateCaseData(orgId, caseData) {
+      return canReadCaseData(orgId, caseData)
+        && (isTeamLead(orgId) || preservesAssignmentFields());
+    }
+
+    match /organizations/{orgId} {
+      allow read: if isOrgMember(orgId);
+      allow write: if false;
+
+      match /users/{userId} {
+        allow read: if isSelf(userId) || isTeamLead(orgId);
+
+        // User membership must be provisioned ahead of time by a privileged operator or seed script.
+        allow create: if isPrivilegedUser(orgId);
+
+        allow update: if isPrivilegedUser(orgId) || (isSelf(userId) && preservesRoleAndStatus());
+
+        allow delete: if isPrivilegedUser(orgId);
+      }
+
+      match /feedback/{feedbackId} {
+        allow read, create: if isOrgMember(orgId);
+        allow update, delete: if isPrivilegedUser(orgId);
+      }
+
+      match /cases/{caseId} {
+        allow read: if canReadCaseData(orgId, resource.data);
+        allow create: if isPrivilegedUser(orgId) || canCreateOwnCase(orgId);
+        allow update: if canUpdateCaseData(orgId, resource.data);
+        allow delete: if isPrivilegedUser(orgId);
+
+        match /documents/{documentId} {
+          allow read: if canReadCase(orgId, caseId);
+          allow write: if false;
+        }
+
+        match /requirements/{requirementId} {
+          allow read: if canReadCase(orgId, caseId);
+          allow write: if false;
+        }
+
+        match /findings/{findingId} {
+          allow read, create, update: if canReadCase(orgId, caseId);
+          allow delete: if isPrivilegedUser(orgId)
+            || (canReadCase(orgId, caseId) && resource.data.origin == 'inspector');
+        }
+
+        match /history/{historyId} {
+          allow read, create: if canReadCase(orgId, caseId);
+          allow update, delete: if isPrivilegedUser(orgId);
+        }
+
+        match /events/{eventId} {
+          allow read, create: if canReadCase(orgId, caseId);
+          allow update, delete: if isPrivilegedUser(orgId);
+        }
+
+        match /contextNotes/{noteId} {
+          allow read, create: if canReadCase(orgId, caseId);
+          allow update, delete: if isPrivilegedUser(orgId);
+        }
+
+        match /findingNotes/{noteId} {
+          allow read, create: if canReadCase(orgId, caseId);
+          allow update, delete: if isPrivilegedUser(orgId);
+        }
+
+        match /documentNotes/{noteId} {
+          allow read, create: if canReadCase(orgId, caseId);
+          allow update, delete: if isPrivilegedUser(orgId);
+        }
+
+        match /uploads/{uploadId} {
+          allow read, create, update: if canReadCase(orgId, caseId);
+          allow delete: if isPrivilegedUser(orgId);
+        }
+
+        match /observations/{observationId} {
+          allow read, create, update, delete: if canReadCase(orgId, caseId);
+        }
+
+        match /reportActions/{actionId} {
+          allow read, create, update, delete: if canReadCase(orgId, caseId);
+        }
+
+        match /reportSections/{sectionId} {
+          allow read, create, update, delete: if canReadCase(orgId, caseId);
+        }
+
+        match /report/{reportId} {
+          allow read, create, update: if canReadCase(orgId, caseId);
+          allow delete: if isPrivilegedUser(orgId);
+        }
+      }
+    }
+  }
+}

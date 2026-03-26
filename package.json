@@ -6,15 +6,22 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seed:db": "node scripts/seed-firestore.mjs",
+    "seed:db:fresh": "node scripts/seed-firestore.mjs --reset",
+    "seed:db:reset": "node scripts/seed-firestore.mjs --reset-only",
+    "smoke:api": "node scripts/smoke-api-v6.mjs"
   },
   "dependencies": {
+    "firebase": "^12.9.0",
+    "pdfjs-dist": "^5.4.624",
     "prop-types": "^15.8.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.0",
+    "firebase-admin": "^13.6.1",
     "vite": "^5.4.0"
   }
 }

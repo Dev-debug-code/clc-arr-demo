@@ -1,0 +1,30 @@
+export {
+  createCaseRecord,
+  listCases,
+  lookupPracticeByLicenceNumber,
+  searchCase,
+  exportCaseReport,
+  loadCaseWorkspaceData,
+  persistInspectorFinding,
+  persistInspectorFindingDelete,
+  persistObservation,
+  persistObservationUpdate,
+  persistObservationDelete,
+  persistReportPatch,
+  persistReportSectionPatch,
+  persistReportSectionRevert,
+  persistFeedback,
+  persistReportAction,
+  persistReportActionDelete,
+  persistCasePatch,
+  persistContextNote,
+  persistDocumentNote,
+  persistFindingDecision,
+  persistFindingNote,
+  persistGenerateFindingsEvent,
+  persistGenerateReport,
+  persistConfirmAllUploads,
+  persistUploadItem
+} from '../caseData.js';
+
+export { prepareUploadDraft, prepareWorkspaceSnapshot } from '../demoWorkspace.js';
