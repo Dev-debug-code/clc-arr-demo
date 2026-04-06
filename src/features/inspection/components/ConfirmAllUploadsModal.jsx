@@ -9,8 +9,13 @@ export default function ConfirmAllUploadsModal({ isOpen, onCancel, onConfirm }) 
         aria-modal="true"
         aria-label="Confirm all classifications"
       >
-        <h3>Confirm All Remaining?</h3>
-        <p>You haven't viewed all classifications yet. Confirm all anyway?</p>
+        <div className="modal-card__header">
+          <h3>Confirm all classifications?</h3>
+          <button type="button" className="modal-card__close" aria-label="Close" onClick={onCancel}>
+            ×
+          </button>
+        </div>
+        <p>You haven't viewed all classifications. Confirm all anyway?</p>
         <div className="modal-actions">
           <button type="button" className="btn ghost" onClick={onCancel}>
             Cancel

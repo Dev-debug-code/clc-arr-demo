@@ -1,7 +1,69 @@
+const parseCurrentTrendMetrics = (summary) => {
+  const match = String(summary || '').match(/(\d+)\s*\/\s*(\d+)/);
+  const met = match ? Number(match[1]) : 0;
+  const total = match ? Number(match[2]) : 0;
+  const percent = total > 0 ? Math.round((met / total) * 100) : 0;
+  return { met, total, percent };
+};
+
+const getTrendBadgeLabel = (trendLabel) => {
+  if (trendLabel === 'Stable') return '→ Stable';
+  if (trendLabel === 'Monitoring') return '→ Monitoring';
+  return '↓ Attention needed';
+};
+
+const getTrendBadgeClassName = (trendClass) => {
+  if (trendClass === 'accepted') return 'trend-badge-stable';
+  if (trendClass === 'dismissed') return 'trend-badge-monitoring';
+  return 'trend-badge-declining';
+};
+
+const getOutcomeBadgeClassName = (outcome) => {
+  const value = String(outcome || '').trim().toLowerCase();
+  if (value === 'compliant') return 'accepted';
+  if (value === 'generally_compliant') return 'dismissed';
+  if (value === 'non_compliant') return 'rejected';
+  return 'pending';
+};
+
+const getPreviousFindingStatus = (row) => {
+  if (row.severity === 'Good Practice') {
+    return {
+      label: 'Good Practice',
+      detail: '',
+      className: 'finding-status-good'
+    };
+  }
+
+  const isResolved = row.resolution === 'Accepted' || row.resolution === 'Dismissed';
+  return {
+    label: 'Attention',
+    detail: isResolved ? 'Resolved' : 'Unresolved',
+    className: isResolved ? 'finding-status-attention' : 'finding-status-unresolved'
+  };
+};
+
+const renderCurrentFindingStatus = (row) => {
+  if (row.recurring) {
+    return (
+      <span className="finding-current-recurring">
+        <span className="badge-recurring">↻ Recurring</span>
+      </span>
+    );
+  }
+
+  if (row.severity === 'Good Practice') {
+    return <span className="finding-current-strong">★ Still strong</span>;
+  }
+
+  return <span className="finding-current-none">—</span>;
+};
+
 export default function HistoryStage({
   reportPendingChanges,
   pendingReprocessSummary,
   onReprocessNow,
+  onOpenHistoryFinding,
   currentCaseMeta,
   hasInspectionHistory,
   historyTrendRows,
@@ -9,11 +71,16 @@ export default function HistoryStage({
   currentCaseOutcome,
   formatOutcomeLabel,
   reviewedCount,
-  availableFindingsCount,
-  recurringFindingCount,
-  onBackToOverview,
-  onOpenReport
+  availableFindingsCount
 }) {
+  const previousInspectionLabel = currentCaseMeta.previousInspection
+    ? `${currentCaseMeta.previousInspection} (pre-system)`
+    : 'Not recorded';
+  const attentionFindingCount = historyFindingsRows.filter((row) => row.severity !== 'Good Practice').length;
+  const goodPracticeCount = historyFindingsRows.filter((row) => row.severity === 'Good Practice').length;
+  const actionPlanTotal = Math.max(availableFindingsCount, 0);
+  const actionPlanPercent = actionPlanTotal > 0 ? Math.round((reviewedCount / actionPlanTotal) * 100) : 0;
+
   return (
     <div className="stage-card">
       {reportPendingChanges ? (
@@ -27,132 +94,167 @@ export default function HistoryStage({
           </button>
         </div>
       ) : null}
-      <h2>Inspection History — {currentCaseMeta.practiceName}</h2>
-      <p className="panel-subtitle">
-        Practice inspection history and recurring compliance signals across inspections.
-      </p>
       {!hasInspectionHistory ? (
-        <div className="edge-empty-card">
-          <div className="edge-empty-card__icon">📋</div>
-          <h3>Building your inspection history.</h3>
-          <p>This is the first recorded inspection for this practice in-system.</p>
-          <p className="panel-subtitle">
-            Previous inspection: {currentCaseMeta.previousInspection || 'Not recorded'}
-          </p>
-          <ul className="history-coming-list">
-            <li>Side-by-side compliance trend comparison</li>
-            <li>Recurring issue detection across inspections</li>
-            <li>Resolution tracking for action plan items</li>
-            <li>Cross-year timeline activity view</li>
-          </ul>
+        <div className="empty-state-wrapper">
+          <div className="panel empty-state-card">
+            <div className="empty-state-icon">📋</div>
+            <div className="empty-state-title">Building your inspection history.</div>
+            <div className="empty-state-body">
+              The data from this inspection will power trend analysis, recurring issue detection, and resolution
+              tracking from your next inspection of this practice onwards.
+            </div>
+            <div className="empty-state-previous">Previous inspection: {previousInspectionLabel}</div>
+            <div className="empty-state-list-title">What's coming:</div>
+            <ul className="empty-state-list compact">
+              <li>Side-by-side compliance trends across inspections</li>
+              <li>Automatic flagging of recurring issues</li>
+              <li>Resolution tracking for action plan items</li>
+              <li>Full case timeline across inspection years</li>
+            </ul>
+          </div>
         </div>
       ) : null}
       {hasInspectionHistory ? (
-        <>
-          <section className="panel history-trend-card">
+        <div className="history-content">
+          <div className="page-title">Inspection History — {currentCaseMeta.practiceName}</div>
+
+          <div className="section-heading">
             <h3>Compliance Trend by Code Area</h3>
+          </div>
+          <section className="panel history-trend-card history-trend-card--detailed">
             {historyTrendRows.length === 0 ? (
               <p className="panel-subtitle">No code area trends yet. Run processing to populate this view.</p>
             ) : (
-              historyTrendRows.map((row) => (
-                <div key={`history-trend-${row.id}`} className="history-trend-row">
-                  <span>{row.name}</span>
-                  <span className="panel-subtitle">{row.summary}</span>
-                  <span className={`review-pill ${row.trendClass}`}>{row.trendLabel}</span>
-                </div>
-              ))
+              historyTrendRows.map((row) => {
+                const metrics = parseCurrentTrendMetrics(row.summary);
+                return (
+                  <div key={`history-trend-${row.id}`} className="trend-row">
+                    <div className="trend-label">{row.name}</div>
+                    <div className="trend-bars">
+                      <div className="trend-bar-group">
+                        <div className="trend-bar-label">Previous</div>
+                        <div className="trend-bar-track">
+                          <div className="trend-bar-fill previous" style={{ width: '0%' }} />
+                        </div>
+                        <div className="trend-bar-count">Not recorded</div>
+                      </div>
+                      <div className="trend-arrow">→</div>
+                      <div className="trend-bar-group">
+                        <div className="trend-bar-label">Current</div>
+                        <div className="trend-bar-track">
+                          <div
+                            className={`trend-bar-fill ${
+                              row.trendClass === 'rejected' ? 'current-bad' : 'current-good'
+                            }`}
+                            style={{ width: `${metrics.percent}%` }}
+                          />
+                        </div>
+                        <div className="trend-bar-count">
+                          {metrics.met}/{Math.max(metrics.total, 1)} ({metrics.percent}%)
+                        </div>
+                      </div>
+                    </div>
+                    <div className="trend-badge">
+                      <span className={getTrendBadgeClassName(row.trendClass)}>
+                        {getTrendBadgeLabel(row.trendLabel)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </section>
-          <section className="panel history-trend-card">
-            <h3>Previous Findings</h3>
-            <div className="docs-table">
-              <div className="docs-table__row docs-table__row--head">
-                <span>Finding</span>
-                <span>Code Area</span>
-                <span>Severity</span>
-                <span>Resolution</span>
-                <span>Pattern</span>
+
+          <div className="section-heading">
+            <h3>Last Inspection Summary</h3>
+          </div>
+          <section className="panel history-summary-card">
+            <div className="summary-row">
+              <div className="summary-item">
+                <div className="summary-item-label">Last Inspection</div>
+                <div className="summary-item-value">{currentCaseMeta.previousInspection || 'Not recorded'}</div>
               </div>
-              {historyFindingsRows.length === 0 ? (
-                <div className="docs-table__row">
-                  <span>No findings tracked yet</span>
-                  <span>—</span>
-                  <span>—</span>
-                  <span>—</span>
-                  <span>—</span>
+              <div className="summary-item">
+                <div className="summary-item-label">Outcome</div>
+                <div className="summary-item-value">
+                  <span className={`review-pill ${getOutcomeBadgeClassName(currentCaseOutcome)}`}>
+                    {formatOutcomeLabel(currentCaseOutcome)}
+                  </span>
                 </div>
-              ) : (
-                historyFindingsRows.map((row) => (
-                  <div key={`history-row-${row.id}`} className="docs-table__row">
-                    <span>{row.title}</span>
-                    <span>{row.codeArea}</span>
-                    <span
-                      className={`review-pill ${
-                        row.severity === 'Critical'
-                          ? 'rejected'
-                          : row.severity === 'Guidance'
-                            ? 'dismissed'
-                            : 'accepted'
-                      }`}
-                    >
-                      {row.severity}
+              </div>
+              <div className="summary-item">
+                <div className="summary-item-label">Key Findings</div>
+                <div className="summary-item-value">
+                  {attentionFindingCount} attention areas, {goodPracticeCount} good practice
+                </div>
+              </div>
+              <div className="summary-item">
+                <div className="summary-item-label">Action Plan</div>
+                <div className="summary-item-value">
+                  <div className="action-progress">
+                    <span>
+                      {reviewedCount} of {actionPlanTotal} actions completed
                     </span>
-                    <span
-                      className={`review-pill ${
-                        row.resolution === 'Accepted'
-                          ? 'accepted'
-                          : row.resolution === 'Rejected'
-                            ? 'rejected'
-                            : row.resolution === 'Dismissed'
-                              ? 'dismissed'
-                              : 'pending'
-                      }`}
-                    >
-                      {row.resolution}
-                    </span>
-                    <span className={row.recurring ? 'recurring-badge' : 'panel-subtitle'}>
-                      {row.recurring ? 'Recurring' : '—'}
-                    </span>
+                    <span className="text-small">({actionPlanPercent}%)</span>
                   </div>
-                ))
-              )}
-            </div>
-          </section>
-          <section className="panel history-trend-card">
-            <h3>Last inspection summary</h3>
-            <div className="history-summary-grid">
-              <div>
-                <span className="history-summary-label">Date</span>
-                <strong>{currentCaseMeta.previousInspection || 'Not recorded'}</strong>
-              </div>
-              <div>
-                <span className="history-summary-label">Outcome</span>
-                <strong>{formatOutcomeLabel(currentCaseOutcome)}</strong>
-              </div>
-              <div>
-                <span className="history-summary-label">Actions completed</span>
-                <strong>{reviewedCount} / {Math.max(availableFindingsCount, 1)}</strong>
-              </div>
-              <div>
-                <span className="history-summary-label">Recurring findings</span>
-                <strong>{recurringFindingCount}</strong>
+                  <div className="action-progress-bar">
+                    <div className="progress-track">
+                      <div className="progress-bar" style={{ width: `${actionPlanPercent}%` }} />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
-          <p className="panel-subtitle">
-            Case activity and audit actions are logged separately and are not surfaced in this
-            workspace.
-          </p>
-        </>
+
+          <div className="section-heading">
+            <h3>Previous Findings</h3>
+          </div>
+          <section className="panel history-findings-card">
+            <div className="history-findings-table-wrap">
+              <table className="history-findings-table">
+                <thead>
+                  <tr>
+                    <th>Finding</th>
+                    <th>Previous Status</th>
+                    <th>Current</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historyFindingsRows.length === 0 ? (
+                    <tr>
+                      <td>No findings tracked yet</td>
+                      <td>—</td>
+                      <td>—</td>
+                    </tr>
+                  ) : (
+                    historyFindingsRows.map((row) => {
+                      const previousStatus = getPreviousFindingStatus(row);
+                      const isClickable = row.recurring || row.severity === 'Good Practice';
+                      return (
+                        <tr
+                          key={`history-row-${row.id}`}
+                          className={isClickable ? 'clickable-row' : ''}
+                          onClick={isClickable ? () => onOpenHistoryFinding(row.id) : undefined}
+                        >
+                          <td className="finding-name">{row.title}</td>
+                          <td>
+                            <span className={previousStatus.className}>{previousStatus.label}</span>
+                            {previousStatus.detail ? (
+                              <span className="finding-status-detail"> — {previousStatus.detail}</span>
+                            ) : null}
+                          </td>
+                          <td>{renderCurrentFindingStatus(row)}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
       ) : null}
-      <div className="action-bar">
-        <button type="button" className="btn ghost" onClick={onBackToOverview}>
-          ← Back to Overview
-        </button>
-        <button type="button" className="btn primary" onClick={onOpenReport}>
-          Open Report →
-        </button>
-      </div>
     </div>
   );
 }

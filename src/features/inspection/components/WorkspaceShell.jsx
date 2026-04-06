@@ -1,30 +1,31 @@
 import AppHeader from '../../../components/AppHeader.jsx';
-import StepTimeline from '../../../components/StepTimeline.jsx';
 
 export default function WorkspaceShell({
-  darkMode,
   currentUserEmail,
+  onHome,
   onSignOut,
-  onToggleDarkMode,
   onOpenAssistant,
   assistantOpen,
-  workflowTimelineStep,
-  workflowSteps,
+  headerTitle = 'CLC Inspection Tool',
+  showHeaderTitle = true,
+  showHeaderTitleChevron = false,
+  compactHeader = false,
   children,
   afterMain = null
 }) {
   return (
-    <div className={`arr-app-shell ${darkMode ? 'dark-mode' : ''}`}>
+    <div className="arr-app-shell">
       <AppHeader
         currentUserEmail={currentUserEmail}
-        onSignOut={onSignOut}
-        darkMode={darkMode}
-        onToggleDarkMode={onToggleDarkMode}
+        onHome={onHome}
         onOpenAssistant={onOpenAssistant}
         assistantOpen={assistantOpen}
+        centerLabel={headerTitle}
+        showCenter={showHeaderTitle}
+        showCenterChevron={showHeaderTitleChevron}
+        compact={compactHeader}
       />
       <main className="workspace-main">
-        <StepTimeline steps={workflowSteps} currentStep={workflowTimelineStep} />
         {children}
       </main>
       {afterMain}

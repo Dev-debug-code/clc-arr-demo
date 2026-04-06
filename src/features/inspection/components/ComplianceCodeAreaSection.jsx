@@ -19,11 +19,12 @@ export default function ComplianceCodeAreaSection({
   overviewRequirementFilter,
   setOverviewRequirementFilter,
   overviewFilterRef,
-  findingViewFilter,
+  findingViewFilters,
   setOverviewFilterOpen,
   overviewFilterOpen,
   findingFilterLabelMap,
-  setFindingViewFilter,
+  toggleFindingViewFilter,
+  clearFindingViewFilters,
   findingDecisions,
   expandedOverviewFindingIds,
   setExpandedOverviewFindingIds,
@@ -40,7 +41,7 @@ export default function ComplianceCodeAreaSection({
   findingMenuRef,
   handleRequestFindingDecision,
   handleOpenAddNote,
-  setDeleteFindingTargetId,
+  handleDeleteFinding,
   handleViewDocument,
   openLeadConfirmModal,
   inlineRejectFindingId,
@@ -62,8 +63,22 @@ export default function ComplianceCodeAreaSection({
   setNoteDraft,
   setNoteTargetFindingId,
   handleSaveFindingNote,
+  leadConfirmOpen,
+  leadConfirmFindingId,
+  leadConfirmOriginStep,
+  closeLeadConfirmModal,
+  launchLeadEvidenceHighlighter,
   openComposerModal
 }) {
+  const hasActiveFindingFilters = findingViewFilters.length > 0;
+  const activeFindingFilterLabels = findingViewFilters
+    .map((filterKey) => findingFilterLabelMap[filterKey] ?? filterKey)
+    .filter(Boolean);
+  const findingFilterButtonLabel = !hasActiveFindingFilters
+    ? 'All'
+    : activeFindingFilterLabels.length <= 2
+      ? activeFindingFilterLabels.join(', ')
+      : `${activeFindingFilterLabels.length} filters`;
   const isExpanded = expandedCodeAreaId === area.id;
   const requirementRows = requirementsByCodeArea[area.id] ?? [];
   const assessableRequirementRows = requirementRows.filter((entry) => !isRequirementExcluded(entry.status));
@@ -174,16 +189,15 @@ export default function ComplianceCodeAreaSection({
             </div>
             <div className="findings-col">
               <div className="filter-row">
-                <span className="panel-subtitle">Findings for {area.name}</span>
                 <div className="filter-dropdown-wrap" ref={overviewFilterRef}>
                   <button
                     type="button"
-                    className={`filter-dropdown-btn ${findingViewFilter !== 'all' ? 'has-filter' : ''}`}
+                    className={`filter-dropdown-btn ${hasActiveFindingFilters ? 'has-filter' : ''}`}
                     onClick={() => setOverviewFilterOpen((prev) => !prev)}
                     aria-expanded={overviewFilterOpen}
                     aria-haspopup="menu"
                   >
-                    Filter: {findingFilterLabelMap[findingViewFilter] ?? 'All'}
+                    Filter: {findingFilterButtonLabel}
                     <span className="dropdown-chevron">▼</span>
                   </button>
                   <div className={`filter-dropdown-panel ${overviewFilterOpen ? 'open' : ''}`} role="menu">
@@ -191,26 +205,20 @@ export default function ComplianceCodeAreaSection({
                       <label key={`overview-filter-option-${filterKey}`} className="filter-checkbox">
                         <input
                           type="checkbox"
-                          checked={findingViewFilter === filterKey}
-                          onChange={() => {
-                            setFindingViewFilter(filterKey);
-                            setOverviewFilterOpen(false);
-                          }}
+                          checked={!hasActiveFindingFilters}
+                          onChange={() => clearFindingViewFilters()}
                         />
                         <span>{findingFilterLabelMap[filterKey]}</span>
                       </label>
                     ))}
                     <div className="filter-dropdown-divider" />
-                    {['unreviewed', 'reviewed', 'leads', 'non_compliant', 'compliant', 'good_practice', 'inspector_added'].map(
+                    {['unreviewed', 'leads', 'non_compliant', 'good_practice', 'inspector_added'].map(
                       (filterKey) => (
                         <label key={`overview-filter-option-${filterKey}`} className="filter-checkbox">
                           <input
                             type="checkbox"
-                            checked={findingViewFilter === filterKey}
-                            onChange={() => {
-                              setFindingViewFilter(filterKey);
-                              setOverviewFilterOpen(false);
-                            }}
+                            checked={findingViewFilters.includes(filterKey)}
+                            onChange={() => toggleFindingViewFilter(filterKey)}
                           />
                           <span>{findingFilterLabelMap[filterKey]}</span>
                         </label>
@@ -221,11 +229,8 @@ export default function ComplianceCodeAreaSection({
                       <label key={`overview-filter-option-${filterKey}`} className="filter-checkbox">
                         <input
                           type="checkbox"
-                          checked={findingViewFilter === filterKey}
-                          onChange={() => {
-                            setFindingViewFilter(filterKey);
-                            setOverviewFilterOpen(false);
-                          }}
+                          checked={findingViewFilters.includes(filterKey)}
+                          onChange={() => toggleFindingViewFilter(filterKey)}
                         />
                         <span>{findingFilterLabelMap[filterKey]}</span>
                       </label>
@@ -236,25 +241,25 @@ export default function ComplianceCodeAreaSection({
               {activeRequirementId ? (
                 <div className="filter-clear visible">
                   <span>
-                    Filtering by requirement:{' '}
-                    {requirementRows.find((entry) => entry.id === activeRequirementId)?.label ?? activeRequirementId}
+                    Filtering by:{' '}
+                    <strong>{requirementRows.find((entry) => entry.id === activeRequirementId)?.label ?? activeRequirementId}</strong>
                   </span>
                   <button
                     type="button"
                     className="btn btn-xs ghost"
                     onClick={() => setOverviewRequirementFilter({ areaId: '', requirementId: '' })}
                   >
-                    Clear
+                    ✕ Clear
                   </button>
                 </div>
               ) : null}
               {areaFindingsFilteredByRequirement.length === 0 ? (
                 <div className="empty-state-inline">
                   <h4>
-                    {findingViewFilter === 'all' ? 'No findings currently mapped' : 'No findings match the selected filter'}
+                    {!hasActiveFindingFilters ? 'No findings currently mapped' : 'No findings match the selected filter'}
                   </h4>
                   <p>
-                    {findingViewFilter === 'all'
+                    {!hasActiveFindingFilters
                       ? 'As processing evolves, this panel will populate with linked findings.'
                       : 'Try switching filter back to All to see every mapped finding.'}
                   </p>
@@ -288,6 +293,10 @@ export default function ComplianceCodeAreaSection({
                     };
                     const isLeadFinding = isLeadFindingByTaxonomy(finding);
                     const isInspectorAdded = isInspectorAddedFinding(finding);
+                    const showInlineLeadConfirm =
+                      leadConfirmOpen &&
+                      leadConfirmOriginStep === STEP_OVERVIEW &&
+                      leadConfirmFindingId === finding.id;
                     const evidencePassages = buildEvidencePassages(finding);
                     const noteEntry = findingNotes[finding.id];
                     const noteText = typeof noteEntry === 'string' ? noteEntry : noteEntry?.text;
@@ -362,34 +371,15 @@ export default function ComplianceCodeAreaSection({
                             </button>
                             {activeMenuFindingId === finding.id ? (
                               <div className="finding-menu" ref={findingMenuRef}>
-                                {reviewState === 'dismissed' ? (
+                                {!isLeadFinding ? (
                                   <button
                                     type="button"
                                     onClick={(event) => {
                                       event.stopPropagation();
-                                      handleRequestFindingDecision(finding.id, null);
-                                    }}
-                                  >
-                                    Reopen lead
-                                  </button>
-                                ) : null}
-                                {reviewState === 'accepted' ? (
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      handleRequestFindingDecision(finding.id, 'rejected');
-                                    }}
-                                  >
-                                    Change decision
-                                  </button>
-                                ) : null}
-                                {reviewState === 'rejected' ? (
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      handleRequestFindingDecision(finding.id, 'accepted');
+                                      handleRequestFindingDecision(
+                                        finding.id,
+                                        reviewState === 'accepted' ? 'rejected' : 'accepted'
+                                      );
                                     }}
                                   >
                                     Change decision
@@ -399,29 +389,18 @@ export default function ComplianceCodeAreaSection({
                                   type="button"
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    handleOpenAddNote(finding.id, safeText(finding.detail, ''));
+                                    handleOpenAddNote(finding.id);
                                   }}
                                 >
-                                  📝 Add note
+                                  Add note
                                 </button>
-                                {reviewState !== 'dismissed' ? (
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      handleRequestFindingDecision(finding.id, 'dismissed');
-                                    }}
-                                  >
-                                    Dismiss lead
-                                  </button>
-                                ) : null}
                                 {!finding.reference ? (
                                   <button
                                     type="button"
                                     className="danger"
                                     onClick={(event) => {
                                       event.stopPropagation();
-                                      setDeleteFindingTargetId(finding.id);
+                                      handleDeleteFinding(finding.id);
                                       setActiveMenuFindingId(null);
                                     }}
                                   >
@@ -501,11 +480,6 @@ export default function ComplianceCodeAreaSection({
                                       ) : null}
                                     </div>
                                     {passage.excerpt ? <div className="excerpt">"{passage.excerpt}"</div> : null}
-                                    {passage.section ? (
-                                      <div className="finding-extra-meta">
-                                        <span className="source-tag">{safeText(passage.section, '')}</span>
-                                      </div>
-                                    ) : null}
                                     {!passage.documentId ? (
                                       <div className="finding-extra-meta">
                                         <span className="source-tag">Case-level evidence</span>
@@ -532,7 +506,7 @@ export default function ComplianceCodeAreaSection({
                                       openLeadConfirmModal(finding.id, STEP_OVERVIEW);
                                     }}
                                   >
-                                    ✓ Confirm as finding
+                                    Confirm as finding
                                   </button>
                                   <button
                                     type="button"
@@ -542,7 +516,7 @@ export default function ComplianceCodeAreaSection({
                                       handleRequestFindingDecision(finding.id, 'dismissed');
                                     }}
                                   >
-                                    ✕ Dismiss
+                                    Dismiss
                                   </button>
                                 </>
                               ) : (
@@ -550,40 +524,79 @@ export default function ComplianceCodeAreaSection({
                                   <button
                                     type="button"
                                     className="btn btn-sm btn-success overview-action-btn"
+                                    disabled={reviewState === 'accepted'}
                                     onClick={(event) => {
                                       event.stopPropagation();
                                       handleRequestFindingDecision(finding.id, 'accepted');
                                     }}
                                   >
-                                    ✓ Accept
+                                    {reviewState === 'accepted' ? '✓ Accepted' : '✓ Accept'}
                                   </button>
                                   <button
                                     type="button"
                                     className="btn btn-sm btn-secondary overview-action-btn"
+                                    disabled={reviewState === 'rejected'}
                                     onClick={(event) => {
                                       event.stopPropagation();
                                       handleRequestFindingDecision(finding.id, 'rejected');
                                     }}
                                   >
-                                    ✕ Reject
+                                    {reviewState === 'rejected' ? '✕ Rejected' : '✕ Reject'}
                                   </button>
                                 </>
                               )}
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-secondary overview-action-btn"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleOpenAddNote(finding.id, safeText(finding.detail, ''));
-                                }}
-                              >
-                                📝 Add note
-                              </button>
+                              {!isLeadFinding || reviewState !== 'unreviewed' ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-secondary overview-action-btn"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleOpenAddNote(finding.id);
+                                  }}
+                                >
+                                  📝 Add note
+                                </button>
+                              ) : null}
                             </div>
+                            {showInlineLeadConfirm ? (
+                              <div className="confirm-lead-modal">
+                                <p>
+                                  <strong>Evidence Highlighting Flow (Screen 8)</strong>
+                                </p>
+                                <p>Confirming this lead will open the Evidence Highlighting view where you:</p>
+                                <ul>
+                                  <li>Select the severity level for the finding</li>
+                                  <li>Link evidence to specific document passage(s)</li>
+                                  <li>The finding will then appear as a confirmed, evidence-anchored finding</li>
+                                </ul>
+                                <div className="modal-actions">
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-ghost"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      closeLeadConfirmModal();
+                                    }}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-primary"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      launchLeadEvidenceHighlighter();
+                                    }}
+                                  >
+                                    Open Evidence Highlighter
+                                  </button>
+                                </div>
+                              </div>
+                            ) : null}
                             {inlineRejectFindingId === finding.id ? (
                               <div className="inline-decision-form">
                                 <label className="modal-label" htmlFor={`overview-inline-reject-reason-${finding.id}`}>
-                                  Reason category (required)
+                                  Reason for rejection (required)
                                 </label>
                                 <select
                                   id={`overview-inline-reject-reason-${finding.id}`}
@@ -592,6 +605,9 @@ export default function ComplianceCodeAreaSection({
                                   onChange={(event) => setInlineRejectReason(event.target.value)}
                                   onClick={(event) => event.stopPropagation()}
                                 >
+                                  <option value="" disabled>
+                                    Select reason...
+                                  </option>
                                   {REVIEW_REASON_OPTIONS.map((option) => (
                                     <option key={`overview-reject-${finding.id}-${option.value}`} value={option.value}>
                                       {option.label}
@@ -599,39 +615,39 @@ export default function ComplianceCodeAreaSection({
                                   ))}
                                 </select>
                                 <label className="modal-label" htmlFor={`overview-inline-reject-note-${finding.id}`}>
-                                  Note {inlineRejectReason === 'other' ? '(required)' : '(optional)'}
+                                  Additional detail (required for Other)
                                 </label>
                                 <textarea
                                   id={`overview-inline-reject-note-${finding.id}`}
                                   className="modal-textarea"
                                   value={inlineRejectNote}
                                   onChange={(event) => setInlineRejectNote(event.target.value)}
-                                  placeholder="Add detail for this decision..."
+                                  placeholder="Provide additional detail..."
                                   onClick={(event) => event.stopPropagation()}
                                 />
                                 <div className="modal-actions">
+                                  <button
+                                    type="button"
+                                    className="btn danger"
+                                    disabled={inlineRejectReason === 'other' && !inlineRejectNote.trim()}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      handleConfirmInlineReject(finding.id, true);
+                                    }}
+                                  >
+                                    Confirm rejection
+                                  </button>
                                   <button
                                     type="button"
                                     className="btn ghost"
                                     onClick={(event) => {
                                       event.stopPropagation();
                                       setInlineRejectFindingId(null);
-                                      setInlineRejectReason(REVIEW_REASON_OPTIONS[0].value);
+                                      setInlineRejectReason('');
                                       setInlineRejectNote('');
                                     }}
                                   >
                                     Cancel
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn primary"
-                                    disabled={inlineRejectReason === 'other' && !inlineRejectNote.trim()}
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      handleConfirmInlineReject(finding.id);
-                                    }}
-                                  >
-                                    Confirm rejection
                                   </button>
                                 </div>
                               </div>
@@ -649,7 +665,7 @@ export default function ComplianceCodeAreaSection({
                                   onClick={(event) => event.stopPropagation()}
                                 >
                                   <option value="" disabled>
-                                    Select a dismissal reason
+                                    Select reason...
                                   </option>
                                   {DISMISS_REASON_OPTIONS.map((option) => (
                                     <option key={`overview-dismiss-${finding.id}-${option.value}`} value={option.value}>
@@ -658,17 +674,28 @@ export default function ComplianceCodeAreaSection({
                                   ))}
                                 </select>
                                 <label className="modal-label" htmlFor={`overview-inline-dismiss-note-${finding.id}`}>
-                                  Details {inlineDismissReason === 'other' ? '(required)' : '(optional)'}
+                                  Additional detail (required for Other)
                                 </label>
                                 <textarea
                                   id={`overview-inline-dismiss-note-${finding.id}`}
                                   className="modal-textarea"
                                   value={inlineDismissNote}
                                   onChange={(event) => setInlineDismissNote(event.target.value)}
-                                  placeholder="Add detail for this dismissal..."
+                                  placeholder="Provide additional detail..."
                                   onClick={(event) => event.stopPropagation()}
                                 />
                                 <div className="modal-actions">
+                                  <button
+                                    type="button"
+                                    className="btn danger"
+                                    disabled={!inlineDismissReason || (inlineDismissReason === 'other' && !inlineDismissNote.trim())}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      handleConfirmInlineDismiss(finding.id, true);
+                                    }}
+                                  >
+                                    Dismiss
+                                  </button>
                                   <button
                                     type="button"
                                     className="btn ghost"
@@ -680,17 +707,6 @@ export default function ComplianceCodeAreaSection({
                                     }}
                                   >
                                     Cancel
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn primary"
-                                    disabled={!inlineDismissReason || (inlineDismissReason === 'other' && !inlineDismissNote.trim())}
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      handleConfirmInlineDismiss(finding.id);
-                                    }}
-                                  >
-                                    Confirm dismissal
                                   </button>
                                 </div>
                               </div>
@@ -705,21 +721,13 @@ export default function ComplianceCodeAreaSection({
                                   className="modal-textarea"
                                   value={noteDraft}
                                   onChange={(event) => setNoteDraft(event.target.value)}
-                                  placeholder="Add context for this finding..."
+                                  placeholder="Add a note..."
                                   onClick={(event) => event.stopPropagation()}
                                 />
+                                <button type="button" className="composer-voice-btn" title="Dictate (UI only)" aria-label="Dictate">
+                                  🎤
+                                </button>
                                 <div className="modal-actions">
-                                  <button
-                                    type="button"
-                                    className="btn ghost"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      setNoteTargetFindingId(null);
-                                      setNoteDraft('');
-                                    }}
-                                  >
-                                    Cancel
-                                  </button>
                                   <button
                                     type="button"
                                     className="btn primary"
@@ -728,7 +736,7 @@ export default function ComplianceCodeAreaSection({
                                       handleSaveFindingNote();
                                     }}
                                   >
-                                    Save note
+                                    Save
                                   </button>
                                 </div>
                               </div>

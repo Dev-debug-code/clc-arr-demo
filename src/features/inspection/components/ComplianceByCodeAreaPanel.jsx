@@ -15,11 +15,12 @@ export default function ComplianceByCodeAreaPanel({
   overviewRequirementFilter,
   setOverviewRequirementFilter,
   overviewFilterRef,
-  findingViewFilter,
+  findingViewFilters,
   setOverviewFilterOpen,
   overviewFilterOpen,
   findingFilterLabelMap,
-  setFindingViewFilter,
+  toggleFindingViewFilter,
+  clearFindingViewFilters,
   findingDecisions,
   expandedOverviewFindingIds,
   setExpandedOverviewFindingIds,
@@ -36,7 +37,7 @@ export default function ComplianceByCodeAreaPanel({
   findingMenuRef,
   handleRequestFindingDecision,
   handleOpenAddNote,
-  setDeleteFindingTargetId,
+  handleDeleteFinding,
   handleViewDocument,
   openLeadConfirmModal,
   inlineRejectFindingId,
@@ -58,6 +59,11 @@ export default function ComplianceByCodeAreaPanel({
   setNoteDraft,
   setNoteTargetFindingId,
   handleSaveFindingNote,
+  leadConfirmOpen,
+  leadConfirmFindingId,
+  leadConfirmOriginStep,
+  closeLeadConfirmModal,
+  launchLeadEvidenceHighlighter,
   notAssessedExpanded,
   setNotAssessedExpanded,
   notApplicableExpanded,
@@ -121,11 +127,12 @@ export default function ComplianceByCodeAreaPanel({
               overviewRequirementFilter={overviewRequirementFilter}
               setOverviewRequirementFilter={setOverviewRequirementFilter}
               overviewFilterRef={overviewFilterRef}
-              findingViewFilter={findingViewFilter}
+              findingViewFilters={findingViewFilters}
               setOverviewFilterOpen={setOverviewFilterOpen}
               overviewFilterOpen={overviewFilterOpen}
               findingFilterLabelMap={findingFilterLabelMap}
-              setFindingViewFilter={setFindingViewFilter}
+              toggleFindingViewFilter={toggleFindingViewFilter}
+              clearFindingViewFilters={clearFindingViewFilters}
               findingDecisions={findingDecisions}
               expandedOverviewFindingIds={expandedOverviewFindingIds}
               setExpandedOverviewFindingIds={setExpandedOverviewFindingIds}
@@ -142,7 +149,7 @@ export default function ComplianceByCodeAreaPanel({
               findingMenuRef={findingMenuRef}
               handleRequestFindingDecision={handleRequestFindingDecision}
               handleOpenAddNote={handleOpenAddNote}
-              setDeleteFindingTargetId={setDeleteFindingTargetId}
+              handleDeleteFinding={handleDeleteFinding}
               handleViewDocument={handleViewDocument}
               openLeadConfirmModal={openLeadConfirmModal}
               inlineRejectFindingId={inlineRejectFindingId}
@@ -164,6 +171,11 @@ export default function ComplianceByCodeAreaPanel({
               setNoteDraft={setNoteDraft}
               setNoteTargetFindingId={setNoteTargetFindingId}
               handleSaveFindingNote={handleSaveFindingNote}
+              leadConfirmOpen={leadConfirmOpen}
+              leadConfirmFindingId={leadConfirmFindingId}
+              leadConfirmOriginStep={leadConfirmOriginStep}
+              closeLeadConfirmModal={closeLeadConfirmModal}
+              launchLeadEvidenceHighlighter={launchLeadEvidenceHighlighter}
               openComposerModal={openComposerModal}
             />
           ))}
@@ -176,14 +188,6 @@ export default function ComplianceByCodeAreaPanel({
           subtitle="Excluded from this inspection"
           actionLabel="Restore to assessment"
           onAction={handleRestoreNotAssessedArea}
-        />
-        <NotAssessedAreasPanel
-          expanded={notApplicableExpanded}
-          setExpanded={setNotApplicableExpanded}
-          entries={notApplicableAreas}
-          title="Not Applicable"
-          emptyText="No requirements marked as not applicable."
-          subtitle="System determined irrelevant based on case properties"
         />
       </div>
     </section>

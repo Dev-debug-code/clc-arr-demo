@@ -4,6 +4,10 @@ export default function ReportStage({
   availableFindings,
   onGoToDocumentsTab,
   hasGeneratedReport,
+  reportGenerationInProgress,
+  reportGenerationMode,
+  reportCanGenerate,
+  reportReviewBlockedReason,
   reportPendingChanges,
   onGenerateReport,
   onOpenPendingChangesGate,
@@ -22,6 +26,7 @@ export default function ReportStage({
   reportGoodPracticeFindings,
   safeText,
   formatCodeAreaLabel,
+  formatReferenceText,
   normalizeCodeAreaId,
   reportAttentionFindings,
   buildEvidencePassages,
@@ -41,8 +46,15 @@ export default function ReportStage({
 }) {
   return (
     <div className="stage-card report-stage">
-      <p className="panel-subtitle">Review status and export inspection outputs.</p>
-      {availableFindings.length === 0 ? (
+      {reportGenerationInProgress ? (
+        <div className="edge-empty-card report-generation-card">
+          <div className="spinner-sumplexity spinner-lg" aria-hidden="true" />
+          <h3>{reportGenerationMode === 'regenerate' ? 'Regenerating report' : 'Generating report'}</h3>
+          <p>
+            Preparing the inspection report from the latest reviewed findings and action plan items.
+          </p>
+        </div>
+      ) : availableFindings.length === 0 ? (
         <div className="edge-empty-card">
           <div className="edge-empty-card__icon">📃</div>
           <h3>Generate findings from your documents first</h3>
@@ -50,38 +62,42 @@ export default function ReportStage({
             The report will be assembled from your reviewed findings, presented in a format ready
             for the practice.
           </p>
+          <a
+            href="#"
+            className="btn primary"
+            onClick={(event) => {
+              event.preventDefault();
+              onGoToDocumentsTab();
+            }}
+          >
+            Go to Documents tab
+          </a>
           <p className="empty-state-list-title">What the report will include:</p>
           <ul className="empty-state-list compact">
             <li>Practice details and inspection context</li>
             <li>Summary of compliance posture</li>
             <li>Areas of good practice</li>
-            <li>Areas requiring attention and actions</li>
+            <li>Areas requiring attention with actions</li>
             <li>Action plan with deadlines</li>
           </ul>
-          <button type="button" className="btn primary" onClick={onGoToDocumentsTab}>
-            Go to Documents tab
-          </button>
         </div>
       ) : !hasGeneratedReport ? (
         <div className="edge-empty-card">
           <div className="edge-empty-card__icon">📋</div>
-          <h3>Your findings are ready. Generate your inspection report.</h3>
+          <h3>Your findings are ready</h3>
           <p>
             The report will be assembled from your reviewed findings, including action plan items
-            for accepted non-compliant findings.
+            for accepted non-compliant findings (critical and guidance).
           </p>
-          {reportPendingChanges ? (
-            <p className="panel-subtitle">
-              Unprocessed changes are pending. You can reprocess first or generate from the current
-              findings.
-            </p>
-          ) : null}
-          <button type="button" className="btn primary" onClick={onGenerateReport}>
+          <button type="button" className="btn primary" onClick={onGenerateReport} disabled={!reportCanGenerate}>
             Generate report
           </button>
+          {reportReviewBlockedReason ? <p className="empty-state-helper">{reportReviewBlockedReason}</p> : null}
         </div>
       ) : (
         <ReportGeneratedContent
+          reportCanGenerate={reportCanGenerate}
+          reportReviewBlockedReason={reportReviewBlockedReason}
           reportPendingChanges={reportPendingChanges}
           onOpenPendingChangesGate={onOpenPendingChangesGate}
           reportStale={reportStale}
@@ -99,6 +115,7 @@ export default function ReportStage({
           reportGoodPracticeFindings={reportGoodPracticeFindings}
           safeText={safeText}
           formatCodeAreaLabel={formatCodeAreaLabel}
+          formatReferenceText={formatReferenceText}
           normalizeCodeAreaId={normalizeCodeAreaId}
           reportAttentionFindings={reportAttentionFindings}
           buildEvidencePassages={buildEvidencePassages}

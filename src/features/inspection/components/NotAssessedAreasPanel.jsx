@@ -22,7 +22,7 @@ export default function NotAssessedAreasPanel({
       }}
     >
       <div className="not-assessed-header">
-        <span>{expanded ? '▼' : '▶'}</span>
+        <span className="code-area-chevron">{expanded ? '▼' : '▶'}</span>
         <span>
           {title} <span className="panel-subtitle">({entries.length})</span>
         </span>
@@ -37,22 +37,23 @@ export default function NotAssessedAreasPanel({
         ) : (
           entries.map((entry) => (
             <div key={entry} className="not-assessed-item">
-              <div>
-                <span>{entry}</span>
-                <div className="panel-subtitle">{subtitle}</div>
-              </div>
-              {typeof onAction === 'function' ? (
-                <button
-                  type="button"
-                  className="btn btn-xs secondary"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onAction(entry);
-                  }}
-                >
-                  {actionLabel}
-                </button>
-              ) : null}
+              <span>{entry}</span>
+              <span className="panel-subtitle">
+                {subtitle}.{' '}
+                {typeof onAction === 'function' ? (
+                  <a
+                    href="#"
+                    className="btn-tertiary"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      onAction(entry);
+                    }}
+                  >
+                    {actionLabel}
+                  </a>
+                ) : null}
+              </span>
             </div>
           ))
         )}

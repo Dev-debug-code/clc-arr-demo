@@ -1,8 +1,5 @@
 export default function DashboardPage({
-  dashboardScopeRoleLabel,
-  dashboardScopeTitle,
   hasTeamCaseAccess,
-  dashboardRoleNote,
   onOpenNewCase,
   teamView,
   setDashboardView,
@@ -19,12 +16,9 @@ export default function DashboardPage({
   setDashboardInspectorFilter,
   dashboardInspectorOptions,
   clearDashboardFilters,
-  showCompletedCases,
-  setShowCompletedCases,
-  scopedUnreviewedCount,
-  scopedIdleOver7DaysCount,
   dashboardAttentionItems,
   handleOpenCase,
+  handleOpenCompletedCase,
   dashboardIsBusy,
   dashboardError,
   visibleDashboardCases,
@@ -34,44 +28,44 @@ export default function DashboardPage({
   setShowRecentlyCompleted,
   formatOutcomeLabel
 }) {
+  const hasActiveFilters =
+    dashboardSearch.trim().length > 0 ||
+    dashboardDateFilter !== 'All' ||
+    dashboardOutcomeFilter !== 'All' ||
+    (hasTeamCaseAccess && teamView && dashboardInspectorFilter !== 'All inspectors');
+
   return (
     <div className="dashboard-shell">
-      <div className="dashboard-header">
-        <div>
-          <div className="dashboard-header__eyebrow">
-            <span className="dashboard-role-pill">{dashboardScopeRoleLabel}</span>
-          </div>
-          <h1>{dashboardScopeTitle}</h1>
-          <p>
-            {hasTeamCaseAccess
-              ? 'Switch between your own caseload and the wider team view.'
-              : 'Review your assigned cases and start new inspections.'}
-          </p>
-          {dashboardRoleNote ? <p className="dashboard-role-note">{dashboardRoleNote}</p> : null}
-        </div>
-        <div className="dashboard-header__actions">
-          <button type="button" className="btn primary" onClick={onOpenNewCase}>
-            + New Case
-          </button>
-        </div>
-      </div>
-
       {hasTeamCaseAccess ? (
         <div className="dashboard-view-toggle">
-          <button
-            type="button"
+          <div
             className={`dashboard-view-toggle__btn ${!teamView ? 'active' : ''}`}
+            role="button"
+            tabIndex={0}
             onClick={() => setDashboardView(false)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setDashboardView(false);
+              }
+            }}
           >
             My Cases
-          </button>
-          <button
-            type="button"
+          </div>
+          <div
             className={`dashboard-view-toggle__btn ${teamView ? 'active' : ''}`}
+            role="button"
+            tabIndex={0}
             onClick={() => setDashboardView(true)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setDashboardView(true);
+              }
+            }}
           >
             Team Cases <span className="tab-count-badge">({dashboardCases.length})</span>
-          </button>
+          </div>
         </div>
       ) : (
         <div className="dashboard-inspector-heading">My Cases</div>
@@ -89,25 +83,12 @@ export default function DashboardPage({
           value={dashboardSearch}
           onChange={(event) => setDashboardSearch(event.target.value)}
         />
-        <select value={dashboardDateFilter} onChange={(event) => setDashboardDateFilter(event.target.value)}>
-          <option>All</option>
-          <option>This week</option>
-          <option>This month</option>
-          <option>Last 3 months</option>
-        </select>
-        <select value={dashboardOutcomeFilter} onChange={(event) => setDashboardOutcomeFilter(event.target.value)}>
-          <option>All</option>
-          <option>In progress</option>
-          <option>Compliant</option>
-          <option>Generally compliant</option>
-          <option>Non-compliant</option>
-        </select>
         {hasTeamCaseAccess && teamView ? (
           <select
             value={dashboardInspectorFilter}
             onChange={(event) => setDashboardInspectorFilter(event.target.value)}
           >
-            <option>All inspectors</option>
+            <option value="All inspectors">All inspectors</option>
             {dashboardInspectorOptions.map((name) => (
               <option key={`inspector-${name}`} value={name}>
                 {name}
@@ -115,59 +96,58 @@ export default function DashboardPage({
             ))}
           </select>
         ) : null}
-        <button type="button" className="btn ghost" onClick={clearDashboardFilters}>
+        <select value={dashboardDateFilter} onChange={(event) => setDashboardDateFilter(event.target.value)}>
+          <option value="All">All dates</option>
+          <option value="This week">This week</option>
+          <option value="This month">This month</option>
+          <option value="Last 3 months">Last 3 months</option>
+          <option value="Custom date range">Custom date range</option>
+        </select>
+        <select value={dashboardOutcomeFilter} onChange={(event) => setDashboardOutcomeFilter(event.target.value)}>
+          <option value="All">All outcomes</option>
+          <option value="In progress">In progress</option>
+          <option value="Compliant">Compliant</option>
+          <option value="Generally compliant">Generally compliant</option>
+          <option value="Non-compliant">Non-compliant</option>
+        </select>
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={clearDashboardFilters}
+          disabled={!hasActiveFilters}
+          style={!hasActiveFilters ? { opacity: 0.4 } : undefined}
+        >
           Clear all
         </button>
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={showCompletedCases}
-            onChange={(event) => setShowCompletedCases(event.target.checked)}
-          />
-          <span>Show completed</span>
-        </label>
       </div>
 
       {hasTeamCaseAccess && teamView ? (
-        <>
-          <div className="team-quick-stats">
-            <div>
-              <span className="history-summary-label">Team active cases</span>
-              <strong>{scopedActiveCaseCount}</strong>
-            </div>
-            <div>
-              <span className="history-summary-label">Unreviewed findings</span>
-              <strong>{scopedUnreviewedCount}</strong>
-            </div>
-            <div>
-              <span className="history-summary-label">Cases idle &gt; 7 days</span>
-              <strong>{scopedIdleOver7DaysCount}</strong>
-            </div>
-          </div>
-          <div className="dashboard-attention">
-            <strong>Attention Needed</strong>
-            {dashboardAttentionItems.length === 0 ? (
-              <p>No current cases match the attention rules.</p>
-            ) : (
-              dashboardAttentionItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className="dashboard-attention-link"
-                  onClick={() => {
-                    const targetCase = dashboardCases.find((entry) => entry.id === item.caseId);
-                    if (targetCase) {
-                      handleOpenCase(targetCase);
-                    }
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))
-            )}
-          </div>
-        </>
+        <div className="dashboard-attention">
+          <strong>Attention Needed</strong>
+          {dashboardAttentionItems.length === 0 ? (
+            <p>No current cases match the attention rules.</p>
+          ) : (
+            dashboardAttentionItems.map((item) => (
+              <div
+                key={item.id}
+                className="alert alert-warning attention-card"
+              >
+                <div className="attention-card-text">
+                  <strong>{item.practice}</strong>: {item.message}
+                </div>
+                <div className="attention-card-assigned">Assigned to: {item.assignedTo || 'Unassigned'}</div>
+              </div>
+            ))
+          )}
+        </div>
       ) : null}
+
+      <div className="section-heading">
+        <h2>Active Cases</h2>
+        <button type="button" className="btn primary" onClick={onOpenNewCase}>
+          + New Case
+        </button>
+      </div>
 
       <div className="dashboard-cases">
         {dashboardIsBusy ? (
@@ -185,12 +165,26 @@ export default function DashboardPage({
           </div>
         ) : null}
         {visibleDashboardCases.map((item) => (
-          <button key={item.id} type="button" className="dashboard-case-card" onClick={() => handleOpenCase(item)}>
+          <div
+            key={item.id}
+            className="dashboard-case-card"
+            role="button"
+            tabIndex={0}
+            onClick={() => handleOpenCase(item)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                handleOpenCase(item);
+              }
+            }}
+          >
             <div className="dashboard-case-card__top">
-              <h3>{item.practice}</h3>
-              <span>{item.id}</span>
+              <div>
+                <h3>{item.practice}</h3>
+                <span>{item.id}</span>
+              </div>
+              <span>Started {item.started}</span>
             </div>
-            <p className="dashboard-case-card__meta">Started: {item.started}</p>
             <div className="dashboard-progress">
               <div className="dashboard-progress__track">
                 <div className="dashboard-progress__fill" style={{ width: `${item.progress}%` }} />
@@ -198,45 +192,61 @@ export default function DashboardPage({
               <span>{item.progressLabel}</span>
             </div>
             <p className="dashboard-case-card__meta">
-              {item.unreviewed} unreviewed · {item.leads} leads · {item.goodPractice} good practice
+              {item.unreviewed > 0 || item.leads > 0
+                ? `(${item.unreviewed}) unreviewed · (${item.leads}) leads · ${item.goodPractice} good practice`
+                : 'All reviewed ✓'}
             </p>
             <p className="dashboard-case-card__meta">
               Risk: {renderRiskDots(item.risk)} {item.risk} · Last activity: {item.lastActivity}
-              {teamView ? ` · Inspector: ${item.inspector}` : ''}
+              {teamView ? ` · Assigned to: ${item.inspector}` : ''}
             </p>
-          </button>
+          </div>
         ))}
       </div>
+
       {dashboardCompletedCases.length > 0 ? (
         <div className="dashboard-recently-completed">
-          <button
-            type="button"
+          <div
             className="dashboard-recently-completed__toggle"
+            role="button"
+            tabIndex={0}
             onClick={() => setShowRecentlyCompleted((prev) => !prev)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setShowRecentlyCompleted((prev) => !prev);
+              }
+            }}
           >
             {showRecentlyCompleted ? '▾' : '▸'} Recently Completed ({dashboardCompletedCases.length})
-          </button>
+          </div>
           {showRecentlyCompleted ? (
             <div className="dashboard-completed-list">
               {dashboardCompletedCases.map((item) => (
-                <button
+                <div
                   key={`completed-${item.id}`}
-                  type="button"
                   className="dashboard-case-card completed"
-                  onClick={() => handleOpenCase(item)}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleOpenCompletedCase(item)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      handleOpenCompletedCase(item);
+                    }
+                  }}
                 >
                   <div className="dashboard-case-card__top">
-                    <h3>{item.practice}</h3>
-                    <span>{item.id}</span>
+                    <div>
+                      <h3>{item.practice}</h3>
+                      <span>{item.id}</span>
+                    </div>
+                    <span>Completed {item.lastActivity}</span>
                   </div>
                   <p className="dashboard-case-card__meta">
-                    Outcome:{' '}
-                    <span className="completed-outcome-badge">
-                      {formatOutcomeLabel(item.outcome)}
-                    </span>{' '}
-                    · Last activity: {item.lastActivity}
+                    Outcome: <span className="completed-outcome-badge">{formatOutcomeLabel(item.outcome)}</span>
                   </p>
-                </button>
+                </div>
               ))}
             </div>
           ) : null}

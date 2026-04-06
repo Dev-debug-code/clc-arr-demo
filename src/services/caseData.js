@@ -133,15 +133,20 @@ function mapDocument(docSnap) {
   const data = docSnap.data() ?? {};
   const processingStatus = String(data.processing_status ?? data.processingStatus ?? '').trim().toLowerCase();
   const confirmed = data.confirmed === true;
+  const classificationConfidence = data.classification_confidence ?? data.classificationConfidence ?? data.confidence ?? null;
   return {
     id: docSnap.id,
     label: data.label ?? data.classification ?? data.documentType ?? data.name ?? docSnap.id,
     filename: data.filename ?? data.name ?? docSnap.id,
     classification: data.classification ?? data.documentType ?? 'Unknown',
     parties: data.parties ?? 'Firm',
-    confidence: data.confidence ?? 'medium',
+    confidence: classificationConfidence ?? 'medium',
+    classificationConfidence,
+    processingStatus,
     status: confirmed ? 'verified' : processingStatus || data.status || 'verified',
     summary: data.summary ?? '',
+    extractedFields: data.extracted_fields ?? data.extractedFields ?? null,
+    partiesFound: data.parties_found ?? data.partiesFound ?? null,
     uploadedOn: formatDateLabel(data.createdAt),
     severity: data.severity ?? 'pass',
     pdf: data.pdf ?? (data.filename ? `assets/case-files/${data.filename}` : undefined),
@@ -390,13 +395,26 @@ export async function loadCaseWorkspaceData(caseId) {
         parties: data.parties ?? 'Firm',
         interviewees: Array.isArray(data.interviewees) ? data.interviewees : [],
         intervieweeName: data.intervieweeName ?? '',
-        intervieweeRole: data.intervieweeRole ?? '',
-        interviewDate: data.interviewDate ?? '',
-        confidence: data.confidence ?? 'low',
-        addedOn: data.addedOn ?? '',
-        summary: data.summary ?? ''
-      });
-    })
+      intervieweeRole: data.intervieweeRole ?? '',
+      interviewDate: data.interviewDate ?? '',
+      confidence: data.classification_confidence ?? data.classificationConfidence ?? data.confidence ?? 'low',
+      classification_confidence: data.classification_confidence ?? data.classificationConfidence ?? data.confidence ?? null,
+      processing_path: data.processing_path ?? data.processingPath ?? '',
+      features_found: Array.isArray(data.features_found)
+        ? data.features_found
+        : Array.isArray(data.featuresFound)
+          ? data.featuresFound
+          : [],
+      models_agree:
+        typeof data.models_agree === 'boolean'
+          ? data.models_agree
+          : typeof data.modelsAgree === 'boolean'
+            ? data.modelsAgree
+            : null,
+      addedOn: data.addedOn ?? '',
+      summary: data.summary ?? ''
+    });
+  })
     .sort((a, b) => {
       if (a.id < b.id) return 1;
       if (a.id > b.id) return -1;
@@ -514,7 +532,11 @@ export async function loadCaseWorkspaceData(caseId) {
       transactionType: caseData.transactionType ?? '',
       actingForLender: typeof caseData.actingForLender === 'boolean' ? caseData.actingForLender : null,
       amlTier: caseData.amlTier ?? '',
-      knownParties: Array.isArray(caseData.knownParties) ? caseData.knownParties : []
+      knownParties: Array.isArray(caseData.knownParties) ? caseData.knownParties : [],
+      processingStatus: caseData.processing_status ?? caseData.processingStatus ?? '',
+      hasUnprocessedChanges:
+        caseData.has_unprocessed_changes === true || caseData.hasUnprocessedChanges === true,
+      unprocessedSummary: caseData.unprocessed_summary ?? caseData.unprocessedSummary ?? ''
     },
     documents,
     findings,
@@ -1675,6 +1697,20 @@ export async function persistUploadItem({ caseId, uploadItem, user }) {
       intervieweeRole: normalizedUploadItem.intervieweeRole ?? '',
       interviewDate: normalizedUploadItem.interviewDate ?? '',
       confidence: normalizedUploadItem.confidence ?? 'low',
+      classification_confidence:
+        normalizedUploadItem.classification_confidence ?? normalizedUploadItem.classificationConfidence ?? null,
+      processing_path: normalizedUploadItem.processing_path ?? normalizedUploadItem.processingPath ?? '',
+      features_found: Array.isArray(normalizedUploadItem.features_found)
+        ? normalizedUploadItem.features_found
+        : Array.isArray(normalizedUploadItem.featuresFound)
+          ? normalizedUploadItem.featuresFound
+          : [],
+      models_agree:
+        typeof normalizedUploadItem.models_agree === 'boolean'
+          ? normalizedUploadItem.models_agree
+          : typeof normalizedUploadItem.modelsAgree === 'boolean'
+            ? normalizedUploadItem.modelsAgree
+            : null,
       addedOn: normalizedUploadItem.addedOn ?? '',
       summary: normalizedUploadItem.summary ?? '',
       updatedAt: now,

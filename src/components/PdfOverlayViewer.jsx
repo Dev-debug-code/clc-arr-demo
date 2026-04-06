@@ -7,6 +7,8 @@ const FileType = typeof File !== 'undefined' ? PropTypes.instanceOf(File) : Prop
 const BlobType = typeof Blob !== 'undefined' ? PropTypes.instanceOf(Blob) : PropTypes.any;
 const DEFAULT_SCALE = 1.4;
 const MIN_SCALE = 0.55;
+const MIN_ZOOM_PERCENT = 75;
+const MAX_ZOOM_PERCENT = 200;
 
 if (!GlobalWorkerOptions.workerSrc) {
   GlobalWorkerOptions.workerSrc = workerSrc;
@@ -116,7 +118,8 @@ function PdfPage({
   activeBoxId,
   onSelectBox,
   docVersion,
-  availableWidth
+  availableWidth,
+  scaleMultiplier
 }) {
   const canvasRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -168,6 +171,8 @@ function PdfPage({
             scale = Math.max(Math.min(DEFAULT_SCALE, fitScale), MIN_SCALE);
           }
         }
+
+        scale = Math.max(scale * scaleMultiplier, MIN_SCALE);
 
         const viewport = page.getViewport({ scale });
         const canvasEl = canvasRef.current;
@@ -306,7 +311,8 @@ PdfPage.propTypes = {
   activeBoxId: PropTypes.string,
   onSelectBox: PropTypes.func,
   docVersion: PropTypes.number.isRequired,
-  availableWidth: PropTypes.number
+  availableWidth: PropTypes.number,
+  scaleMultiplier: PropTypes.number
 };
 
 export default function PdfOverlayViewer({
@@ -320,7 +326,9 @@ export default function PdfOverlayViewer({
   focusSignal = 0
 }) {
   const [pageCount, setPageCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loadError, setLoadError] = useState('');
+  const [zoomPercent, setZoomPercent] = useState(100);
   const [viewerWidth, setViewerWidth] = useState(null);
   const pdfDocRef = useRef(null);
   const docVersionRef = useRef(0);
@@ -401,6 +409,11 @@ export default function PdfOverlayViewer({
   }, [resolvedPdfUrl, pdfFile]);
 
   useEffect(() => {
+    setCurrentPage(1);
+    setZoomPercent(100);
+  }, [resolvedPdfUrl, pdfFile]);
+
+  useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return undefined;
 
@@ -444,6 +457,33 @@ export default function PdfOverlayViewer({
 
     return undefined;
   }, [scrollContainerRef]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || pageCount === 0) return undefined;
+
+    const updateCurrentPage = () => {
+      const pages = Array.from(container.querySelectorAll('.pdf-overlay-page'));
+      if (pages.length === 0) return;
+
+      const nextPage = pages.reduce(
+        (closest, page, index) => {
+          const distance = Math.abs(page.offsetTop - container.scrollTop - 12);
+          if (distance < closest.distance) {
+            return { page: index + 1, distance };
+          }
+          return closest;
+        },
+        { page: 1, distance: Number.POSITIVE_INFINITY }
+      ).page;
+
+      setCurrentPage((prev) => (prev === nextPage ? prev : nextPage));
+    };
+
+    updateCurrentPage();
+    container.addEventListener('scroll', updateCurrentPage, { passive: true });
+    return () => container.removeEventListener('scroll', updateCurrentPage);
+  }, [pageCount, scrollContainerRef, zoomPercent]);
 
   const boxesByPage = useMemo(() => {
     if (!Array.isArray(boxes)) return new Map();
@@ -518,26 +558,53 @@ export default function PdfOverlayViewer({
     return <div className="text-muted">Upload the reference PDF to begin.</div>;
   }
 
+  const zoomMultiplier = zoomPercent / 100;
+
   return (
     <div className="pdf-overlay-viewer" ref={scrollContainerRef}>
       {pageCount === 0 ? (
         <div className="pdf-overlay-placeholder">Loading PDF…</div>
       ) : (
-        <div className="pdf-overlay-stack">
-          {Array.from({ length: pageCount }, (_, index) => (
-            <PdfPage
-              key={`page-${index}`}
-              pdfDocRef={pdfDocRef}
-              pageIndex={index}
-              boxes={boxesByPage.get(index) || []}
-              showBoxes={showBoxes}
-              activeBoxId={activeBoxId}
-              onSelectBox={onSelectBox}
-              docVersion={docVersionRef.current}
-              availableWidth={viewerWidth}
-            />
-          ))}
-        </div>
+        <>
+          <div className="pdf-overlay-stack">
+            {Array.from({ length: pageCount }, (_, index) => (
+              <PdfPage
+                key={`page-${index}`}
+                pdfDocRef={pdfDocRef}
+                pageIndex={index}
+                boxes={boxesByPage.get(index) || []}
+                showBoxes={showBoxes}
+                activeBoxId={activeBoxId}
+                onSelectBox={onSelectBox}
+                docVersion={docVersionRef.current}
+                availableWidth={viewerWidth}
+                scaleMultiplier={zoomMultiplier}
+              />
+            ))}
+          </div>
+          <div className="pdf-overlay-toolbar">
+            <span>Page {currentPage} of {pageCount}</span>
+            <div className="pdf-overlay-zoom-controls">
+              <button
+                type="button"
+                className="btn btn-icon btn-xs secondary"
+                onClick={() => setZoomPercent((prev) => Math.max(MIN_ZOOM_PERCENT, prev - 25))}
+                title="Zoom out"
+              >
+                −
+              </button>
+              <span className="pdf-overlay-zoom-level">{zoomPercent}%</span>
+              <button
+                type="button"
+                className="btn btn-icon btn-xs secondary"
+                onClick={() => setZoomPercent((prev) => Math.min(MAX_ZOOM_PERCENT, prev + 25))}
+                title="Zoom in"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

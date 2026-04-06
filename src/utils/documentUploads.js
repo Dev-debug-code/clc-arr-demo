@@ -18,6 +18,24 @@ const BACKEND_PROCESSING_STATUSES = new Set([
   'failed_partial'
 ]);
 
+const normalizeConfidenceLabel = (value) => {
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['low', 'medium', 'high'].includes(normalized)) return normalized;
+    const numeric = Number(normalized);
+    if (!Number.isNaN(numeric)) return normalizeConfidenceLabel(numeric);
+    return '';
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    if (value >= 0.9) return 'high';
+    if (value >= 0.75) return 'medium';
+    return 'low';
+  }
+
+  return '';
+};
+
 export const DOCUMENT_CLASSIFICATION_OTHER_OPTION = 'Other';
 
 export const DOCUMENT_CLASSIFICATION_GROUPS = [
@@ -288,6 +306,20 @@ export const normalizeUploadDraft = (uploadItem) => {
   const explicitStatus = normalizeText(safeUploadItem?.status).toLowerCase();
   const mappedWorkflowStatus = mapProcessingStatusToWorkflowStatus(processingStatus, classificationLabel);
   const uiWorkflowStatus = ['queued', 'classified', 'verified', 'attention'].includes(explicitStatus) ? explicitStatus : '';
+  const classificationConfidence =
+    safeUploadItem?.classification_confidence ?? safeUploadItem?.classificationConfidence ?? safeUploadItem?.confidence ?? null;
+  const processingPath = normalizeText(safeUploadItem?.processing_path ?? safeUploadItem?.processingPath);
+  const featuresFound = Array.isArray(safeUploadItem?.features_found)
+    ? safeUploadItem.features_found
+    : Array.isArray(safeUploadItem?.featuresFound)
+      ? safeUploadItem.featuresFound
+      : [];
+  const modelsAgree =
+    typeof safeUploadItem?.models_agree === 'boolean'
+      ? safeUploadItem.models_agree
+      : typeof safeUploadItem?.modelsAgree === 'boolean'
+        ? safeUploadItem.modelsAgree
+        : null;
   const status = confirmed
     ? 'verified'
     : (mappedWorkflowStatus && (!uiWorkflowStatus || uiWorkflowStatus === 'queued'))
@@ -300,11 +332,20 @@ export const normalizeUploadDraft = (uploadItem) => {
     confirmed,
     processingStatus,
     processing_status: processingStatus,
+    confidence: normalizeConfidenceLabel(classificationConfidence) || normalizeConfidenceLabel(safeUploadItem?.confidence) || 'low',
+    classificationConfidence: classificationConfidence,
+    classification_confidence: classificationConfidence,
     classification: classificationLabel,
     classificationL1,
     classificationL2,
     classificationDetail,
     limitedAnalysis,
+    processingPath,
+    processing_path: processingPath,
+    featuresFound,
+    features_found: featuresFound,
+    modelsAgree,
+    models_agree: modelsAgree,
     interviewees,
     intervieweeName: firstInterviewee?.name ?? normalizeText(safeUploadItem?.intervieweeName),
     intervieweeRole: firstInterviewee?.role ?? normalizeText(safeUploadItem?.intervieweeRole),

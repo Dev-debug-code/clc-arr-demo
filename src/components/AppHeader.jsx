@@ -6,11 +6,13 @@ const CLC_LOGO_SRC = `${BASE_URL}assets/clc_logo.png`;
 
 export default function AppHeader({
   currentUserEmail,
-  onSignOut,
-  darkMode,
-  onToggleDarkMode,
+  onHome,
   onOpenAssistant,
-  assistantOpen
+  assistantOpen,
+  centerLabel,
+  showCenter,
+  showCenterChevron,
+  compact
 }) {
   const currentUserLabel = currentUserEmail
     ? currentUserEmail.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
@@ -24,15 +26,18 @@ export default function AppHeader({
 
   return (
     <header className="workspace-header">
-      <div className="workspace-header__top">
-        <div className="app-logo app-logo--pair">
+      <div className={`workspace-header__top ${compact ? 'workspace-header__top--compact' : ''}`}>
+        <button type="button" className="app-logo app-logo--pair app-logo-button" onClick={onHome} aria-label="Go to dashboard">
           <img src={SUMPLEXITY_ICON_SRC} alt="Sumplexity" className="app-logo-icon" />
           <img src={CLC_LOGO_SRC} alt="CLC" className="app-logo-clc" />
-        </div>
-        <button type="button" className="workspace-header__title workspace-header__title-btn">
-          CLC Inspection Tool <span className="workspace-header__title-chevron">▼</span>
         </button>
-        {currentUserEmail || onSignOut ? (
+        {showCenter ? (
+          <div className="workspace-header__title">
+            {centerLabel}
+            {showCenterChevron ? <span className="workspace-header__title-chevron">▼</span> : null}
+          </div>
+        ) : null}
+        {currentUserEmail ? (
           <div className="workspace-header__actions">
             {typeof onOpenAssistant === 'function' ? (
               <button
@@ -50,21 +55,11 @@ export default function AppHeader({
                 Reggie
               </button>
             ) : null}
-            {typeof onToggleDarkMode === 'function' ? (
-              <button type="button" className="btn-sumplexity btn-ghost" onClick={onToggleDarkMode}>
-                {darkMode ? 'Light' : 'Dark'}
-              </button>
-            ) : null}
-            <button type="button" className="workspace-header__user" title={currentUserEmail || currentUserLabel}>
+            <div className="workspace-header__user" title={currentUserEmail || currentUserLabel}>
               <span className="workspace-header__user-avatar">{currentUserInitials}</span>
               <span className="workspace-header__user-name">{currentUserLabel}</span>
               <span className="workspace-header__user-chevron">▼</span>
-            </button>
-            {onSignOut ? (
-              <button type="button" className="btn-sumplexity btn-secondary" onClick={onSignOut}>
-                Sign out
-              </button>
-            ) : null}
+            </div>
           </div>
         ) : (
           <div />
@@ -76,18 +71,22 @@ export default function AppHeader({
 
 AppHeader.propTypes = {
   currentUserEmail: PropTypes.string,
-  onSignOut: PropTypes.func,
-  darkMode: PropTypes.bool,
-  onToggleDarkMode: PropTypes.func,
+  onHome: PropTypes.func,
   onOpenAssistant: PropTypes.func,
-  assistantOpen: PropTypes.bool
+  assistantOpen: PropTypes.bool,
+  centerLabel: PropTypes.string,
+  showCenter: PropTypes.bool,
+  showCenterChevron: PropTypes.bool,
+  compact: PropTypes.bool
 };
 
 AppHeader.defaultProps = {
   currentUserEmail: '',
-  onSignOut: null,
-  darkMode: false,
-  onToggleDarkMode: null,
+  onHome: null,
   onOpenAssistant: null,
-  assistantOpen: false
+  assistantOpen: false,
+  centerLabel: 'CLC Inspection Tool',
+  showCenter: true,
+  showCenterChevron: false,
+  compact: false
 };

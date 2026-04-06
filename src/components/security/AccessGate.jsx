@@ -22,17 +22,20 @@ export default function AccessGate({ config = DEFAULT_CONFIG, onUnlock }) {
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetStatus, setResetStatus] = useState('');
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [feedbackCategory, setFeedbackCategory] = useState('bug');
+  const [feedbackText, setFeedbackText] = useState('');
 
   const handleAuthError = (firebaseError) => {
     const code = firebaseError?.code ?? '';
     if (code === 'auth/invalid-email' || code === 'auth/user-not-found' || code === 'auth/wrong-password') {
-      setError('Email or password is incorrect.');
+      setError('Invalid email or password.');
     } else if (code === 'auth/user-disabled' || code === 'auth/too-many-requests') {
-      setError('Account temporarily locked. Contact your administrator.');
+      setError('Account locked. Contact your administrator.');
     } else if (code === 'auth/network-request-failed') {
-      setError('Unable to connect. Check your internet connection and try again.');
+      setError('Unable to connect. Check your network.');
     } else {
-      setError('Unable to connect. Check your internet connection and try again.');
+      setError('Unable to connect. Check your network.');
     }
   };
 
@@ -84,7 +87,7 @@ export default function AccessGate({ config = DEFAULT_CONFIG, onUnlock }) {
         </div>
 
         <div className="login-card">
-          <h2>Sign in</h2>
+          <h2>{config.heading || DEFAULT_CONFIG.heading}</h2>
           {config.supporting ? <p className="access-gate__supporting">{config.supporting}</p> : null}
 
           {error ? <div className="login-error show">{error}</div> : null}
@@ -154,17 +157,18 @@ export default function AccessGate({ config = DEFAULT_CONFIG, onUnlock }) {
             </button>
 
             <div className="forgot-link">
-              <button
-                type="button"
+              <a
+                href="#"
                 className="access-gate__forgot-link"
-                onClick={() => {
+                onClick={(event) => {
+                  event.preventDefault();
                   setForgotModalOpen(true);
                   setResetEmail(email);
                   setResetStatus('');
                 }}
               >
                 Forgot password?
-              </button>
+              </a>
             </div>
           </form>
         </div>
@@ -194,7 +198,7 @@ export default function AccessGate({ config = DEFAULT_CONFIG, onUnlock }) {
             </div>
             <p>Enter your email address and we&apos;ll send you a link to reset your password.</p>
             <label htmlFor="resetEmail" className="access-gate__label">
-              Email address
+              Email
             </label>
             <input
               id="resetEmail"
@@ -202,13 +206,12 @@ export default function AccessGate({ config = DEFAULT_CONFIG, onUnlock }) {
               className="access-gate__input"
               value={resetEmail}
               onChange={(event) => setResetEmail(event.target.value)}
-              placeholder="you@company.com"
+              placeholder="you@example.com"
             />
-            {resetStatus ? <p className="access-gate__reset-status">{resetStatus}</p> : null}
             <div className="modal-actions">
               <button
                 type="button"
-                className="btn ghost"
+                className="btn secondary"
                 onClick={() => {
                   setForgotModalOpen(false);
                   setResetStatus('');
@@ -223,6 +226,81 @@ export default function AccessGate({ config = DEFAULT_CONFIG, onUnlock }) {
           </div>
         </div>
       ) : null}
+
+      {feedbackModalOpen ? (
+        <div className="access-gate-modal-backdrop" role="presentation">
+          <div className="access-gate-modal" role="dialog" aria-modal="true" aria-label="Send feedback">
+            <div className="access-gate-modal__header">
+              <h3>Send Feedback</h3>
+              <button
+                type="button"
+                className="access-gate-modal__close"
+                aria-label="Close feedback dialog"
+                onClick={() => setFeedbackModalOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="form-group" style={{ marginBottom: 'var(--sp-4)' }}>
+              <label className="form-label" htmlFor="feedbackCategory">
+                Category
+              </label>
+              <select
+                id="feedbackCategory"
+                className="form-control"
+                value={feedbackCategory}
+                onChange={(event) => setFeedbackCategory(event.target.value)}
+              >
+                <option value="bug">Bug</option>
+                <option value="suggestion">Suggestion</option>
+                <option value="question">Question</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="feedbackText">
+                Your feedback
+              </label>
+              <textarea
+                id="feedbackText"
+                className="form-control"
+                rows="4"
+                placeholder="Tell us what you think..."
+                value={feedbackText}
+                onChange={(event) => setFeedbackText(event.target.value)}
+              />
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="btn secondary" onClick={() => setFeedbackModalOpen(false)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => {
+                  setFeedbackModalOpen(false);
+                  setFeedbackText('');
+                  setFeedbackCategory('bug');
+                }}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="feedback-tab">
+        <a
+          href="#"
+          onClick={(event) => {
+            event.preventDefault();
+            setFeedbackModalOpen(true);
+          }}
+        >
+          Feedback
+        </a>
+      </div>
     </div>
   );
 }

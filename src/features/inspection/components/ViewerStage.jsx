@@ -25,6 +25,8 @@ export default function ViewerStage({
   safeText,
   handleClearViewerFindingFocus,
   handleCycleDocument,
+  maxStepUnlocked,
+  handleCaseTabNavigate,
   docPulse,
   handleSelectDocTab,
   showDocBoxes,
@@ -64,11 +66,12 @@ export default function ViewerStage({
   handleToggleFilter,
   setFilterSeverity,
   viewerTypeFilterRef,
-  findingViewFilter,
+  findingViewFilters,
   setViewerTypeFilterOpen,
   viewerTypeFilterOpen,
   findingFilterLabelMap,
-  setFindingViewFilter,
+  toggleFindingViewFilter,
+  clearFindingViewFilters,
   viewerCodeAreaFilterRef,
   setViewerCodeAreaFilter,
   setViewerCodeAreaFilterOpen,
@@ -92,7 +95,7 @@ export default function ViewerStage({
   setActiveMenuFindingId,
   findingMenuRef,
   handleRequestFindingDecision,
-  setDeleteFindingTargetId,
+  handleDeleteFinding,
   formatReferenceText,
   openLeadConfirmModal,
   noteTargetFindingId,
@@ -113,7 +116,8 @@ export default function ViewerStage({
   inlineDismissNote,
   setInlineDismissNote,
   handleConfirmInlineDismiss,
-  setInlineDismissFindingId
+  setInlineDismissFindingId,
+  onOpenDocumentAssistant
 }) {
   if (caseDocuments.length === 0) {
     return (
@@ -149,7 +153,7 @@ export default function ViewerStage({
 
   return (
     <div className="stage-card doc-viewer-stage">
-      <div className={`split-view findings-view ${isViewerFocusMode ? 'viewer-focus' : ''}`}>
+      <div className="split-view findings-view">
         <ViewerDocumentPanel
           docViewerRef={docViewerRef}
           setCurrentStep={setCurrentStep}
@@ -158,21 +162,13 @@ export default function ViewerStage({
           viewerSelectionHistory={viewerSelectionHistory}
           handleViewerBack={handleViewerBack}
           activeDocument={activeDocument}
-          activeViewerFinding={activeViewerFinding}
-          safeText={safeText}
-          viewerHasFindingFocus={viewerHasFindingFocus}
+          viewerDocumentSequence={viewerDocumentSequence}
           viewerDocumentPosition={viewerDocumentPosition}
           viewerDocumentCount={viewerDocumentCount}
-          handleClearViewerFindingFocus={handleClearViewerFindingFocus}
           handleCycleDocument={handleCycleDocument}
-          viewerDocumentSequence={viewerDocumentSequence}
+          maxStepUnlocked={maxStepUnlocked}
+          handleCaseTabNavigate={handleCaseTabNavigate}
           activeDocId={activeDocId}
-          docPulse={docPulse}
-          handleSelectDocTab={handleSelectDocTab}
-          isViewerFocusMode={isViewerFocusMode}
-          setIsViewerFocusMode={setIsViewerFocusMode}
-          showDocBoxes={showDocBoxes}
-          setShowDocBoxes={setShowDocBoxes}
           activeDocBoxes={activeDocBoxes}
           activeDocBoxId={activeDocBoxId}
           handleSelectDocBox={handleSelectDocBox}
@@ -180,26 +176,12 @@ export default function ViewerStage({
           docFocusSignal={docFocusSignal}
           activeDocMinimapMarkers={activeDocMinimapMarkers}
           setDocLevelNoteOpen={setDocLevelNoteOpen}
-          docCrossSearchOpen={docCrossSearchOpen}
-          setDocCrossSearchOpen={setDocCrossSearchOpen}
           setFeedbackOpen={setFeedbackOpen}
           docLevelNoteOpen={docLevelNoteOpen}
           docLevelNoteDraft={docLevelNoteDraft}
           setDocLevelNoteDraft={setDocLevelNoteDraft}
           handleSaveDocumentNote={handleSaveDocumentNote}
-          documentNotes={documentNotes}
-          docSearchScope={docSearchScope}
-          setDocSearchScope={setDocSearchScope}
-          docSearchQuery={docSearchQuery}
-          isProviderSearchLoading={isProviderSearchLoading}
-          filteredInDocumentResults={filteredInDocumentResults}
-          filteredCrossDocResults={filteredCrossDocResults}
-          findingReferencesDocument={findingReferencesDocument}
-          getFindingPreferredBoxIdForDocument={getFindingPreferredBoxIdForDocument}
-          documentsById={documentsById}
-          formatSourceDocumentRef={formatSourceDocumentRef}
-          handleViewDocument={handleViewDocument}
-          handleOpenAddNote={handleOpenAddNote}
+          onOpenDocumentAssistant={onOpenDocumentAssistant}
         />
         <ViewerFindingsPanel
           findingsForActiveDocument={findingsForActiveDocument}
@@ -213,11 +195,12 @@ export default function ViewerStage({
           handleToggleFilter={handleToggleFilter}
           setFilterSeverity={setFilterSeverity}
           viewerTypeFilterRef={viewerTypeFilterRef}
-          findingViewFilter={findingViewFilter}
+          findingViewFilters={findingViewFilters}
           setViewerTypeFilterOpen={setViewerTypeFilterOpen}
           viewerTypeFilterOpen={viewerTypeFilterOpen}
           findingFilterLabelMap={findingFilterLabelMap}
-          setFindingViewFilter={setFindingViewFilter}
+          toggleFindingViewFilter={toggleFindingViewFilter}
+          clearFindingViewFilters={clearFindingViewFilters}
           viewerCodeAreaFilterRef={viewerCodeAreaFilterRef}
           viewerCodeAreaFilter={viewerCodeAreaFilter}
           setViewerCodeAreaFilterOpen={setViewerCodeAreaFilterOpen}
@@ -245,7 +228,7 @@ export default function ViewerStage({
           findingMenuRef={findingMenuRef}
           handleRequestFindingDecision={handleRequestFindingDecision}
           handleOpenAddNote={handleOpenAddNote}
-          setDeleteFindingTargetId={setDeleteFindingTargetId}
+          handleDeleteFinding={handleDeleteFinding}
           formatReferenceText={formatReferenceText}
           openLeadConfirmModal={openLeadConfirmModal}
           noteTargetFindingId={noteTargetFindingId}

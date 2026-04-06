@@ -10,7 +10,12 @@ export default function ReportPendingModal({
   return (
     <div className="modal-backdrop" role="presentation">
       <div className="modal-card" role="dialog" aria-modal="true" aria-label="Unprocessed changes">
-        <h3>Unprocessed Changes</h3>
+        <div className="modal-card__header">
+          <h3>Unprocessed Changes</h3>
+          <button type="button" className="modal-card__close" aria-label="Close" onClick={onCancel}>
+            ×
+          </button>
+        </div>
         <p>
           There are unprocessed changes. Would you like to reprocess findings first, or{' '}
           {reportPendingAction === 'generate' ? 'generate' : 'regenerate'} the report from current

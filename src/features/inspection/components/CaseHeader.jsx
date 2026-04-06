@@ -4,10 +4,6 @@ export default function CaseHeader({
   currentStep,
   currentCaseMeta,
   renderRiskDots,
-  openFindings,
-  dataSourceLabel,
-  isViewerStep,
-  onOpenSearch,
   pendingReprocessSummary,
   reprocessBannerDismissed,
   onReprocessNow,
@@ -32,15 +28,6 @@ export default function CaseHeader({
             HoLP: {currentCaseMeta.holp} • HoFA: {currentCaseMeta.hofa} • Inspector: {currentCaseMeta.owner}
           </p>
         </div>
-        <div className="case-header__stats">
-          <span>{openFindings} unreviewed findings</span>
-          <span className="panel-subtitle">Data: {dataSourceLabel}</span>
-          {isViewerStep ? (
-            <button type="button" className="btn btn-xs ghost" onClick={onOpenSearch}>
-              🔍 Search
-            </button>
-          ) : null}
-        </div>
       </div>
       {pendingReprocessSummary && !reprocessBannerDismissed ? (
         <div className="reprocess-indicator">
@@ -57,21 +44,32 @@ export default function CaseHeader({
           const isActive = activeCaseTabId === tab.id;
           const isUnlocked = tab.step <= maxStepUnlocked;
           return (
-            <button
+            <div
               key={tab.id}
-              type="button"
               role="tab"
               className={`case-tab${isActive ? ' active' : ''}`}
               aria-selected={isActive}
-              disabled={!isUnlocked}
-              onClick={() => handleCaseTabNavigate(tab.step)}
+              aria-disabled={!isUnlocked}
+              tabIndex={isUnlocked ? 0 : -1}
+              onClick={() => {
+                if (isUnlocked) {
+                  handleCaseTabNavigate(tab.step);
+                }
+              }}
+              onKeyDown={(event) => {
+                if (!isUnlocked) return;
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  handleCaseTabNavigate(tab.step);
+                }
+              }}
             >
               {tab.label}
               {Object.prototype.hasOwnProperty.call(caseTabCounts, tab.id) ? (
                 <span className="case-tab-count">({caseTabCounts[tab.id]})</span>
               ) : null}
               {tab.id === 'report' && reportStale && !isActive ? <span className="stale-dot" /> : null}
-            </button>
+            </div>
           );
         })}
       </div>

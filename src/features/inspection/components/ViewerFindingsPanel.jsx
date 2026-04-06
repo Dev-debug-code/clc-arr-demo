@@ -19,11 +19,12 @@ export default function ViewerFindingsPanel({
   handleToggleFilter,
   setFilterSeverity,
   viewerTypeFilterRef,
-  findingViewFilter,
+  findingViewFilters,
   setViewerTypeFilterOpen,
   viewerTypeFilterOpen,
   findingFilterLabelMap,
-  setFindingViewFilter,
+  toggleFindingViewFilter,
+  clearFindingViewFilters,
   viewerCodeAreaFilterRef,
   viewerCodeAreaFilter,
   setViewerCodeAreaFilterOpen,
@@ -51,7 +52,7 @@ export default function ViewerFindingsPanel({
   findingMenuRef,
   handleRequestFindingDecision,
   handleOpenAddNote,
-  setDeleteFindingTargetId,
+  handleDeleteFinding,
   formatReferenceText,
   openLeadConfirmModal,
   noteTargetFindingId,
@@ -80,6 +81,33 @@ export default function ViewerFindingsPanel({
   handleSelectDocBox,
   handleViewDocument
 }) {
+  const hasActiveTypeFilters = findingViewFilters.length > 0;
+  const activeTypeLabels = findingViewFilters.map((filterKey) => {
+    return (
+      {
+        non_compliant: 'Non-compliant',
+        compliant: 'Compliant',
+        good_practice: 'Good Practice',
+        leads: 'Leads',
+        inspector_added: 'Inspector-added',
+        reviewed: 'Reviewed',
+        unreviewed: 'Unreviewed'
+      }[filterKey] ?? findingFilterLabelMap[filterKey] ?? filterKey
+    );
+  });
+  const viewerSeverityLabels = filterSeverity.map((key) => {
+    if (key === 'critical') return 'Critical';
+    if (key === 'warning') return 'Guidance';
+    return severityLabelMap[key] ?? key;
+  });
+  const activeViewerFilterLabels = [...activeTypeLabels, ...viewerSeverityLabels];
+  const viewerFilterButtonLabel =
+    activeViewerFilterLabels.length === 0
+      ? 'All'
+      : activeViewerFilterLabels.length <= 2
+        ? activeViewerFilterLabels.join(', ')
+        : `${activeViewerFilterLabels.length} filters`;
+
   return (
     <div className="panel findings-panel">
       <div className="panel-header">
@@ -98,86 +126,55 @@ export default function ViewerFindingsPanel({
               className={`filter-dropdown-btn ${filterSeverity.length > 0 ? 'has-filter' : ''}`}
               onClick={() => setSeverityFilterOpen((prev) => !prev)}
             >
-              Filter findings {filterSeverity.length > 0 ? `(${filterSeverity.length})` : ''}
+              Filter: {viewerFilterButtonLabel}
               <span className="dropdown-chevron">{severityFilterOpen ? '▲' : '▼'}</span>
             </button>
             <div className={`filter-dropdown-panel ${severityFilterOpen ? 'open' : ''}`}>
-              {severityCounts.map((item) => (
-                <label key={`severity-filter-${item.id}`} className="filter-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={filterSeverity.includes(item.id)}
-                    onChange={() => handleToggleFilter(item.id)}
-                  />
-                  <span>{severityLabelMap[item.id] ?? item.label}</span>
-                </label>
-              ))}
+              <div className="filter-section-label">Type</div>
+              <label className="filter-checkbox">
+                <input
+                  type="checkbox"
+                  checked={!hasActiveTypeFilters && filterSeverity.length === 0}
+                  onChange={() => {
+                    clearFindingViewFilters();
+                    setFilterSeverity([]);
+                  }}
+                />
+                <span>All</span>
+              </label>
               <div className="filter-dropdown-divider" />
-              <button
-                type="button"
-                className="btn btn-xs ghost"
-                onClick={() => setFilterSeverity([])}
-                disabled={filterSeverity.length === 0}
-              >
-                Clear severity filter
-              </button>
-            </div>
-          </div>
-          <div className="filter-dropdown-wrap" ref={viewerTypeFilterRef}>
-            <button
-              type="button"
-              className={`filter-dropdown-btn ${findingViewFilter !== 'all' ? 'has-filter' : ''}`}
-              onClick={() => setViewerTypeFilterOpen((prev) => !prev)}
-              aria-expanded={viewerTypeFilterOpen}
-              aria-haspopup="menu"
-            >
-              Type: {findingFilterLabelMap[findingViewFilter] ?? 'All'}
-              <span className="dropdown-chevron">{viewerTypeFilterOpen ? '▲' : '▼'}</span>
-            </button>
-            <div className={`filter-dropdown-panel ${viewerTypeFilterOpen ? 'open' : ''}`} role="menu">
-              {['all'].map((filterKey) => (
+              {[
+                ['non_compliant', 'Non-compliant'],
+                ['compliant', 'Compliant'],
+                ['good_practice', 'Good Practice'],
+                ['leads', 'Leads'],
+                ['inspector_added', 'Inspector-added'],
+                ['reviewed', 'Reviewed'],
+                ['unreviewed', 'Unreviewed']
+              ].map(([filterKey, label]) => (
                 <label key={`viewer-filter-option-${filterKey}`} className="filter-checkbox">
                   <input
                     type="checkbox"
-                    checked={findingViewFilter === filterKey}
-                    onChange={() => {
-                      setFindingViewFilter(filterKey);
-                      setViewerTypeFilterOpen(false);
-                    }}
+                    checked={findingViewFilters.includes(filterKey)}
+                    onChange={() => toggleFindingViewFilter(filterKey)}
                   />
-                  <span>{findingFilterLabelMap[filterKey]}</span>
+                  <span>{label}</span>
                 </label>
               ))}
               <div className="filter-dropdown-divider" />
-              {['unreviewed', 'reviewed', 'leads', 'non_compliant', 'compliant', 'good_practice', 'inspector_added'].map(
-                (filterKey) => (
-                  <label key={`viewer-filter-option-${filterKey}`} className="filter-checkbox">
+              <div className="filter-section-label">Severity</div>
+              {severityCounts
+                .filter((item) => item.id === 'critical' || item.id === 'warning')
+                .map((item) => (
+                  <label key={`severity-filter-${item.id}`} className="filter-checkbox">
                     <input
                       type="checkbox"
-                      checked={findingViewFilter === filterKey}
-                      onChange={() => {
-                        setFindingViewFilter(filterKey);
-                        setViewerTypeFilterOpen(false);
-                      }}
+                      checked={filterSeverity.includes(item.id)}
+                      onChange={() => handleToggleFilter(item.id)}
                     />
-                    <span>{findingFilterLabelMap[filterKey]}</span>
+                    <span>{item.id === 'warning' ? 'Guidance' : 'Critical'}</span>
                   </label>
-                )
-              )}
-              <div className="filter-dropdown-divider" />
-              {['strong', 'supported', 'indicative'].map((filterKey) => (
-                <label key={`viewer-filter-option-${filterKey}`} className="filter-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={findingViewFilter === filterKey}
-                    onChange={() => {
-                      setFindingViewFilter(filterKey);
-                      setViewerTypeFilterOpen(false);
-                    }}
-                  />
-                  <span>{findingFilterLabelMap[filterKey]}</span>
-                </label>
-              ))}
+                ))}
             </div>
           </div>
           <div className="filter-dropdown-wrap" ref={viewerCodeAreaFilterRef}>
@@ -189,7 +186,7 @@ export default function ViewerFindingsPanel({
               aria-haspopup="menu"
             >
               Code area:{' '}
-              {VIEWER_CODE_AREA_FILTERS.find((entry) => entry.id === viewerCodeAreaFilter)?.label ?? 'All code areas'}
+              {VIEWER_CODE_AREA_FILTERS.find((entry) => entry.id === viewerCodeAreaFilter)?.label ?? 'All'}
               <span className="dropdown-chevron">{viewerCodeAreaFilterOpen ? '▲' : '▼'}</span>
             </button>
             <div className={`filter-dropdown-panel ${viewerCodeAreaFilterOpen ? 'open' : ''}`} role="menu">
@@ -213,33 +210,6 @@ export default function ViewerFindingsPanel({
           </div>
         </div>
       </div>
-      {filterSeverity.length > 0 ? (
-        <div className="filter-clear visible">
-          <span>Active filter: {activeSeverityLabels.join(', ')}</span>
-          <button type="button" className="btn btn-xs ghost" onClick={() => setFilterSeverity([])}>
-            Clear filters
-          </button>
-        </div>
-      ) : null}
-      {findingViewFilter !== 'all' ? (
-        <div className="filter-clear visible">
-          <span>Type filter: {findingFilterLabelMap[findingViewFilter] ?? findingViewFilter}</span>
-          <button type="button" className="btn btn-xs ghost" onClick={() => setFindingViewFilter('all')}>
-            Clear
-          </button>
-        </div>
-      ) : null}
-      {viewerCodeAreaFilter !== 'all' ? (
-        <div className="filter-clear visible">
-          <span>
-            Code area:{' '}
-            {VIEWER_CODE_AREA_FILTERS.find((entry) => entry.id === viewerCodeAreaFilter)?.label ?? viewerCodeAreaFilter}
-          </span>
-          <button type="button" className="btn btn-xs ghost" onClick={() => setViewerCodeAreaFilter('all')}>
-            Clear
-          </button>
-        </div>
-      ) : null}
       {hiddenForActiveDocument > 0 ? (
         <div className="filter-hint">{hiddenForActiveDocument} findings hidden by filter.</div>
       ) : null}
@@ -247,12 +217,12 @@ export default function ViewerFindingsPanel({
         {findingsForActiveDocument.length === 0 ? (
           <div className="empty-state-inline">
             <h4>
-              {findingViewFilter === 'all'
+              {!hasActiveTypeFilters && filterSeverity.length === 0
                 ? 'No findings currently mapped'
-                : `No ${findingFilterLabelMap[findingViewFilter] ?? 'matching'} findings in this section`}
+                : 'No findings match the selected filter'}
             </h4>
             <p>
-              {findingViewFilter === 'all'
+              {!hasActiveTypeFilters && filterSeverity.length === 0
                 ? 'As processing evolves, this panel will populate with linked findings.'
                 : 'Change finding or code-area filters, or clear severity filters to restore the full list.'}
             </p>
@@ -342,7 +312,6 @@ export default function ViewerFindingsPanel({
                     <span className="finding-expand-chev">{isViewerFindingExpanded ? '▾' : '▸'}</span>
                   </div>
                   <div className="finding-meta">
-                    <span className="badge">{finding.id}</span>
                     {finding.reference ? <code>{formatReferenceText(finding.reference)}</code> : null}
                     <span className={`evidence-badge ${evidenceStrength.key}`}>{evidenceStrength.label}</span>
                     <span className={`source-tag ${isInspectorAdded ? 'inspector' : 'system'}`}>
@@ -378,34 +347,15 @@ export default function ViewerFindingsPanel({
                   </button>
                   {activeMenuFindingId === finding.id ? (
                     <div className="finding-menu" ref={findingMenuRef}>
-                      {reviewState === 'dismissed' ? (
+                      {!isLeadFinding ? (
                         <button
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
-                            handleRequestFindingDecision(finding.id, null);
-                          }}
-                        >
-                          Reopen lead
-                        </button>
-                      ) : null}
-                      {reviewState === 'accepted' ? (
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleRequestFindingDecision(finding.id, 'rejected');
-                          }}
-                        >
-                          Change decision
-                        </button>
-                      ) : null}
-                      {reviewState === 'rejected' ? (
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleRequestFindingDecision(finding.id, 'accepted');
+                            handleRequestFindingDecision(
+                              finding.id,
+                              reviewState === 'accepted' ? 'rejected' : 'accepted'
+                            );
                           }}
                         >
                           Change decision
@@ -418,26 +368,15 @@ export default function ViewerFindingsPanel({
                           handleOpenAddNote(finding.id);
                         }}
                       >
-                        📝 Add note
+                        Add note
                       </button>
-                      {reviewState !== 'dismissed' ? (
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleRequestFindingDecision(finding.id, 'dismissed');
-                          }}
-                        >
-                          Dismiss lead
-                        </button>
-                      ) : null}
                       {!finding.reference ? (
                         <button
                           type="button"
                           className="danger"
                           onClick={(event) => {
                             event.stopPropagation();
-                            setDeleteFindingTargetId(finding.id);
+                            handleDeleteFinding(finding.id);
                             setActiveMenuFindingId(null);
                           }}
                         >
@@ -492,12 +431,6 @@ export default function ViewerFindingsPanel({
                             {passage.page ? ` — page ${passage.page}` : ''}
                           </div>
                           {passage.excerpt ? <div className="excerpt">"{passage.excerpt}"</div> : null}
-                          <div className="finding-extra-meta">
-                            <span className={`source-tag ${isInspectorAdded ? 'inspector' : 'system'}`}>
-                              {finding.reference ? 'System-generated' : 'Inspector-added'} ·{' '}
-                              {safeText(passage.section, 'Case-level')}
-                            </span>
-                          </div>
                           {passage.documentId ? (
                             <span className="tooltip-wrap">
                               <button
@@ -521,23 +454,6 @@ export default function ViewerFindingsPanel({
                       ))
                     )}
                   </div>
-                  {isLeadFinding && reviewState === 'unreviewed' ? (
-                    <div className="lead-sections-inline">
-                      <p>
-                        <strong>Potential lead:</strong> Evidence may indicate a gap and requires inspector confirmation.
-                      </p>
-                      <button
-                        type="button"
-                        className="btn btn-xs primary"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          openLeadConfirmModal(finding.id, STEP_VIEWER);
-                        }}
-                      >
-                        Open Evidence Highlighter
-                      </button>
-                    </div>
-                  ) : null}
                   {noteText ? (
                     <p className="finding-note">
                       Note: {noteText}
@@ -596,21 +512,23 @@ export default function ViewerFindingsPanel({
                         </button>
                       </>
                     )}
-                    <button
-                      type="button"
-                      className="btn btn-xs ghost"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleOpenAddNote(finding.id);
-                      }}
-                    >
-                      📝 Add note
-                    </button>
+                    {!isLeadFinding || reviewState !== 'unreviewed' ? (
+                      <button
+                        type="button"
+                        className="btn btn-xs ghost"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleOpenAddNote(finding.id);
+                        }}
+                      >
+                        📝 Add note
+                      </button>
+                    ) : null}
                   </div>
                   {inlineRejectFindingId === finding.id ? (
                     <div className="inline-decision-form">
                       <label className="modal-label" htmlFor={`inline-reject-reason-${finding.id}`}>
-                        Reason category (required)
+                        Reason for rejection (required)
                       </label>
                       <select
                         id={`inline-reject-reason-${finding.id}`}
@@ -618,6 +536,9 @@ export default function ViewerFindingsPanel({
                         value={inlineRejectReason}
                         onChange={(event) => setInlineRejectReason(event.target.value)}
                       >
+                        <option value="" disabled>
+                          Select reason...
+                        </option>
                         {REVIEW_REASON_OPTIONS.map((option) => (
                           <option key={option.value} value={option.value}>
                             {option.label}
@@ -625,34 +546,38 @@ export default function ViewerFindingsPanel({
                         ))}
                       </select>
                       <label className="modal-label" htmlFor={`inline-reject-note-${finding.id}`}>
-                        Note {inlineRejectReason === 'other' ? '(required)' : '(optional)'}
+                        Additional detail (optional)
                       </label>
-                      <textarea
+                      <input
                         id={`inline-reject-note-${finding.id}`}
-                        className="modal-textarea"
+                        type="text"
+                        className="form-control"
                         value={inlineRejectNote}
                         onChange={(event) => setInlineRejectNote(event.target.value)}
-                        placeholder="Add detail for this decision..."
+                        placeholder="Add context..."
                       />
+                      <button type="button" className="btn btn-icon btn-sm" title="Dictate" aria-label="Dictate">
+                        🎤
+                      </button>
                       <div className="modal-actions">
+                        <button
+                          type="button"
+                          className="btn danger"
+                          disabled={!inlineRejectReason}
+                          onClick={() => handleConfirmInlineReject(finding.id, false)}
+                        >
+                          Confirm rejection
+                        </button>
                         <button
                           type="button"
                           className="btn ghost"
                           onClick={() => {
                             setInlineRejectFindingId(null);
-                            setInlineRejectReason(REVIEW_REASON_OPTIONS[0].value);
+                            setInlineRejectReason('');
                             setInlineRejectNote('');
                           }}
                         >
                           Cancel
-                        </button>
-                        <button
-                          type="button"
-                          className="btn primary"
-                          disabled={inlineRejectReason === 'other' && !inlineRejectNote.trim()}
-                          onClick={() => handleConfirmInlineReject(finding.id)}
-                        >
-                          Confirm rejection
                         </button>
                       </div>
                     </div>
@@ -669,7 +594,7 @@ export default function ViewerFindingsPanel({
                         onChange={(event) => setInlineDismissReason(event.target.value)}
                       >
                         <option value="" disabled>
-                          Select a dismissal reason
+                          Select reason...
                         </option>
                         {DISMISS_REASON_OPTIONS.map((option) => (
                           <option key={`dismiss-${option.value}`} value={option.value}>
@@ -678,16 +603,28 @@ export default function ViewerFindingsPanel({
                         ))}
                       </select>
                       <label className="modal-label" htmlFor={`inline-dismiss-note-${finding.id}`}>
-                        Details {inlineDismissReason === 'other' ? '(required)' : '(optional)'}
+                        Additional detail (optional)
                       </label>
-                      <textarea
+                      <input
                         id={`inline-dismiss-note-${finding.id}`}
-                        className="modal-textarea"
+                        type="text"
+                        className="form-control"
                         value={inlineDismissNote}
                         onChange={(event) => setInlineDismissNote(event.target.value)}
-                        placeholder="Add detail for this dismissal..."
+                        placeholder="Add context..."
                       />
+                      <button type="button" className="btn btn-icon btn-sm" title="Dictate" aria-label="Dictate">
+                        🎤
+                      </button>
                       <div className="modal-actions">
+                        <button
+                          type="button"
+                          className="btn danger"
+                          disabled={!inlineDismissReason}
+                          onClick={() => handleConfirmInlineDismiss(finding.id, false)}
+                        >
+                          Confirm dismissal
+                        </button>
                         <button
                           type="button"
                           className="btn ghost"
@@ -698,14 +635,6 @@ export default function ViewerFindingsPanel({
                           }}
                         >
                           Cancel
-                        </button>
-                        <button
-                          type="button"
-                          className="btn primary"
-                          disabled={!inlineDismissReason || (inlineDismissReason === 'other' && !inlineDismissNote.trim())}
-                          onClick={() => handleConfirmInlineDismiss(finding.id)}
-                        >
-                          Confirm dismissal
                         </button>
                       </div>
                     </div>
@@ -720,21 +649,14 @@ export default function ViewerFindingsPanel({
                         className="modal-textarea"
                         value={noteDraft}
                         onChange={(event) => setNoteDraft(event.target.value)}
-                        placeholder="Enter observation..."
+                        placeholder="Add a note..."
                       />
+                      <button type="button" className="btn btn-icon btn-sm" title="Dictate" aria-label="Dictate">
+                        🎤
+                      </button>
                       <div className="modal-actions">
-                        <button
-                          type="button"
-                          className="btn ghost"
-                          onClick={() => {
-                            setNoteTargetFindingId(null);
-                            setNoteDraft('');
-                          }}
-                        >
-                          Cancel
-                        </button>
                         <button type="button" className="btn primary" onClick={handleSaveFindingNote}>
-                          Save note
+                          Save
                         </button>
                       </div>
                     </div>

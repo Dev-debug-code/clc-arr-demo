@@ -1,5 +1,4 @@
 export default function FeedbackControls({
-  isViewerStep,
   onOpen,
   isOpen,
   feedbackCategory,
@@ -11,15 +10,26 @@ export default function FeedbackControls({
 }) {
   return (
     <>
-      <div className={`feedback-tab ${isViewerStep ? 'left' : ''}`}>
-        <button type="button" onClick={onOpen}>
+      <div className="feedback-tab">
+        <a
+          href="#"
+          onClick={(event) => {
+            event.preventDefault();
+            onOpen();
+          }}
+        >
           Feedback
-        </button>
+        </a>
       </div>
       {isOpen ? (
         <div className="modal-backdrop" role="presentation">
           <div className="modal-card" role="dialog" aria-modal="true" aria-label="Share feedback">
-            <h3>Share feedback</h3>
+            <div className="modal-card__header">
+              <h3>Send Feedback</h3>
+              <button type="button" className="modal-card__close" aria-label="Close" onClick={onClose}>
+                ×
+              </button>
+            </div>
             <label className="modal-label" htmlFor="feedback-category">
               Category
             </label>
@@ -35,18 +45,18 @@ export default function FeedbackControls({
               <option value="other">Other</option>
             </select>
             <label className="modal-label" htmlFor="feedback-text">
-              Notes
+              Your feedback
             </label>
             <textarea
               id="feedback-text"
               className="modal-textarea"
               value={feedbackText}
               onChange={(event) => setFeedbackText(event.target.value)}
-              placeholder="Tell us what needs improving..."
+              placeholder="Tell us what you think..."
             />
             <div className="modal-actions">
               <button type="button" className="btn ghost" onClick={onClose}>
-                Close
+                Cancel
               </button>
               <button type="button" className="btn primary" onClick={onSubmit}>
                 Submit

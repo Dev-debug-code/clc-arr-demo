@@ -46,8 +46,8 @@ export const WORKFLOW_STEP_CONFIG = [
 ];
 
 export const CASE_TABS = [
-  { id: 'documents', label: 'Documents', step: STEP_DOCUMENTS },
   { id: 'overview', label: 'Overview', step: STEP_OVERVIEW },
+  { id: 'documents', label: 'Documents', step: STEP_DOCUMENTS },
   { id: 'history', label: 'History', step: STEP_HISTORY },
   { id: 'report', label: 'Report', step: STEP_REPORT }
 ];
@@ -110,7 +110,7 @@ export const INITIAL_UPLOAD_ITEMS = [
 export const REVIEW_REASON_OPTIONS = [
   { value: 'evidence_exists_elsewhere', label: 'Evidence exists elsewhere' },
   { value: 'policy_updated', label: 'Policy updated' },
-  { value: 'different_context', label: 'Different context' },
+  { value: 'different_context', label: 'Different context applies' },
   { value: 'system_error', label: 'System error' },
   { value: 'other', label: 'Other' }
 ];
@@ -145,11 +145,10 @@ export const REQUIREMENT_SEVERITY_BY_ID = {
 };
 
 export const MANUAL_CASE_LEVEL_SOURCE_OPTIONS = [
-  'Missing document',
-  'Interview observation',
   'On-site observation',
-  'Cross-document pattern',
-  'External intelligence',
+  'Interview',
+  'Phone call',
+  'Email',
   'Other'
 ];
 
@@ -216,8 +215,12 @@ export const COMPLIANCE_CODE_AREAS = [
 
 export const NOT_ASSESSED_AREAS = ['Insurance Distribution', 'Acting for Lenders', 'Consumer Duty'];
 export const VIEWER_CODE_AREA_FILTERS = [
-  { id: 'all', label: 'All code areas' },
-  ...FOCUS_AREA_OPTIONS.map((area) => ({ id: area.id, label: area.label }))
+  { id: 'all', label: 'All' },
+  { id: 'aml', label: 'AML & CTF' },
+  { id: 'accounts', label: 'Accounts Code' },
+  { id: 'complaints', label: 'Complaints Code' },
+  { id: 'conflicts', label: 'Conflicts of Interest' },
+  { id: 'transaction', label: 'Transaction Files' }
 ];
 
 export const FINDING_EVIDENCE_STRENGTH_MAP = {

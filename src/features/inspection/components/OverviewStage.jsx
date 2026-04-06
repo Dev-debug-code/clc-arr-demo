@@ -3,8 +3,11 @@ export default function OverviewStage({
   onGoToDocuments,
   overviewSummaryCards,
   complianceContent,
-  onGoToReport,
-  canGoToReport
+  allRequirementsMet,
+  allRequirementsMetDetail,
+  showHighRejectionPrompt,
+  onOpenContextNote,
+  onDismissHighRejectionPrompt
 }) {
   return (
     <div className="stage-card">
@@ -18,31 +21,44 @@ export default function OverviewStage({
           </button>
         </div>
       ) : null}
-      {caseDocumentsLength > 0 ? (
+      {caseDocumentsLength > 0 && allRequirementsMet ? (
+        <div className="edge-empty-card">
+          <div className="edge-empty-card__icon overview-all-met-icon">✓</div>
+          <h3>All assessed requirements met</h3>
+          <p>{allRequirementsMetDetail}</p>
+        </div>
+      ) : null}
+      {caseDocumentsLength > 0 && !allRequirementsMet ? (
         <>
+          {showHighRejectionPrompt ? (
+            <div className="alert-banner info">
+              <span>
+                You&apos;ve rejected a significant number of findings. Adding a case context note may
+                help improve accuracy.
+              </span>
+              <div className="alert-inline-actions">
+                <button type="button" className="btn btn-tertiary btn-sm" onClick={onOpenContextNote}>
+                  Add context note
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={onDismissHighRejectionPrompt}>
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          ) : null}
           <div className="summary-grid overview-summary-grid">
             {overviewSummaryCards.map((item) => (
-              <button
+              <div
                 key={`overview-${item.id}`}
-                type="button"
-                className={`overview-stat-card ${item.tone}${item.active ? ' active' : ''}`}
-                onClick={item.onClick ?? onGoToDocuments}
+                className={`overview-stat-card ${item.tone}`}
               >
                 <strong className="overview-stat-card__value">{item.value}</strong>
                 <span className="overview-stat-card__label">{item.label}</span>
                 <span className="overview-stat-card__detail">{item.detail}</span>
-              </button>
+              </div>
             ))}
           </div>
           {complianceContent}
-          <div className="action-bar">
-            <button type="button" className="btn ghost" onClick={onGoToDocuments}>
-              ← Back to Documents
-            </button>
-            <button type="button" className="btn primary" onClick={onGoToReport} disabled={!canGoToReport}>
-              Go to Report →
-            </button>
-          </div>
         </>
       ) : null}
     </div>

@@ -1,9 +1,4 @@
-import {
-  CASE_ACTING_FOR_LENDER_OPTIONS,
-  CASE_AML_TIER_OPTIONS,
-  CASE_TRANSACTION_TYPE_OPTIONS,
-  FOCUS_AREA_OPTIONS
-} from '../config.js';
+import { FOCUS_AREA_OPTIONS } from '../config.js';
 import { formatShortDisplayDate, toDateInputValue } from '../helpers.js';
 
 export default function CaseSetupPage({
@@ -23,12 +18,6 @@ export default function CaseSetupPage({
   caseSetupHofa,
   caseSetupRiskLevel,
   setCaseSetupRiskLevel,
-  caseSetupTransactionType,
-  setCaseSetupTransactionType,
-  caseSetupActingForLender,
-  setCaseSetupActingForLender,
-  caseSetupAmlTier,
-  setCaseSetupAmlTier,
   caseSetupPreviousInspection,
   caseSetupConcerns,
   setCaseSetupConcerns,
@@ -49,27 +38,28 @@ export default function CaseSetupPage({
   handleCreateCase
 }) {
   const matchedPractice = caseSetupPracticeLookup;
-  const hasAutoMatch = Boolean(matchedPractice);
   const matchedInspectionDate = matchedPractice?.last_inspection?.date || null;
   const matchedInspectionDateLabel = matchedInspectionDate
     ? formatShortDisplayDate(matchedInspectionDate)
     : null;
-  const hasNamedParty = caseSetupParties.some((party) => String(party?.name || '').trim().length > 0);
   const isCreateEnabled =
     caseSetupPracticeName.trim().length > 0 &&
     caseSetupLicenceNumber.trim().length > 0 &&
-    caseSetupTransactionType.trim().length > 0 &&
-    caseSetupActingForLender.trim().length > 0 &&
-    caseSetupAmlTier.trim().length > 0 &&
-    hasNamedParty &&
     selectedFocusAreaIds.size > 0;
 
   return (
     <div className="case-setup-shell">
       <div className="case-setup-back">
-        <button type="button" className="btn ghost" onClick={onBackToDashboard}>
+        <a
+          href="#"
+          className="back-link"
+          onClick={(event) => {
+            event.preventDefault();
+            onBackToDashboard();
+          }}
+        >
           ← Back to Dashboard
-        </button>
+        </a>
       </div>
       {caseCreateError ? <div className="alert alert-warning small">{caseCreateError}</div> : null}
       <h1>New Inspection Case</h1>
@@ -104,7 +94,7 @@ export default function CaseSetupPage({
         {caseSetupPracticeLookupError ? (
           <p className="case-setup-error">{caseSetupPracticeLookupError}</p>
         ) : null}
-        {hasAutoMatch ? (
+        {matchedPractice ? (
           <div className="case-setup-match">
             <strong>
               ✓ Previous inspection found{matchedInspectionDateLabel ? `: ${matchedInspectionDateLabel}` : ''}
@@ -160,51 +150,10 @@ export default function CaseSetupPage({
       </section>
 
       <section className="case-setup-section">
-        <h3>Case Properties</h3>
-        <p className="panel-subtitle">Required fields used to determine which regulations apply to the case.</p>
+        <h3>
+          Inspection Context <span className="panel-subtitle">Optional</span>
+        </h3>
         <div className="case-setup-grid">
-          <label>
-            Transaction type <span className="required">*</span>
-            <select
-              value={caseSetupTransactionType}
-              onChange={(event) => setCaseSetupTransactionType(event.target.value)}
-            >
-              <option value="">Select transaction type</option>
-              {CASE_TRANSACTION_TYPE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Acting for lender <span className="required">*</span>
-            <select
-              value={caseSetupActingForLender}
-              onChange={(event) => setCaseSetupActingForLender(event.target.value)}
-            >
-              <option value="">Select lender involvement</option>
-              {CASE_ACTING_FOR_LENDER_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            AML tier <span className="required">*</span>
-            <select
-              value={caseSetupAmlTier}
-              onChange={(event) => setCaseSetupAmlTier(event.target.value)}
-            >
-              <option value="">Select AML tier</option>
-              {CASE_AML_TIER_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
           <label>
             Risk level
             <select
@@ -226,27 +175,7 @@ export default function CaseSetupPage({
             />
           </label>
         </div>
-        <label>
-          Pre-inspection concerns
-          <div className="case-setup-textarea-wrap">
-            <textarea
-              rows={3}
-              value={caseSetupConcerns}
-              onChange={(event) => setCaseSetupConcerns(event.target.value)}
-              placeholder="e.g. MLRO changed 6 months ago, aged balances flagged..."
-            />
-            <button type="button" className="case-setup-voice-btn" title="Dictate (UI only)" aria-label="Dictate">
-              🎤
-            </button>
-          </div>
-        </label>
-      </section>
 
-      <section className="case-setup-section">
-        <h3>Focus Areas</h3>
-        <p className="panel-subtitle">
-          Select all code areas in scope for this inspection.
-        </p>
         <label>
           Focus areas
           <div className="case-setup-focus-list">
@@ -276,134 +205,161 @@ export default function CaseSetupPage({
         {selectedFocusAreaIds.size === 0 ? (
           <p className="case-setup-error">Select at least one focus area.</p>
         ) : null}
-      </section>
 
-      <section className="case-setup-section">
-        <h3>Parties</h3>
-        <p className="panel-subtitle">Required party inputs used for case scoping and document matching.</p>
-        {!hasNamedParty ? <p className="case-setup-error">Add at least one party.</p> : null}
-        <div className="party-rows">
-          {caseSetupParties.map((party) => (
-            <div key={party.id} className="party-row">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Party name *"
-                value={party.name}
-                onChange={(event) => handleUpdatePartyRow(party.id, 'name', event.target.value)}
-              />
-              <select
-                className="form-control"
-                value={party.role}
-                onChange={(event) => handleUpdatePartyRow(party.id, 'role', event.target.value)}
-              >
-                <option value="">Role...</option>
-                <option value="buyer">Buyer</option>
-                <option value="seller">Seller</option>
-                <option value="giftor">Giftor</option>
-                <option value="lender">Lender</option>
-                <option value="guarantor">Guarantor</option>
-                <option value="other">Other</option>
-              </select>
+        <label>
+          Pre-inspection concerns
+          <div className="case-setup-textarea-wrap">
+            <textarea
+              rows={3}
+              value={caseSetupConcerns}
+              onChange={(event) => setCaseSetupConcerns(event.target.value)}
+              placeholder="e.g. MLRO changed 6 months ago, aged balances flagged in accountant's report..."
+            />
+            <button type="button" className="case-setup-voice-btn" title="Dictate (UI only)" aria-label="Dictate">
+              🎤
+            </button>
+          </div>
+        </label>
+
+        <div>
+          <h4 style={{ margin: '0 0 6px' }}>
+            Known parties <span className="panel-subtitle">Optional</span>
+          </h4>
+          <p className="panel-subtitle" style={{ marginBottom: '8px' }}>
+            If the CLC provided a party list, enter them here to improve document matching.
+          </p>
+          <div className="party-rows">
+            {caseSetupParties.map((party) => (
+              <div key={party.id} className="party-row">
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Party name"
+                  value={party.name}
+                  onChange={(event) => handleUpdatePartyRow(party.id, 'name', event.target.value)}
+                />
+                <select
+                  className="form-control"
+                  value={party.role}
+                  onChange={(event) => handleUpdatePartyRow(party.id, 'role', event.target.value)}
+                >
+                  <option value="">Role...</option>
+                  <option value="buyer">Buyer</option>
+                  <option value="seller">Seller</option>
+                  <option value="giftor">Giftor</option>
+                  <option value="lender">Lender</option>
+                  <option value="guarantor">Guarantor</option>
+                  <option value="other">Other</option>
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-xs ghost party-remove-btn"
+                  onClick={() => handleRemovePartyRow(party.id)}
+                  title="Remove"
+                  aria-label="Remove party row"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+          <button type="button" className="btn btn-xs ghost" onClick={handleAddPartyRow}>
+            + Add party
+          </button>
+        </div>
+
+        <div>
+          <h4 style={{ margin: '0 0 6px' }}>Attach pre-inspection questionnaire</h4>
+          <div
+            className="upload-area-placeholder clickable"
+            role="button"
+            tabIndex={0}
+            onClick={() => caseSetupFileInputRef.current?.click()}
+            onDragOver={(event) => {
+              event.preventDefault();
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              const file = event.dataTransfer?.files?.[0];
+              if (file) {
+                setCaseSetupQuestionnaireFile(file.name);
+                setCaseSetupQuestionnaireFileBlob(file);
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                caseSetupFileInputRef.current?.click();
+              }
+            }}
+          >
+            <strong>Drop PDF here or click to upload</strong>
+            <p className="panel-subtitle">
+              Processed as firm self-assessment context, not as a policy to check against.
+            </p>
+            <button
+              type="button"
+              className="btn btn-xs secondary upload-placeholder-btn"
+              onClick={(event) => {
+                event.stopPropagation();
+                caseSetupFileInputRef.current?.click();
+              }}
+            >
+              Choose file
+            </button>
+            <input
+              ref={caseSetupFileInputRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              className="visually-hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                setCaseSetupQuestionnaireFile(file?.name ?? '');
+                setCaseSetupQuestionnaireFileBlob(file ?? null);
+              }}
+            />
+          </div>
+          {caseSetupQuestionnaireFile ? (
+            <div className="file-selected-chip">
+              <span>📄 {caseSetupQuestionnaireFile}</span>
               <button
                 type="button"
-                className="btn btn-xs ghost party-remove-btn"
-                onClick={() => handleRemovePartyRow(party.id)}
-                title="Remove"
-                aria-label="Remove party row"
+                className="btn btn-xs ghost"
+                title="Remove file"
+                aria-label="Remove file"
+                onClick={() => {
+                  setCaseSetupQuestionnaireFile('');
+                  setCaseSetupQuestionnaireFileBlob(null);
+                  if (caseSetupFileInputRef.current) {
+                    caseSetupFileInputRef.current.value = '';
+                  }
+                }}
               >
                 ×
               </button>
             </div>
-          ))}
+          ) : null}
         </div>
-        <button type="button" className="btn btn-xs ghost" onClick={handleAddPartyRow}>
-          + Add another party
-        </button>
-      </section>
-
-      <section className="case-setup-section">
-        <h3>Pre-inspection Questionnaire (Optional)</h3>
-        <div
-          className="upload-area-placeholder clickable"
-          role="button"
-          tabIndex={0}
-          onClick={() => caseSetupFileInputRef.current?.click()}
-          onDragOver={(event) => {
-            event.preventDefault();
-          }}
-          onDrop={(event) => {
-            event.preventDefault();
-            const file = event.dataTransfer?.files?.[0];
-            if (file) {
-              setCaseSetupQuestionnaireFile(file.name);
-              setCaseSetupQuestionnaireFileBlob(file);
-            }
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              caseSetupFileInputRef.current?.click();
-            }
-          }}
-        >
-          <strong>Drop PDF here or click to upload</strong>
-          <p className="panel-subtitle">
-            Processed as firm self-assessment context, not checked as policy evidence.
-          </p>
-          <button
-            type="button"
-            className="btn btn-xs secondary upload-placeholder-btn"
-            onClick={(event) => {
-              event.stopPropagation();
-              caseSetupFileInputRef.current?.click();
-            }}
-          >
-            Choose file
-          </button>
-          <input
-            ref={caseSetupFileInputRef}
-            type="file"
-            accept=".pdf,application/pdf"
-            className="visually-hidden"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              setCaseSetupQuestionnaireFile(file?.name ?? '');
-              setCaseSetupQuestionnaireFileBlob(file ?? null);
-            }}
-          />
-        </div>
-        {caseSetupQuestionnaireFile ? (
-          <div className="file-selected-chip">
-            <span>📄 {caseSetupQuestionnaireFile}</span>
-            <button
-              type="button"
-              className="btn btn-xs ghost"
-              onClick={() => {
-                setCaseSetupQuestionnaireFile('');
-                setCaseSetupQuestionnaireFileBlob(null);
-                if (caseSetupFileInputRef.current) {
-                  caseSetupFileInputRef.current.value = '';
-                }
-              }}
-            >
-              Remove
-            </button>
-          </div>
-        ) : null}
       </section>
 
       <div className="action-bar">
-        <button type="button" className="btn ghost" onClick={onBackToDashboard}>
+        <a
+          href="#"
+          className="btn ghost"
+          onClick={(event) => {
+            event.preventDefault();
+            onBackToDashboard();
+          }}
+        >
           Cancel
-        </button>
+        </a>
         <button
           type="button"
           className="btn primary"
           onClick={handleCreateCase}
           disabled={!isCreateEnabled || isCreatingCase}
         >
-          {isCreatingCase ? 'Creating...' : 'Create Inspection Case'}
+          {isCreatingCase ? 'Creating...' : 'Create Case'}
         </button>
       </div>
     </div>

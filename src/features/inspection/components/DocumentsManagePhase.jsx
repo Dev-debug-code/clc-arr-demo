@@ -1,10 +1,5 @@
 export default function DocumentsManagePhase({
   documentRows,
-  expandedUploadSummaryId,
-  setExpandedUploadSummaryId,
-  handleViewDocument,
-  stepDocuments,
-  setDocumentWorkspaceTab,
   documentsNotesExpanded,
   setDocumentsNotesExpanded,
   flattenedDocumentNotes,
@@ -47,50 +42,15 @@ export default function DocumentsManagePhase({
             </tr>
           </thead>
           <tbody>
-            {documentRows.flatMap((row) => {
-              const summaryRowId = `manage-${row.id}`;
-              const showSummary = expandedUploadSummaryId === summaryRowId && row.summary;
-              const rows = [
-                <tr key={`manage-row-${row.id}`}>
-                  <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {row.summary ? (
-                      <button
-                        type="button"
-                        className="summary-toggle-inline"
-                        onClick={() => setExpandedUploadSummaryId((prev) => (prev === summaryRowId ? '' : summaryRowId))}
-                      >
-                        {showSummary ? '▼' : '▶'}
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="table-link-btn"
-                      onClick={() => handleViewDocument(row.id, null, null, stepDocuments)}
-                    >
-                      {row.label}
-                    </button>
-                  </td>
+            {documentRows.map((row) => (
+              <tr key={`manage-row-${row.id}`}>
+                <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{row.label}</td>
                   <td>
                     {row.classification}
                     {row.limitedAnalysis ? <div className="classification-hint">Limited analysis</div> : null}
                   </td>
                   <td>{row.parties}</td>
-                  <td>
-                    {row.findingsCount > 0 ? (
-                      <button
-                        type="button"
-                        className="table-link-btn"
-                        onClick={() => {
-                          handleViewDocument(row.id, null, null, stepDocuments);
-                          setDocumentWorkspaceTab('findings');
-                        }}
-                      >
-                        {row.findingsCount}
-                      </button>
-                    ) : (
-                      row.findingsCount
-                    )}
-                  </td>
+                  <td>{row.findingsCount}</td>
                   <td>
                     {row.status === 'verified' ? (
                       <span className="status-processed">✓ Processed</span>
@@ -101,20 +61,7 @@ export default function DocumentsManagePhase({
                     )}
                   </td>
                 </tr>
-              ];
-
-              if (showSummary) {
-                rows.push(
-                  <tr key={`manage-summary-${row.id}`} className="summary-row">
-                    <td colSpan={5}>
-                      <div className="summary-block">{row.summary}</div>
-                    </td>
-                  </tr>
-                );
-              }
-
-              return rows;
-            })}
+            ))}
           </tbody>
         </table>
       )}

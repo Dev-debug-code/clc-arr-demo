@@ -52,6 +52,7 @@ export default function DocumentsStage({
   verifiedUploadCount,
   unverifiedUploadCount,
   confirmableUploadCount,
+  hasViewedUploadTableEnd,
   allUploadsVerified,
   handleConfirmAllUploads,
   handleGenerateFindings,
@@ -96,7 +97,7 @@ export default function DocumentsStage({
         <input
           ref={documentsUploadInputRef}
           type="file"
-          accept=".pdf,application/pdf"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.bmp,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/*"
           multiple
           className="visually-hidden"
           onChange={handleUploadFileSelection}
@@ -161,6 +162,7 @@ export default function DocumentsStage({
             verifiedUploadCount={verifiedUploadCount}
             unverifiedUploadCount={unverifiedUploadCount}
             confirmableUploadCount={confirmableUploadCount}
+            hasViewedUploadTableEnd={hasViewedUploadTableEnd}
             allUploadsVerified={allUploadsVerified}
             handleConfirmAllUploads={handleConfirmAllUploads}
             handleGenerateFindings={handleGenerateFindings}

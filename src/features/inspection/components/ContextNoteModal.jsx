@@ -4,7 +4,12 @@ export default function ContextNoteModal({ isOpen, draft, setDraft, onClose, onS
   return (
     <div className="modal-backdrop" role="presentation">
       <div className="modal-card" role="dialog" aria-modal="true" aria-label="Add case context note">
-        <h3>Add case context note</h3>
+        <div className="modal-card__header">
+          <h3>Add case context note</h3>
+          <button type="button" className="modal-card__close" aria-label="Close" onClick={onClose}>
+            ×
+          </button>
+        </div>
         <p>This context will be included on the next processing run.</p>
         <textarea
           className="modal-textarea"
