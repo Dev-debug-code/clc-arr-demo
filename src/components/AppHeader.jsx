@@ -9,6 +9,9 @@ export default function AppHeader({
   onHome,
   onOpenAssistant,
   assistantOpen,
+  onToggleNavigation,
+  showMenuButton,
+  appTitle,
   centerLabel,
   showCenter,
   showCenterChevron,
@@ -27,10 +30,25 @@ export default function AppHeader({
   return (
     <header className="workspace-header">
       <div className={`workspace-header__top ${compact ? 'workspace-header__top--compact' : ''}`}>
-        <button type="button" className="app-logo app-logo--pair app-logo-button" onClick={onHome} aria-label="Go to dashboard">
-          <img src={SUMPLEXITY_ICON_SRC} alt="Sumplexity" className="app-logo-icon" />
-          <img src={CLC_LOGO_SRC} alt="CLC" className="app-logo-clc" />
-        </button>
+        <div className="workspace-header__brand">
+          {showMenuButton ? (
+            <button
+              type="button"
+              className="workspace-header__menu"
+              onClick={onToggleNavigation}
+              aria-label="Open navigation menu"
+            >
+              <span aria-hidden="true">☰</span>
+            </button>
+          ) : null}
+          <button type="button" className="app-logo app-logo--pair app-logo-button" onClick={onHome} aria-label="Go to dashboard">
+            <img src={SUMPLEXITY_ICON_SRC} alt="Sumplexity" className="app-logo-icon" />
+            <img src={CLC_LOGO_SRC} alt="CLC" className="app-logo-clc" />
+            <span className="app-logo-copy">
+              <span className="app-logo-title">{appTitle}</span>
+            </span>
+          </button>
+        </div>
         {showCenter ? (
           <div className="workspace-header__title">
             {centerLabel}
@@ -74,6 +92,9 @@ AppHeader.propTypes = {
   onHome: PropTypes.func,
   onOpenAssistant: PropTypes.func,
   assistantOpen: PropTypes.bool,
+  onToggleNavigation: PropTypes.func,
+  showMenuButton: PropTypes.bool,
+  appTitle: PropTypes.string,
   centerLabel: PropTypes.string,
   showCenter: PropTypes.bool,
   showCenterChevron: PropTypes.bool,
@@ -85,7 +106,10 @@ AppHeader.defaultProps = {
   onHome: null,
   onOpenAssistant: null,
   assistantOpen: false,
-  centerLabel: 'CLC Inspection Tool',
+  onToggleNavigation: null,
+  showMenuButton: false,
+  appTitle: 'CLC Inspection Intelligence',
+  centerLabel: '',
   showCenter: true,
   showCenterChevron: false,
   compact: false

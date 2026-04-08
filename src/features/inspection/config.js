@@ -46,8 +46,8 @@ export const WORKFLOW_STEP_CONFIG = [
 ];
 
 export const CASE_TABS = [
-  { id: 'overview', label: 'Overview', step: STEP_OVERVIEW },
   { id: 'documents', label: 'Documents', step: STEP_DOCUMENTS },
+  { id: 'overview', label: 'Overview', step: STEP_OVERVIEW },
   { id: 'history', label: 'History', step: STEP_HISTORY },
   { id: 'report', label: 'Report', step: STEP_REPORT }
 ];
@@ -245,7 +245,7 @@ export const FINDING_FILTER_LABEL_MAP = {
 };
 
 export const FINDING_SEVERITY_BADGE_MAP = {
-  critical: 'CRITICAL',
+  critical: 'FINDING',
   warning: 'LEAD',
   best_practice: 'GOOD PRACTICE',
   pass: 'COMPLIANT'

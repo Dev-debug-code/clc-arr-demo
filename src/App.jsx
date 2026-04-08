@@ -10,7 +10,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
 
   const gateConfig = useMemo(() => {
-    const heading = import.meta.env.VITE_ACCESS_GATE_HEADING ?? 'CLC Inspection Tool';
+    const heading = import.meta.env.VITE_ACCESS_GATE_HEADING ?? 'CLC Inspection Intelligence';
     const supporting = import.meta.env.VITE_ACCESS_GATE_SUPPORTING ?? '';
     return { heading, supporting };
   }, []);

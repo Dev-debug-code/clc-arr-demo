@@ -15,6 +15,7 @@ export default function ViewerDocumentPanel({
   handleCycleDocument,
   maxStepUnlocked,
   handleCaseTabNavigate,
+  activeCaseTabId,
   activeDocId,
   activeDocBoxes,
   activeDocBoxId,
@@ -77,22 +78,28 @@ export default function ViewerDocumentPanel({
             </div>
           </div>
           <div className="viewer-case-tabs" role="tablist" aria-label="Case views">
-            {CASE_TABS.map((tab) => (
-              <a
-                key={tab.id}
-                href="#"
-                className="case-tab viewer-case-tab"
-                aria-disabled={tab.step > maxStepUnlocked}
-                onClick={(event) => {
-                  event.preventDefault();
-                  if (tab.step <= maxStepUnlocked) {
-                    handleCaseTabNavigate(tab.step);
-                  }
-                }}
-              >
-                {tab.label}
-              </a>
-              ))}
+            {CASE_TABS.map((tab) => {
+              const isUnlocked = tab.step <= maxStepUnlocked;
+              const isActive = activeCaseTabId === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  className={`case-tab viewer-case-tab${isActive ? ' active' : ''}`}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-disabled={!isUnlocked}
+                  disabled={!isUnlocked}
+                  onClick={() => {
+                    if (isUnlocked) {
+                      handleCaseTabNavigate(tab.step);
+                    }
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

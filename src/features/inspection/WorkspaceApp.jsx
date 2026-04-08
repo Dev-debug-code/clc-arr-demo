@@ -55,6 +55,7 @@ import {
   AI_PROCESSING_STEPS,
   AI_PROCESSING_MESSAGES,
   AML_DESK_REVIEW_PRESET,
+  CASE_TABS,
   CASE_META,
   CODE_AREA_ALIASES,
   CODE_AREA_KEYWORDS,
@@ -1695,12 +1696,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   );
 
   const activeCaseTabId = useMemo(() => {
-    if (currentStep === STEP_VIEWER) return null;
+    if (currentStep === STEP_VIEWER) {
+      return viewerOriginStep === STEP_DOCUMENTS ? 'documents' : 'overview';
+    }
     if (currentStep === STEP_OVERVIEW) return 'overview';
     if (currentStep === STEP_REPORT) return 'report';
     if (currentStep === STEP_HISTORY) return 'history';
     return 'documents';
-  }, [currentStep]);
+  }, [currentStep, viewerOriginStep]);
 
   const documentRows = useMemo(() => {
     const uploadByFilenameKey = new Map();
@@ -4790,10 +4793,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const isProvisioningBlocked =
     DATA_PROVIDER_MODE === 'firestore' && Boolean(currentUser?.uid) && !isCurrentUserProfileLoading && !currentUserProfile;
 
-  if (isProvisioningBlocked) {
-    return <AccessPendingPage onSignOut={onSignOut} />;
-  }
-
   const renderDashboard = () => (
     <DashboardPage
       dashboardScopeRoleLabel={dashboardScopeRoleLabel}
@@ -4980,6 +4979,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       handleCycleDocument={handleCycleDocument}
       maxStepUnlocked={maxStepUnlocked}
       handleCaseTabNavigate={handleCaseTabNavigate}
+      activeCaseTabId={activeCaseTabId}
       docPulse={docPulse}
       handleSelectDocTab={handleSelectDocTab}
       showDocBoxes={showDocBoxes}
@@ -5344,13 +5344,99 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     />
   );
 
-  const shellHeaderTitle =
-    appMode === 'inspection' ? currentCaseMeta.practiceName : 'CLC Inspection Tool';
-  const shellShowHeaderTitle = !(appMode === 'inspection' && currentStep === STEP_VIEWER);
-  const shellShowHeaderTitleChevron = appMode === 'inspection' && currentStep !== STEP_VIEWER;
+  const shellAppTitle = 'CLC Inspection Intelligence';
+  const shellHeaderContext =
+    appMode === 'inspection'
+      ? currentCaseMeta.practiceName
+      : appMode === 'caseSetup'
+        ? 'New Inspection Case'
+        : 'Dashboard';
+  const shellShowHeaderContext = !(appMode === 'inspection' && currentStep === STEP_VIEWER);
+  const shellShowHeaderContextChevron = appMode === 'inspection' && currentStep !== STEP_VIEWER;
   const shellCompactHeader = appMode === 'inspection' && currentStep === STEP_VIEWER;
   const shellShowAssistant =
     appMode === 'inspection' && (currentStep === STEP_OVERVIEW || currentStep === STEP_VIEWER);
+  const shellNavigationItems = useMemo(() => {
+    if (appMode === 'inspection') {
+      const caseTabCounts = {
+        overview: pendingReviewCount,
+        documents: caseDocuments.length
+      };
+
+      return [
+        {
+          id: 'dashboard',
+          label: 'Dashboard',
+          detail: 'All inspection cases',
+          onSelect: handleGoHome
+        },
+        ...CASE_TABS.map((tab) => ({
+          id: tab.id,
+          label: tab.label,
+          detail:
+            tab.id === 'overview'
+              ? 'Review findings'
+              : tab.id === 'documents'
+                ? 'Upload and verify evidence'
+                : tab.id === 'history'
+                  ? 'Timeline and recurring items'
+                  : 'Generate and export output',
+          count: Object.prototype.hasOwnProperty.call(caseTabCounts, tab.id) ? caseTabCounts[tab.id] : undefined,
+          disabled: tab.step > maxStepUnlocked,
+          showAlert: tab.id === 'report' && reportStale,
+          onSelect: () => handleCaseTabNavigate(tab.step)
+        }))
+      ];
+    }
+
+    if (appMode === 'caseSetup') {
+      return [
+        {
+          id: 'dashboard',
+          label: 'Dashboard',
+          detail: 'All inspection cases',
+          onSelect: handleGoHome
+        },
+        {
+          id: 'case-setup',
+          label: 'New Case',
+          detail: 'Set up inspection scope',
+          onSelect: () => setAppMode('caseSetup')
+        }
+      ];
+    }
+
+    return [
+      {
+        id: 'dashboard',
+        label: 'Dashboard',
+        detail: 'All inspection cases',
+        onSelect: handleGoHome
+      }
+    ];
+  }, [
+    appMode,
+    caseDocuments.length,
+    handleCaseTabNavigate,
+    handleGoHome,
+    maxStepUnlocked,
+    pendingReviewCount,
+    reportStale
+  ]);
+  const shellActiveNavigationId =
+    appMode === 'inspection'
+      ? activeCaseTabId || 'overview'
+      : appMode === 'caseSetup'
+        ? 'case-setup'
+        : 'dashboard';
+  const shellNavigationCaption =
+    appMode === 'inspection'
+      ? `${currentCaseMeta.practiceName || 'Inspection case'}${currentCaseMeta.caseId ? ` · ${currentCaseMeta.caseId}` : ''}`
+      : 'Inspection workspace';
+
+  if (isProvisioningBlocked) {
+    return <AccessPendingPage onSignOut={onSignOut} />;
+  }
 
   if (appMode === 'dashboard') {
     return (
@@ -5360,10 +5446,15 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         onSignOut={onSignOut}
         onOpenAssistant={null}
         assistantOpen={false}
-        headerTitle="CLC Inspection Tool"
-        showHeaderTitle
-        showHeaderTitleChevron={false}
+        appTitle={shellAppTitle}
+        headerContext={shellHeaderContext}
+        showHeaderContext
+        showHeaderContextChevron={false}
         compactHeader={false}
+        showNavigationMenu
+        navigationCaption={shellNavigationCaption}
+        navigationItems={shellNavigationItems}
+        activeNavigationId={shellActiveNavigationId}
         afterMain={renderFeedbackControls()}
       >
         {renderDashboard()}
@@ -5379,10 +5470,15 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         onSignOut={onSignOut}
         onOpenAssistant={null}
         assistantOpen={false}
-        headerTitle="CLC Inspection Tool"
-        showHeaderTitle
-        showHeaderTitleChevron={false}
+        appTitle={shellAppTitle}
+        headerContext={shellHeaderContext}
+        showHeaderContext
+        showHeaderContextChevron={false}
         compactHeader={false}
+        showNavigationMenu
+        navigationCaption={shellNavigationCaption}
+        navigationItems={shellNavigationItems}
+        activeNavigationId={shellActiveNavigationId}
         afterMain={renderFeedbackControls()}
       >
         {renderCaseSetup()}
@@ -5398,10 +5494,15 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         onSignOut={onSignOut}
         onOpenAssistant={shellShowAssistant ? () => openReggie('all') : null}
         assistantOpen={shellShowAssistant && reggieOpen}
-        headerTitle={shellHeaderTitle}
-        showHeaderTitle={shellShowHeaderTitle}
-        showHeaderTitleChevron={shellShowHeaderTitleChevron}
+        appTitle={shellAppTitle}
+        headerContext={shellHeaderContext}
+        showHeaderContext={shellShowHeaderContext}
+        showHeaderContextChevron={shellShowHeaderContextChevron}
         compactHeader={shellCompactHeader}
+        showNavigationMenu
+        navigationCaption={shellNavigationCaption}
+        navigationItems={shellNavigationItems}
+        activeNavigationId={shellActiveNavigationId}
         afterMain={
           <>
             <UndoToast undoDecision={undoDecision} onUndo={handleUndoDecision} />

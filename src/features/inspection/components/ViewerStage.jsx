@@ -27,6 +27,7 @@ export default function ViewerStage({
   handleCycleDocument,
   maxStepUnlocked,
   handleCaseTabNavigate,
+  activeCaseTabId,
   docPulse,
   handleSelectDocTab,
   showDocBoxes,
@@ -168,6 +169,7 @@ export default function ViewerStage({
           handleCycleDocument={handleCycleDocument}
           maxStepUnlocked={maxStepUnlocked}
           handleCaseTabNavigate={handleCaseTabNavigate}
+          activeCaseTabId={activeCaseTabId}
           activeDocId={activeDocId}
           activeDocBoxes={activeDocBoxes}
           activeDocBoxId={activeDocBoxId}

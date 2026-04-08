@@ -4,13 +4,13 @@ import { sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/aut
 import { applyAuthPersistence, getFirebaseAuth } from '../../config/firebase.js';
 
 const DEFAULT_CONFIG = Object.freeze({
-  heading: 'CLC Inspection Tool',
-  supporting: ''
+  heading: 'CLC Inspection Intelligence',
+  supporting: 'Evidence-led oversight for CLC inspection workflows.'
 });
 
 const withTrailingSlash = (value) => (value.endsWith('/') ? value : `${value}/`);
 const publicBaseUrl = withTrailingSlash(import.meta.env.BASE_URL ?? '/');
-const SUMPLEXITY_LOGO_SRC = `${publicBaseUrl}assets/sumplexity_icon_logo.png`;
+const SUMPLEXITY_WORDMARK_SRC = `${publicBaseUrl}assets/sumplexity_horizontal_logo.png`;
 const CLC_LOGO_SRC = `${publicBaseUrl}assets/clc_logo.png`;
 
 export default function AccessGate({ config = DEFAULT_CONFIG, onUnlock }) {
@@ -78,17 +78,25 @@ export default function AccessGate({ config = DEFAULT_CONFIG, onUnlock }) {
     setResetStatus('If an account exists for this email, a reset link has been sent.');
   };
 
+  const heading = config.heading || DEFAULT_CONFIG.heading;
+  const supporting = config.supporting || DEFAULT_CONFIG.supporting;
+
   return (
     <div className="access-gate">
       <div className="login-wrapper">
-        <div className="login-logos">
-          <img src={SUMPLEXITY_LOGO_SRC} alt="Sumplexity" className="sumplexity-logo" />
-          <img src={CLC_LOGO_SRC} alt="CLC" className="clc-logo" />
+        <div className="access-gate__brand-lockup">
+          <img src={SUMPLEXITY_WORDMARK_SRC} alt="Sumplexity" className="access-gate__wordmark" />
+          <img src={CLC_LOGO_SRC} alt="CLC" className="access-gate__clc-logo" />
+          <div className="access-gate__brand-copy">
+            <p className="access-gate__eyebrow">CLC regulatory workspace</p>
+            <h1>{heading}</h1>
+            <p className="access-gate__tagline">{supporting}</p>
+          </div>
         </div>
 
         <div className="login-card">
-          <h2>{config.heading || DEFAULT_CONFIG.heading}</h2>
-          {config.supporting ? <p className="access-gate__supporting">{config.supporting}</p> : null}
+          <h2>Sign in</h2>
+          <p className="access-gate__supporting">Use your workspace credentials to continue.</p>
 
           {error ? <div className="login-error show">{error}</div> : null}
 
@@ -174,7 +182,7 @@ export default function AccessGate({ config = DEFAULT_CONFIG, onUnlock }) {
         </div>
 
         <div className="login-footer">
-          <img src={SUMPLEXITY_LOGO_SRC} alt="Sumplexity" />
+          <img src={SUMPLEXITY_WORDMARK_SRC} alt="Sumplexity" />
           <span>Powered by Sumplexity</span>
         </div>
       </div>
