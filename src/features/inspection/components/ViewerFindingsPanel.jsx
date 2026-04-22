@@ -39,7 +39,6 @@ export default function ViewerFindingsPanel({
   expandedViewerFindingIds,
   setExpandedViewerFindingIds,
   findingDecisions,
-  findingNotes,
   isLeadFindingByTaxonomy,
   isInspectorAddedFinding,
   findingSeverityBadgeMap,
@@ -51,15 +50,10 @@ export default function ViewerFindingsPanel({
   setActiveMenuFindingId,
   findingMenuRef,
   handleRequestFindingDecision,
-  handleOpenAddNote,
   handleDeleteFinding,
+  handleJumpToRequirement,
   formatReferenceText,
   openLeadConfirmModal,
-  noteTargetFindingId,
-  noteDraft,
-  setNoteDraft,
-  setNoteTargetFindingId,
-  handleSaveFindingNote,
   inlineRejectFindingId,
   inlineRejectReason,
   setInlineRejectReason,
@@ -236,8 +230,6 @@ export default function ViewerFindingsPanel({
             expandedViewerFindingIds[finding.id] ??
             (findingBucket === 'critical' || finding.id === findingsForActiveDocument[0]?.id);
           const reviewState = findingDecisions[finding.id] ?? 'unreviewed';
-          const noteEntry = findingNotes[finding.id];
-          const noteText = typeof noteEntry === 'string' ? noteEntry : noteEntry?.text;
           const isLeadFinding = isLeadFindingByTaxonomy(finding);
           const isInspectorAdded = isInspectorAddedFinding(finding);
           const reviewStatusLabel =
@@ -256,7 +248,10 @@ export default function ViewerFindingsPanel({
                 : reviewState === 'dismissed'
                   ? '◌'
                   : '○';
-          const severityLabel = findingSeverityBadgeMap[findingBucket] ?? 'FINDING';
+          const severityLabel = findingSeverityBadgeMap[findingBucket] ?? 'Finding';
+          const canDeleteFinding = !finding.reference;
+          const canResetDecision = !isLeadFinding && reviewState !== 'unreviewed';
+          const showInlineReset = canResetDecision && !canDeleteFinding;
           const evidenceStrength = findingEvidenceStrengthMap[findingBucket] ?? {
             key: 'supported',
             label: 'Supported'
@@ -307,16 +302,15 @@ export default function ViewerFindingsPanel({
               >
                 <div className="finding-card-content">
                   <div className="finding-title">
-                    <span className={`finding-severity-label severity-${findingBucket}`}>{severityLabel}</span>{' '}
-                    {safeText(finding.title, 'Finding')}
-                    <span className="finding-expand-chev">{isViewerFindingExpanded ? '▾' : '▸'}</span>
-                  </div>
-                  <div className="finding-meta">
-                    {finding.reference ? <code>{formatReferenceText(finding.reference)}</code> : null}
-                    <span className={`evidence-badge ${evidenceStrength.key}`}>{evidenceStrength.label}</span>
-                    <span className={`source-tag ${isInspectorAdded ? 'inspector' : 'system'}`}>
-                      {finding.reference ? '⚙ System' : '👤 Inspector-added'}
+                    <span className={`finding-severity-label severity-${findingBucket}`}>{severityLabel}</span>
+                    <span className="finding-title-text">{safeText(finding.title, 'Finding')}</span>
+                    <span className="finding-title-meta">
+                      <span className={`evidence-badge ${evidenceStrength.key}`}>{evidenceStrength.label}</span>
+                      <span className={`source-tag ${isInspectorAdded ? 'inspector' : 'system'}`}>
+                        {finding.reference ? '⚙ System' : '👤 Inspector-added'}
+                      </span>
                     </span>
+                    <span className="finding-expand-chev">{isViewerFindingExpanded ? '▾' : '▸'}</span>
                   </div>
                   <div className="review-status-wrap">
                     <span className={`review-status ${reviewState}`}>
@@ -334,48 +328,52 @@ export default function ViewerFindingsPanel({
                   </div>
                 </div>
                 <div className="finding-header-actions">
-                  <button
-                    type="button"
-                    className="finding-more"
-                    aria-label="More finding actions"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setActiveMenuFindingId((prev) => (prev === finding.id ? null : finding.id));
-                    }}
-                  >
-                    ⋮
-                  </button>
-                  {activeMenuFindingId === finding.id ? (
+                  {showInlineReset ? (
+                    <button
+                      type="button"
+                      className="finding-reset-btn"
+                      aria-label="Reset finding decision"
+                      title="Reset decision"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleRequestFindingDecision(finding.id, null);
+                      }}
+                    >
+                      ↺
+                    </button>
+                  ) : canDeleteFinding || canResetDecision ? (
+                    <button
+                      type="button"
+                      className="finding-more"
+                      aria-label="More finding actions"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setActiveMenuFindingId((prev) => (prev === finding.id ? null : finding.id));
+                      }}
+                    >
+                      ⋮
+                    </button>
+                  ) : null}
+                  {activeMenuFindingId === finding.id && (canDeleteFinding || canResetDecision) ? (
                     <div className="finding-menu" ref={findingMenuRef}>
-                      {!isLeadFinding ? (
+                      {canResetDecision ? (
                         <button
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
-                            handleRequestFindingDecision(
-                              finding.id,
-                              reviewState === 'accepted' ? 'rejected' : 'accepted'
-                            );
+                            handleRequestFindingDecision(finding.id, null);
                           }}
                         >
-                          Change decision
+                          Reset
                         </button>
                       ) : null}
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleOpenAddNote(finding.id);
-                        }}
-                      >
-                        Add note
-                      </button>
-                      {!finding.reference ? (
+                      {canDeleteFinding ? (
                         <button
                           type="button"
                           className="danger"
                           onClick={(event) => {
                             event.stopPropagation();
+                            if (!window.confirm('Are you sure you want to delete this finding?')) return;
                             handleDeleteFinding(finding.id);
                             setActiveMenuFindingId(null);
                           }}
@@ -391,7 +389,22 @@ export default function ViewerFindingsPanel({
                 <>
                   {finding.reference ? (
                     <div className="finding-section">
-                      <div className="finding-section-label">Regulatory requirement</div>
+                      <div className="finding-section-head">
+                        <div className="finding-section-label">Regulatory requirement</div>
+                        <span className="tooltip-wrap">
+                          <button
+                            type="button"
+                            className="jump-link-btn"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleJumpToRequirement(finding);
+                            }}
+                          >
+                            <span className="jump-link">Jump to requirement</span>
+                          </button>
+                          <span className="tooltip-text">Opens the linked requirement in overview</span>
+                        </span>
+                      </div>
                       <div className="finding-quote">{formatReferenceText(finding.reference)}</div>
                     </div>
                   ) : null}
@@ -454,14 +467,6 @@ export default function ViewerFindingsPanel({
                       ))
                     )}
                   </div>
-                  {noteText ? (
-                    <p className="finding-note">
-                      Note: {noteText}
-                      {typeof noteEntry === 'object' && noteEntry?.ts ? (
-                        <span className="finding-note-meta"> ({noteEntry.ts} - {noteEntry.actor ?? 'Inspector'})</span>
-                      ) : null}
-                    </p>
-                  ) : null}
                   <div className="finding-actions">
                     {isLeadFinding && reviewState === 'unreviewed' ? (
                       <>
@@ -512,18 +517,6 @@ export default function ViewerFindingsPanel({
                         </button>
                       </>
                     )}
-                    {!isLeadFinding || reviewState !== 'unreviewed' ? (
-                      <button
-                        type="button"
-                        className="btn btn-xs ghost"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleOpenAddNote(finding.id);
-                        }}
-                      >
-                        📝 Add note
-                      </button>
-                    ) : null}
                   </div>
                   {inlineRejectFindingId === finding.id ? (
                     <div className="inline-decision-form">
@@ -635,28 +628,6 @@ export default function ViewerFindingsPanel({
                           }}
                         >
                           Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-                  {noteTargetFindingId === finding.id ? (
-                    <div className="inline-note-form">
-                      <label className="modal-label" htmlFor={`inline-note-${finding.id}`}>
-                        Add note
-                      </label>
-                      <textarea
-                        id={`inline-note-${finding.id}`}
-                        className="modal-textarea"
-                        value={noteDraft}
-                        onChange={(event) => setNoteDraft(event.target.value)}
-                        placeholder="Add a note..."
-                      />
-                      <button type="button" className="btn btn-icon btn-sm" title="Dictate" aria-label="Dictate">
-                        🎤
-                      </button>
-                      <div className="modal-actions">
-                        <button type="button" className="btn primary" onClick={handleSaveFindingNote}>
-                          Save
                         </button>
                       </div>
                     </div>

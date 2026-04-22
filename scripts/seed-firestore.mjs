@@ -6,7 +6,7 @@ const DATABASE_ID = process.env.FIREBASE_DATABASE_ID || "clc-dev-db";
 const ORGANIZATION_ID = process.env.FIREBASE_ORGANIZATION_ID || "clc-dev";
 const USER_ID = process.env.FIREBASE_USER_ID || "QUBxigoLNMaGYsi8pbNZrvtSF3A2";
 const USER_EMAIL = process.env.FIREBASE_USER_EMAIL || "ace1996@live.co.uk";
-const USER_DISPLAY_NAME = process.env.FIREBASE_USER_DISPLAY_NAME || "Wayne Bradley";
+const USER_DISPLAY_NAME = process.env.FIREBASE_USER_DISPLAY_NAME || "Alex Carter";
 const USER_ROLE = process.env.FIREBASE_USER_ROLE || "inspector";
 const SECONDARY_INSPECTOR_ID =
   process.env.FIREBASE_SECONDARY_INSPECTOR_ID || "demo-inspector-sarah";

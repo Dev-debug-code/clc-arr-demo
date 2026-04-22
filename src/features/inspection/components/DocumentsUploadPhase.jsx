@@ -1,3 +1,5 @@
+import { useEffect, useMemo, useState } from 'react';
+
 const SOURCE_CLASSIFICATION_ENTRIES = [
   { groupLabel: 'Policy Document', optionLabel: 'AML Policy' },
   { groupLabel: 'Financial Record', optionLabel: 'Bank Statement' },
@@ -28,6 +30,33 @@ const buildClassificationEntries = (documentClassificationGroups, currentValue, 
   }
 
   return entries;
+};
+
+const buildClassificationGroups = (documentClassificationGroups, otherOption, currentGroupLabel, currentOptionLabel) => {
+  const normalizedGroups = (documentClassificationGroups ?? []).map((group) => {
+    const baseOptions = Array.isArray(group.options) ? [...group.options] : [];
+    if (otherOption && !baseOptions.includes(otherOption)) {
+      baseOptions.push(otherOption);
+    }
+    return {
+      id: group.id,
+      label: group.label,
+      options: baseOptions
+    };
+  });
+
+  if (
+    currentGroupLabel &&
+    !normalizedGroups.some((group) => group.label === currentGroupLabel)
+  ) {
+    normalizedGroups.push({
+      id: `custom-${currentGroupLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+      label: currentGroupLabel,
+      options: currentOptionLabel ? [currentOptionLabel] : otherOption ? [otherOption] : []
+    });
+  }
+
+  return normalizedGroups;
 };
 
 export default function DocumentsUploadPhase({
@@ -81,14 +110,42 @@ export default function DocumentsUploadPhase({
   processingEntries,
   hasViewedUploadTableEnd
 }) {
-  void activeClassificationMenu;
-  void setActiveClassificationMenu;
-  void documentClassificationOtherOption;
-  void handleUploadClassificationDetailChange;
   void stepDocuments;
   void verifiedUploadCount;
   void incompleteInterviewUploadCount;
   void processingEntries;
+
+  const [classificationGroupByUploadId, setClassificationGroupByUploadId] = useState({});
+  const [partyInputUploadId, setPartyInputUploadId] = useState('');
+  const [partyInputValue, setPartyInputValue] = useState('');
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!event.target.closest('.classification-cell')) {
+        setActiveClassificationMenu(null);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setActiveClassificationMenu(null);
+        setPartyInputUploadId('');
+        setPartyInputValue('');
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [setActiveClassificationMenu]);
+
+  const sourceEntryLookup = useMemo(
+    () => new Map(SOURCE_CLASSIFICATION_ENTRIES.map((entry) => [entry.optionLabel, entry.groupLabel])),
+    []
+  );
 
   const classificationCorrectionCount = uploadItems.filter((item) => {
     const normalizedItem = prepareUploadDraft(item);
@@ -159,7 +216,7 @@ export default function DocumentsUploadPhase({
               <th>Classification</th>
               <th>Parties</th>
               <th style={{ width: '100px' }}>Confidence</th>
-              <th style={{ width: '80px' }}>Uploaded</th>
+              <th style={{ width: '80px' }}>Added</th>
             </tr>
           </thead>
           <tbody>
@@ -190,6 +247,26 @@ export default function DocumentsUploadPhase({
                 classification,
                 normalizedItem.classificationL1
               );
+              const classificationGroups = buildClassificationGroups(
+                documentClassificationGroups,
+                documentClassificationOtherOption,
+                normalizedItem.classificationL1,
+                normalizedItem.classificationL2
+              );
+              const fallbackGroupLabel =
+                normalizedItem.classificationL1 ||
+                sourceEntryLookup.get(classification) ||
+                classificationEntries[0]?.groupLabel ||
+                classificationGroups[0]?.label ||
+                '';
+              const activeGroupLabel = classificationGroupByUploadId[item.id] || fallbackGroupLabel;
+              const activeGroup =
+                classificationGroups.find((group) => group.label === activeGroupLabel) ||
+                classificationGroups[0] ||
+                null;
+              const isClassificationMenuOpen = activeClassificationMenu === item.id;
+              const showClassificationDetailInput =
+                normalizedItem.classificationL2 === documentClassificationOtherOption;
 
               const rows = [
                 <tr
@@ -253,62 +330,92 @@ export default function DocumentsUploadPhase({
                       </span>
                     ) : (
                       <div className="classification-cell">
-                        {isLowConfidence && !isUnknown ? (
-                          <span className="classification-warning">
-                            <span className="warn-icon">⚠</span>
-                            <select
-                              className="classification-select is-warning"
-                              value={classification}
-                              onChange={(event) => {
-                                const selectedValue = event.target.value;
-                                const selectedEntry = classificationEntries.find(
-                                  (entry) => entry.optionLabel === selectedValue
-                                );
-                                if (!selectedEntry) return;
-                                handleUploadClassificationSelect(
-                                  item.id,
-                                  selectedEntry.groupLabel,
-                                  selectedEntry.optionLabel
-                                );
-                              }}
-                            >
-                              {classificationEntries.map((entry) => (
-                                <option key={`${item.id}-${entry.optionLabel}`} value={entry.optionLabel}>
-                                  {entry.optionLabel}
-                                </option>
-                              ))}
-                            </select>
+                        <button
+                          type="button"
+                          className={`classification-trigger${isUnknown || isLowConfidence ? ' is-warning' : ''}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setActiveClassificationMenu((prev) => {
+                              const nextValue = prev === item.id ? null : item.id;
+                              if (nextValue) {
+                                setClassificationGroupByUploadId((prevGroups) => ({
+                                  ...prevGroups,
+                                  [item.id]: fallbackGroupLabel
+                                }));
+                              }
+                              return nextValue;
+                            });
+                          }}
+                          aria-expanded={isClassificationMenuOpen}
+                        >
+                          <span>{isUnknown ? '-- Select classification --' : classification}</span>
+                          <span className="classification-trigger__chevron">
+                            {isClassificationMenuOpen ? '▲' : '▼'}
                           </span>
-                        ) : (
-                          <select
-                            className={`classification-select${isUnknown ? ' is-warning' : ''}`}
-                            value={isUnknown ? '' : classification}
-                            onChange={(event) => {
-                              const selectedValue = event.target.value;
-                              if (!selectedValue) return;
-                              const selectedEntry = classificationEntries.find(
-                                (entry) => entry.optionLabel === selectedValue
-                              );
-                              if (!selectedEntry) return;
-                              handleUploadClassificationSelect(
-                                item.id,
-                                selectedEntry.groupLabel,
-                                selectedEntry.optionLabel
-                              );
-                            }}
-                          >
-                            {isUnknown ? (
-                              <option value="" disabled>
-                                -- Select classification --
-                              </option>
-                            ) : null}
-                            {classificationEntries.map((entry) => (
-                              <option key={`${item.id}-${entry.optionLabel}`} value={entry.optionLabel}>
-                                {entry.optionLabel}
-                              </option>
-                            ))}
-                          </select>
-                        )}
+                        </button>
+
+                        {isClassificationMenuOpen && activeGroup ? (
+                          <div className="classification-menu" onClick={(event) => event.stopPropagation()}>
+                            <div className="classification-menu__groups">
+                              {classificationGroups.map((group) => (
+                                <button
+                                  key={`${item.id}-${group.id}`}
+                                  type="button"
+                                  className={`classification-menu__group${group.label === activeGroup.label ? ' active' : ''}`}
+                                  onMouseEnter={() =>
+                                    setClassificationGroupByUploadId((prev) => ({
+                                      ...prev,
+                                      [item.id]: group.label
+                                    }))
+                                  }
+                                  onFocus={() =>
+                                    setClassificationGroupByUploadId((prev) => ({
+                                      ...prev,
+                                      [item.id]: group.label
+                                    }))
+                                  }
+                                  onClick={() =>
+                                    setClassificationGroupByUploadId((prev) => ({
+                                      ...prev,
+                                      [item.id]: group.label
+                                    }))
+                                  }
+                                >
+                                  {group.label}
+                                </button>
+                              ))}
+                            </div>
+                            <div className="classification-menu__options">
+                              <div className="classification-menu__heading">{activeGroup.label}</div>
+                              {activeGroup.options.map((optionLabel) => (
+                                <button
+                                  key={`${item.id}-${activeGroup.label}-${optionLabel}`}
+                                  type="button"
+                                  className={`classification-menu__option${
+                                    optionLabel === documentClassificationOtherOption ? ' classification-menu__option--limited' : ''
+                                  }`}
+                                  onClick={() =>
+                                    handleUploadClassificationSelect(item.id, activeGroup.label, optionLabel)
+                                  }
+                                >
+                                  {optionLabel}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {showClassificationDetailInput ? (
+                          <input
+                            type="text"
+                            className="form-control form-control-sm classification-detail-input"
+                            value={normalizedItem.classificationDetail ?? ''}
+                            onChange={(event) =>
+                              handleUploadClassificationDetailChange(item.id, event.target.value)
+                            }
+                            placeholder={`Describe ${normalizedItem.classificationL1?.toLowerCase() || 'document'} type...`}
+                          />
+                        ) : null}
 
                         {isInterviewTranscript ? (
                           <div className="interviewee-group">
@@ -386,15 +493,20 @@ export default function DocumentsUploadPhase({
                         ) : null}
 
                         {isLimitedAnalysis ? (
-                          <div className="classification-hint">
-                            Limited analysis. Classify more specifically for full processing.
-                          </div>
+                          <span className="tooltip-wrap classification-tooltip">
+                            <button type="button" className="classification-info-button" aria-label="Classification help">
+                              i
+                            </button>
+                            <span className="tooltip-text">
+                              Limited analysis. Classify more specifically for full processing.
+                            </span>
+                          </span>
                         ) : null}
                       </div>
                     )}
                   </td>
                   <td>
-                    {isClassifying || parties.length === 0 ? (
+                    {isClassifying ? (
                       <span className="dash-muted">—</span>
                     ) : (
                       <div className="party-chip-row">
@@ -413,17 +525,50 @@ export default function DocumentsUploadPhase({
                             </button>
                           </span>
                         ))}
-                        <button
-                          type="button"
-                          className="party-chip party-add"
-                          onClick={() => {
-                            const base = parties.join(', ');
-                            const next = base ? `${base}, Additional party` : 'Additional party';
-                            handleUploadFieldChange(item.id, 'parties', next);
-                          }}
-                        >
-                          + Add
-                        </button>
+                        {partyInputUploadId === item.id ? (
+                          <input
+                            type="text"
+                            className="form-control form-control-sm party-chip-input"
+                            value={partyInputValue}
+                            placeholder="Party name..."
+                            onChange={(event) => setPartyInputValue(event.target.value)}
+                            onBlur={() => {
+                              const cleanValue = partyInputValue.trim();
+                              if (cleanValue) {
+                                handleUploadFieldChange(item.id, 'parties', [...parties, cleanValue].join(', '));
+                              }
+                              setPartyInputUploadId('');
+                              setPartyInputValue('');
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault();
+                                const cleanValue = partyInputValue.trim();
+                                if (cleanValue) {
+                                  handleUploadFieldChange(item.id, 'parties', [...parties, cleanValue].join(', '));
+                                }
+                                setPartyInputUploadId('');
+                                setPartyInputValue('');
+                              }
+                              if (event.key === 'Escape') {
+                                setPartyInputUploadId('');
+                                setPartyInputValue('');
+                              }
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            className="party-chip party-add"
+                            onClick={() => {
+                              setPartyInputUploadId(item.id);
+                              setPartyInputValue('');
+                            }}
+                          >
+                            + Add
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>
@@ -471,7 +616,12 @@ export default function DocumentsUploadPhase({
           type="button"
           className="btn btn-secondary"
           disabled={confirmableUploadCount === 0}
-          onClick={handleConfirmAllUploads}
+          onClick={() => {
+            if (!window.confirm(`Confirm all remaining ${confirmableUploadCount} document${confirmableUploadCount === 1 ? '' : 's'}?`)) {
+              return;
+            }
+            handleConfirmAllUploads();
+          }}
           title={
             !hasViewedUploadTableEnd ? 'Confirm all classifications' : 'Confirm all classified rows'
           }

@@ -38,15 +38,9 @@ export default function ViewerStage({
   docPdfScrollRef,
   docFocusSignal,
   activeDocMinimapMarkers,
-  setDocLevelNoteOpen,
   docCrossSearchOpen,
   setDocCrossSearchOpen,
   setFeedbackOpen,
-  docLevelNoteOpen,
-  docLevelNoteDraft,
-  setDocLevelNoteDraft,
-  handleSaveDocumentNote,
-  documentNotes,
   docSearchScope,
   setDocSearchScope,
   docSearchQuery,
@@ -56,7 +50,6 @@ export default function ViewerStage({
   documentsById,
   formatSourceDocumentRef,
   handleViewDocument,
-  handleOpenAddNote,
   getFindingPreferredBoxIdForDocument,
   severityFilterRef,
   filterSeverity,
@@ -84,7 +77,6 @@ export default function ViewerStage({
   expandedViewerFindingIds,
   setExpandedViewerFindingIds,
   findingDecisions,
-  findingNotes,
   isLeadFindingByTaxonomy,
   isInspectorAddedFinding,
   findingSeverityBadgeMap,
@@ -97,13 +89,9 @@ export default function ViewerStage({
   findingMenuRef,
   handleRequestFindingDecision,
   handleDeleteFinding,
+  handleJumpToRequirement,
   formatReferenceText,
   openLeadConfirmModal,
-  noteTargetFindingId,
-  noteDraft,
-  setNoteDraft,
-  setNoteTargetFindingId,
-  handleSaveFindingNote,
   inlineRejectFindingId,
   inlineRejectReason,
   setInlineRejectReason,
@@ -177,12 +165,7 @@ export default function ViewerStage({
           docPdfScrollRef={docPdfScrollRef}
           docFocusSignal={docFocusSignal}
           activeDocMinimapMarkers={activeDocMinimapMarkers}
-          setDocLevelNoteOpen={setDocLevelNoteOpen}
           setFeedbackOpen={setFeedbackOpen}
-          docLevelNoteOpen={docLevelNoteOpen}
-          docLevelNoteDraft={docLevelNoteDraft}
-          setDocLevelNoteDraft={setDocLevelNoteDraft}
-          handleSaveDocumentNote={handleSaveDocumentNote}
           onOpenDocumentAssistant={onOpenDocumentAssistant}
         />
         <ViewerFindingsPanel
@@ -217,7 +200,6 @@ export default function ViewerStage({
           expandedViewerFindingIds={expandedViewerFindingIds}
           setExpandedViewerFindingIds={setExpandedViewerFindingIds}
           findingDecisions={findingDecisions}
-          findingNotes={findingNotes}
           isLeadFindingByTaxonomy={isLeadFindingByTaxonomy}
           isInspectorAddedFinding={isInspectorAddedFinding}
           findingSeverityBadgeMap={findingSeverityBadgeMap}
@@ -229,15 +211,10 @@ export default function ViewerStage({
           setActiveMenuFindingId={setActiveMenuFindingId}
           findingMenuRef={findingMenuRef}
           handleRequestFindingDecision={handleRequestFindingDecision}
-          handleOpenAddNote={handleOpenAddNote}
           handleDeleteFinding={handleDeleteFinding}
+          handleJumpToRequirement={handleJumpToRequirement}
           formatReferenceText={formatReferenceText}
           openLeadConfirmModal={openLeadConfirmModal}
-          noteTargetFindingId={noteTargetFindingId}
-          noteDraft={noteDraft}
-          setNoteDraft={setNoteDraft}
-          setNoteTargetFindingId={setNoteTargetFindingId}
-          handleSaveFindingNote={handleSaveFindingNote}
           inlineRejectFindingId={inlineRejectFindingId}
           inlineRejectReason={inlineRejectReason}
           setInlineRejectReason={setInlineRejectReason}

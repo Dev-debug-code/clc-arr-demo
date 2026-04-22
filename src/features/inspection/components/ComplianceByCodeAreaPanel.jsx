@@ -29,15 +29,14 @@ export default function ComplianceByCodeAreaPanel({
   isLeadFindingByTaxonomy,
   isInspectorAddedFinding,
   buildEvidencePassages,
-  findingNotes,
   safeText,
   formatReferenceText,
   activeMenuFindingId,
   setActiveMenuFindingId,
   findingMenuRef,
   handleRequestFindingDecision,
-  handleOpenAddNote,
   handleDeleteFinding,
+  handleJumpToRequirement,
   handleViewDocument,
   openLeadConfirmModal,
   inlineRejectFindingId,
@@ -54,11 +53,6 @@ export default function ComplianceByCodeAreaPanel({
   setInlineDismissNote,
   handleConfirmInlineDismiss,
   setInlineDismissFindingId,
-  noteTargetFindingId,
-  noteDraft,
-  setNoteDraft,
-  setNoteTargetFindingId,
-  handleSaveFindingNote,
   leadConfirmOpen,
   leadConfirmFindingId,
   leadConfirmOriginStep,
@@ -141,15 +135,14 @@ export default function ComplianceByCodeAreaPanel({
               isLeadFindingByTaxonomy={isLeadFindingByTaxonomy}
               isInspectorAddedFinding={isInspectorAddedFinding}
               buildEvidencePassages={buildEvidencePassages}
-              findingNotes={findingNotes}
               safeText={safeText}
               formatReferenceText={formatReferenceText}
               activeMenuFindingId={activeMenuFindingId}
               setActiveMenuFindingId={setActiveMenuFindingId}
               findingMenuRef={findingMenuRef}
               handleRequestFindingDecision={handleRequestFindingDecision}
-              handleOpenAddNote={handleOpenAddNote}
               handleDeleteFinding={handleDeleteFinding}
+              handleJumpToRequirement={handleJumpToRequirement}
               handleViewDocument={handleViewDocument}
               openLeadConfirmModal={openLeadConfirmModal}
               inlineRejectFindingId={inlineRejectFindingId}
@@ -166,11 +159,6 @@ export default function ComplianceByCodeAreaPanel({
               setInlineDismissNote={setInlineDismissNote}
               handleConfirmInlineDismiss={handleConfirmInlineDismiss}
               setInlineDismissFindingId={setInlineDismissFindingId}
-              noteTargetFindingId={noteTargetFindingId}
-              noteDraft={noteDraft}
-              setNoteDraft={setNoteDraft}
-              setNoteTargetFindingId={setNoteTargetFindingId}
-              handleSaveFindingNote={handleSaveFindingNote}
               leadConfirmOpen={leadConfirmOpen}
               leadConfirmFindingId={leadConfirmFindingId}
               leadConfirmOriginStep={leadConfirmOriginStep}

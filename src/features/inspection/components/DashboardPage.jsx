@@ -101,7 +101,6 @@ export default function DashboardPage({
           <option value="This week">This week</option>
           <option value="This month">This month</option>
           <option value="Last 3 months">Last 3 months</option>
-          <option value="Custom date range">Custom date range</option>
         </select>
         <select value={dashboardOutcomeFilter} onChange={(event) => setDashboardOutcomeFilter(event.target.value)}>
           <option value="All">All outcomes</option>

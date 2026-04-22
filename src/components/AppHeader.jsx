@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 
 const BASE_URL = import.meta.env.BASE_URL ?? '/';
@@ -6,6 +7,7 @@ const CLC_LOGO_SRC = `${BASE_URL}assets/clc_logo.png`;
 
 export default function AppHeader({
   currentUserEmail,
+  onSignOut,
   onHome,
   onOpenAssistant,
   assistantOpen,
@@ -15,17 +17,33 @@ export default function AppHeader({
   centerLabel,
   showCenter,
   showCenterChevron,
-  compact
+  compact,
+  pageHelpText
 }) {
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
   const currentUserLabel = currentUserEmail
     ? currentUserEmail.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-    : 'Wayne Bradley';
+    : 'Alex Carter';
   const currentUserInitials = currentUserLabel
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('') || 'WB';
+    .join('') || 'AC';
+
+  useEffect(() => {
+    if (!userMenuOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [userMenuOpen]);
 
   return (
     <header className="workspace-header">
@@ -57,6 +75,14 @@ export default function AppHeader({
         ) : null}
         {currentUserEmail ? (
           <div className="workspace-header__actions">
+            {pageHelpText ? (
+              <span className="tooltip-wrap workspace-header__help-wrap">
+                <button type="button" className="workspace-header__help" aria-label="About this page">
+                  ?
+                </button>
+                <span className="tooltip-text tooltip-text--wide">{pageHelpText}</span>
+              </span>
+            ) : null}
             {typeof onOpenAssistant === 'function' ? (
               <button
                 type="button"
@@ -73,10 +99,36 @@ export default function AppHeader({
                 Reggie
               </button>
             ) : null}
-            <div className="workspace-header__user" title={currentUserEmail || currentUserLabel}>
-              <span className="workspace-header__user-avatar">{currentUserInitials}</span>
-              <span className="workspace-header__user-name">{currentUserLabel}</span>
-              <span className="workspace-header__user-chevron">▼</span>
+            <div className="workspace-header__user-wrap" ref={userMenuRef}>
+              <button
+                type="button"
+                className="workspace-header__user"
+                title={currentUserEmail || currentUserLabel}
+                onClick={() => setUserMenuOpen((prev) => !prev)}
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
+              >
+                <span className="workspace-header__user-avatar">{currentUserInitials}</span>
+                <span className="workspace-header__user-name">{currentUserLabel}</span>
+                <span className="workspace-header__user-chevron">{userMenuOpen ? '▲' : '▼'}</span>
+              </button>
+              {userMenuOpen ? (
+                <div className="workspace-header__user-menu" role="menu">
+                  <div className="workspace-header__user-menu-email">{currentUserEmail}</div>
+                  {typeof onSignOut === 'function' ? (
+                    <button
+                      type="button"
+                      className="workspace-header__user-menu-item"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        onSignOut();
+                      }}
+                    >
+                      Log out
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
         ) : (
@@ -89,6 +141,7 @@ export default function AppHeader({
 
 AppHeader.propTypes = {
   currentUserEmail: PropTypes.string,
+  onSignOut: PropTypes.func,
   onHome: PropTypes.func,
   onOpenAssistant: PropTypes.func,
   assistantOpen: PropTypes.bool,
@@ -98,11 +151,13 @@ AppHeader.propTypes = {
   centerLabel: PropTypes.string,
   showCenter: PropTypes.bool,
   showCenterChevron: PropTypes.bool,
-  compact: PropTypes.bool
+  compact: PropTypes.bool,
+  pageHelpText: PropTypes.string
 };
 
 AppHeader.defaultProps = {
   currentUserEmail: '',
+  onSignOut: null,
   onHome: null,
   onOpenAssistant: null,
   assistantOpen: false,
@@ -112,5 +167,6 @@ AppHeader.defaultProps = {
   centerLabel: '',
   showCenter: true,
   showCenterChevron: false,
-  compact: false
+  compact: false,
+  pageHelpText: ''
 };

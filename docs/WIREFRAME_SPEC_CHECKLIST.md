@@ -74,15 +74,16 @@ Notes:
 
 - `Implemented` — Upload Zone
 - `Implemented` — Verification Table
-- `Source conflict` — L1/L2 Dropdown
+- `Implemented` — L1/L2 Dropdown
 - `Implemented` — Low Confidence Row
 - `Implemented` — All Correct
 - `Implemented` — Generate Findings
-- `Implemented` — Processing Log
+- `Ignored for MVP` — Processing Log
 
 Notes:
 
-- The visible wireframe page shows a simple select plus manual confirmation and a scroll-gate modal for `Confirm all remaining`. The annotated spec text also says the L1/L2 selection auto-confirms the row. Those two sources conflict; the app follows the visible page/manual-confirm flow.
+- The current app follows the agreed hybrid flow: L1/L2 hover classification overlay plus explicit human confirmation before findings generation.
+- Later product review superseded the earlier documents-page `Processing Log` / `Document Notes` blocks, so those controls are intentionally removed from the MVP documents flow.
 - Filename hover preview remains a gap relative to the annotated spec text.
 - File-picker supported types and filename click-to-open are implemented.
 

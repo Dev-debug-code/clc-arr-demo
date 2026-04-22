@@ -23,12 +23,7 @@ export default function ViewerDocumentPanel({
   docPdfScrollRef,
   docFocusSignal,
   activeDocMinimapMarkers,
-  setDocLevelNoteOpen,
   setFeedbackOpen,
-  docLevelNoteOpen,
-  docLevelNoteDraft,
-  setDocLevelNoteDraft,
-  handleSaveDocumentNote,
   onOpenDocumentAssistant
 }) {
   return (
@@ -138,9 +133,6 @@ export default function ViewerDocumentPanel({
       </div>
       <div className="doc-viewer-footer">
         <div className="doc-viewer-footer__actions">
-          <button type="button" className="btn btn-xs secondary" onClick={() => setDocLevelNoteOpen(true)}>
-            📝 Add note to document
-          </button>
           <button
             type="button"
             className="btn btn-xs secondary"
@@ -164,27 +156,6 @@ export default function ViewerDocumentPanel({
           ? Something to tell us?
         </span>
       </div>
-      {docLevelNoteOpen ? (
-        <div className="doc-note-inline-panel">
-          <textarea
-            className="modal-textarea"
-            value={docLevelNoteDraft}
-            onChange={(event) => setDocLevelNoteDraft(event.target.value)}
-            placeholder="Add a note to this document..."
-          />
-          <button type="button" className="composer-voice-btn" title="Dictate (UI only)" aria-label="Dictate">
-            🎤
-          </button>
-          <div className="modal-actions">
-            <button type="button" className="btn primary" onClick={handleSaveDocumentNote}>
-              Save
-            </button>
-            <button type="button" className="btn ghost" onClick={() => setDocLevelNoteOpen(false)}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

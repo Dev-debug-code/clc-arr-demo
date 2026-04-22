@@ -17,7 +17,7 @@ export const ANALYSIS_TICK_INTERVAL = ANALYSIS_TICK_INTERVAL_MS;
 export const CASE_META = {
   practiceName: 'Hartley & Partners Solicitors',
   caseId: 'CLC-12458',
-  owner: 'Wayne Bradley',
+  owner: 'Alex Carter',
   started: '12 Feb 2026',
   riskLevel: 'Medium',
   previousInspection: 'March 2023',
@@ -245,10 +245,10 @@ export const FINDING_FILTER_LABEL_MAP = {
 };
 
 export const FINDING_SEVERITY_BADGE_MAP = {
-  critical: 'FINDING',
-  warning: 'LEAD',
-  best_practice: 'GOOD PRACTICE',
-  pass: 'COMPLIANT'
+  critical: 'Finding',
+  warning: 'Lead',
+  best_practice: 'Good practice',
+  pass: 'Compliant'
 };
 
 export const SEVERITY_LABEL_MAP = {

@@ -144,6 +144,74 @@ import UndoToast from './components/UndoToast.jsx';
 import ViewerStage from './components/ViewerStage.jsx';
 import WorkspaceShell from './components/WorkspaceShell.jsx';
 
+function toDashboardCaseDateMs(value) {
+  if (!value) return null;
+
+  if (typeof value.toDate === 'function') {
+    const parsed = value.toDate();
+    return Number.isNaN(parsed.getTime()) ? null : parsed.getTime();
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.getTime();
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value !== 'string') return null;
+
+  const cleanValue = value.trim();
+  if (!cleanValue) return null;
+
+  const localDateMatch = cleanValue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (localDateMatch) {
+    const [, day, month, year] = localDateMatch;
+    const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+    return Number.isNaN(parsed.getTime()) ? null : parsed.getTime();
+  }
+
+  const parsed = new Date(cleanValue);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.getTime();
+}
+
+function matchesDashboardDateFilter(item, activeFilter) {
+  if (activeFilter === 'All' || activeFilter === 'Custom date range') return true;
+
+  const caseDateMs =
+    toDashboardCaseDateMs(item?.startedAt) ??
+    toDashboardCaseDateMs(item?.createdAt) ??
+    toDashboardCaseDateMs(item?.lastActivityAt) ??
+    toDashboardCaseDateMs(item?.updatedAt) ??
+    toDashboardCaseDateMs(item?.started);
+
+  if (!Number.isFinite(caseDateMs)) return false;
+
+  const caseDate = new Date(caseDateMs);
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (activeFilter === 'This week') {
+    const startOfWeek = new Date(startOfToday);
+    const dayOffset = (startOfWeek.getDay() + 6) % 7;
+    startOfWeek.setDate(startOfWeek.getDate() - dayOffset);
+    return caseDate >= startOfWeek;
+  }
+
+  if (activeFilter === 'This month') {
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    return caseDate >= startOfMonth;
+  }
+
+  if (activeFilter === 'Last 3 months') {
+    const startOfWindow = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+    return caseDate >= startOfWindow;
+  }
+
+  return true;
+}
+
 export default function WorkspaceApp({ currentUser, onSignOut }) {
   const currentUserEmail = currentUser?.email ?? '';
   const assetBase = import.meta.env.BASE_URL ?? '/';
@@ -1882,13 +1950,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           ? item.inspector === dashboardInspectorFilter
           : true
       )
-      .filter((item) =>
-        dashboardDateFilter === 'All'
-          ? true
-          : dashboardDateFilter === 'This week'
-            ? item.lastActivity.includes('hour') || item.lastActivity.includes('minute')
-            : true
-      );
+      .filter((item) => matchesDashboardDateFilter(item, dashboardDateFilter));
   }, [
     dashboardScopeCases,
     dashboardSearch,
@@ -1906,8 +1968,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, [dashboardCases]);
 
   const scopedActiveCaseCount = useMemo(
-    () => dashboardScopeCases.filter((item) => item.progress < 100).length,
-    [dashboardScopeCases]
+    () => visibleDashboardCases.filter((item) => item.progress < 100 && item.status !== 'completed').length,
+    [visibleDashboardCases]
   );
 
   const scopedUnreviewedCount = useMemo(
@@ -2181,6 +2243,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
   useEffect(() => {
     if (complianceCodeAreas.length === 0) return;
+    if (!expandedCodeAreaId) return;
     if (complianceCodeAreas.some((area) => area.id === expandedCodeAreaId)) return;
     setExpandedCodeAreaId(complianceCodeAreas[0].id);
   }, [complianceCodeAreas, expandedCodeAreaId]);
@@ -2416,6 +2479,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         id: persistedCaseId,
         practice: nextPracticeName,
         started: new Date().toLocaleDateString(),
+        startedAt: Date.now(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        lastActivityAt: Date.now(),
         progress: 0,
         progressLabel: '0/0 requirements met',
         unreviewed: 0,
@@ -4908,15 +4975,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       isLeadFindingByTaxonomy={isLeadFindingByTaxonomy}
       isInspectorAddedFinding={isInspectorAddedFinding}
       buildEvidencePassages={buildEvidencePassages}
-      findingNotes={findingNotes}
       safeText={safeText}
       formatReferenceText={formatReferenceText}
       activeMenuFindingId={activeMenuFindingId}
       setActiveMenuFindingId={setActiveMenuFindingId}
       findingMenuRef={findingMenuRef}
       handleRequestFindingDecision={handleRequestFindingDecision}
-      handleOpenAddNote={handleOpenAddNote}
       handleDeleteFinding={handleDeleteFinding}
+      handleJumpToRequirement={handleJumpToRequirement}
       handleViewDocument={handleViewDocument}
       openLeadConfirmModal={openLeadConfirmModal}
       inlineRejectFindingId={inlineRejectFindingId}
@@ -4933,11 +4999,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       setInlineDismissNote={setInlineDismissNote}
       handleConfirmInlineDismiss={handleConfirmInlineDismiss}
       setInlineDismissFindingId={setInlineDismissFindingId}
-      noteTargetFindingId={noteTargetFindingId}
-      noteDraft={noteDraft}
-      setNoteDraft={setNoteDraft}
-      setNoteTargetFindingId={setNoteTargetFindingId}
-      handleSaveFindingNote={handleSaveFindingNote}
       leadConfirmOpen={leadConfirmModal.open}
       leadConfirmFindingId={leadConfirmModal.findingId}
       leadConfirmOriginStep={leadConfirmModal.originStep}
@@ -4990,15 +5051,9 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       docPdfScrollRef={docPdfScrollRef}
       docFocusSignal={docFocusSignal}
       activeDocMinimapMarkers={activeDocMinimapMarkers}
-      setDocLevelNoteOpen={setDocLevelNoteOpen}
       docCrossSearchOpen={docCrossSearchOpen}
       setDocCrossSearchOpen={setDocCrossSearchOpen}
       setFeedbackOpen={setFeedbackOpen}
-      docLevelNoteOpen={docLevelNoteOpen}
-      docLevelNoteDraft={docLevelNoteDraft}
-      setDocLevelNoteDraft={setDocLevelNoteDraft}
-      handleSaveDocumentNote={handleSaveDocumentNote}
-      documentNotes={documentNotes}
       docSearchScope={docSearchScope}
       setDocSearchScope={setDocSearchScope}
       docSearchQuery={docSearchQuery}
@@ -5008,7 +5063,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       documentsById={documentsById}
       formatSourceDocumentRef={formatSourceDocumentRef}
       handleViewDocument={handleViewDocument}
-      handleOpenAddNote={handleOpenAddNote}
       getFindingPreferredBoxIdForDocument={getFindingPreferredBoxIdForDocument}
       severityFilterRef={severityFilterRef}
       filterSeverity={filterSeverity}
@@ -5036,7 +5090,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       expandedViewerFindingIds={expandedViewerFindingIds}
       setExpandedViewerFindingIds={setExpandedViewerFindingIds}
       findingDecisions={findingDecisions}
-      findingNotes={findingNotes}
       isLeadFindingByTaxonomy={isLeadFindingByTaxonomy}
       isInspectorAddedFinding={isInspectorAddedFinding}
       findingSeverityBadgeMap={FINDING_SEVERITY_BADGE_MAP}
@@ -5049,13 +5102,9 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       findingMenuRef={findingMenuRef}
       handleRequestFindingDecision={handleRequestFindingDecision}
       handleDeleteFinding={handleDeleteFinding}
+      handleJumpToRequirement={handleJumpToRequirement}
       formatReferenceText={formatReferenceText}
       openLeadConfirmModal={openLeadConfirmModal}
-      noteTargetFindingId={noteTargetFindingId}
-      noteDraft={noteDraft}
-      setNoteDraft={setNoteDraft}
-      setNoteTargetFindingId={setNoteTargetFindingId}
-      handleSaveFindingNote={handleSaveFindingNote}
       inlineRejectFindingId={inlineRejectFindingId}
       inlineRejectReason={inlineRejectReason}
       setInlineRejectReason={setInlineRejectReason}
@@ -5352,10 +5401,38 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         ? 'New Inspection Case'
         : 'Dashboard';
   const shellShowHeaderContext = !(appMode === 'inspection' && currentStep === STEP_VIEWER);
-  const shellShowHeaderContextChevron = appMode === 'inspection' && currentStep !== STEP_VIEWER;
+  const shellShowHeaderContextChevron = false;
   const shellCompactHeader = appMode === 'inspection' && currentStep === STEP_VIEWER;
   const shellShowAssistant =
     appMode === 'inspection' && (currentStep === STEP_OVERVIEW || currentStep === STEP_VIEWER);
+  const shellPageHelpText =
+    appMode === 'dashboard'
+      ? 'Use the dashboard to open an existing inspection case or start a new one.'
+      : appMode === 'caseSetup'
+        ? 'Set the inspection scope, case properties and parties before uploading evidence.'
+        : currentStep === STEP_DOCUMENTS
+          ? 'Upload evidence, confirm the rows you want included, and then generate findings for this case.'
+          : currentStep === STEP_PROCESSING
+            ? 'The case is being analysed. Progress updates and results are written back into the workspace as processing completes.'
+            : currentStep === STEP_OVERVIEW
+              ? 'Review findings by requirement and code area, then confirm, reject or dismiss them before reporting.'
+              : currentStep === STEP_VIEWER
+                ? 'Inspect the source document, highlights and linked findings side by side, then jump back to the related requirement if needed.'
+                : currentStep === STEP_HISTORY
+                  ? 'Review the case timeline, previous inspection context and recurring issues for this practice.'
+                  : 'Generate, edit and export the inspection report and action plan for the current case.';
+  const handleJumpToRequirement = useCallback(
+    (finding) => {
+      const areaId = normalizeCodeAreaId(safeText(finding?.codeArea || finding?.code_area, ''));
+      const requirementId = safeText(finding?.requirementId || finding?.requirement_id, '');
+      if (areaId) {
+        setExpandedCodeAreaId(areaId);
+      }
+      setOverviewRequirementFilter(areaId ? { areaId, requirementId } : { areaId: '', requirementId: '' });
+      setCurrentStep(STEP_OVERVIEW);
+    },
+    [normalizeCodeAreaId, safeText]
+  );
   const shellNavigationItems = useMemo(() => {
     if (appMode === 'inspection') {
       const caseTabCounts = {
@@ -5455,6 +5532,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         navigationCaption={shellNavigationCaption}
         navigationItems={shellNavigationItems}
         activeNavigationId={shellActiveNavigationId}
+        pageHelpText={shellPageHelpText}
         afterMain={renderFeedbackControls()}
       >
         {renderDashboard()}
@@ -5479,6 +5557,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         navigationCaption={shellNavigationCaption}
         navigationItems={shellNavigationItems}
         activeNavigationId={shellActiveNavigationId}
+        pageHelpText={shellPageHelpText}
         afterMain={renderFeedbackControls()}
       >
         {renderCaseSetup()}
@@ -5503,6 +5582,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         navigationCaption={shellNavigationCaption}
         navigationItems={shellNavigationItems}
         activeNavigationId={shellActiveNavigationId}
+        pageHelpText={shellPageHelpText}
         afterMain={
           <>
             <UndoToast undoDecision={undoDecision} onUndo={handleUndoDecision} />

@@ -56,13 +56,7 @@ export default function DocumentsStage({
   allUploadsVerified,
   handleConfirmAllUploads,
   handleGenerateFindings,
-  documentsNotesExpanded,
-  setDocumentsNotesExpanded,
-  flattenedDocumentNotes,
-  documentsLogExpanded,
-  setDocumentsLogExpanded,
-  processingLog,
-  setDocumentWorkspaceTab
+  processingLog
 }) {
   const resolveConfidenceState = (value) => {
     const normalized = String(value ?? '').trim().toLowerCase();
@@ -171,17 +165,6 @@ export default function DocumentsStage({
         ) : (
           <DocumentsManagePhase
             documentRows={documentRows}
-            expandedUploadSummaryId={expandedUploadSummaryId}
-            setExpandedUploadSummaryId={setExpandedUploadSummaryId}
-            handleViewDocument={handleViewDocument}
-            stepDocuments={stepDocuments}
-            setDocumentWorkspaceTab={setDocumentWorkspaceTab}
-            documentsNotesExpanded={documentsNotesExpanded}
-            setDocumentsNotesExpanded={setDocumentsNotesExpanded}
-            flattenedDocumentNotes={flattenedDocumentNotes}
-            documentsLogExpanded={documentsLogExpanded}
-            setDocumentsLogExpanded={setDocumentsLogExpanded}
-            processingEntries={processingEntries}
             setDocumentsPhase={setDocumentsPhase}
             openDocumentsFilePicker={openDocumentsFilePicker}
           />

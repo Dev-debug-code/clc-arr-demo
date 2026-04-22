@@ -20,6 +20,7 @@ export default function WorkspaceShell({
   navigationCaption = '',
   navigationItems = [],
   activeNavigationId = '',
+  pageHelpText = '',
   children,
   afterMain = null
 }) {
@@ -117,6 +118,7 @@ export default function WorkspaceShell({
       ) : null}
       <AppHeader
         currentUserEmail={currentUserEmail}
+        onSignOut={onSignOut}
         onHome={() => {
           setNavOpen(false);
           onHome?.();
@@ -130,6 +132,7 @@ export default function WorkspaceShell({
         showCenter={showHeaderContext}
         showCenterChevron={showHeaderContextChevron}
         compact={compactHeader}
+        pageHelpText={pageHelpText}
       />
       <main className="workspace-main">
         {children}

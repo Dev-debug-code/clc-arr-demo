@@ -52,7 +52,7 @@ Optional env vars let you seed your signed-in Firebase user with a specific role
 ```bash
 FIREBASE_USER_ID=<auth_uid> \
 FIREBASE_USER_EMAIL=<auth_email> \
-FIREBASE_USER_DISPLAY_NAME="Wayne Bradley" \
+FIREBASE_USER_DISPLAY_NAME="Alex Carter" \
 FIREBASE_USER_ROLE=team_lead \
 npm run seed:db:fresh
 ```

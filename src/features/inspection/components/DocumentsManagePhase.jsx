@@ -1,11 +1,5 @@
 export default function DocumentsManagePhase({
   documentRows,
-  documentsNotesExpanded,
-  setDocumentsNotesExpanded,
-  flattenedDocumentNotes,
-  documentsLogExpanded,
-  setDocumentsLogExpanded,
-  processingEntries,
   setDocumentsPhase,
   openDocumentsFilePicker
 }) {
@@ -46,8 +40,19 @@ export default function DocumentsManagePhase({
               <tr key={`manage-row-${row.id}`}>
                 <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{row.label}</td>
                   <td>
-                    {row.classification}
-                    {row.limitedAnalysis ? <div className="classification-hint">Limited analysis</div> : null}
+                    <div className="classification-cell">
+                      {row.classification}
+                      {row.limitedAnalysis ? (
+                        <span className="tooltip-wrap classification-tooltip">
+                          <button type="button" className="classification-info-button" aria-label="Classification help">
+                            i
+                          </button>
+                          <span className="tooltip-text">
+                            Limited analysis. Classify more specifically for full processing.
+                          </span>
+                        </span>
+                      ) : null}
+                    </div>
                   </td>
                   <td>{row.parties}</td>
                   <td>{row.findingsCount}</td>
@@ -65,54 +70,6 @@ export default function DocumentsManagePhase({
           </tbody>
         </table>
       )}
-
-      <div className={`expandable-section ${documentsNotesExpanded ? 'expanded' : ''}`}>
-        <button
-          type="button"
-          className="expandable-header"
-          onClick={() => setDocumentsNotesExpanded((prev) => !prev)}
-        >
-          <span className="expandable-chevron">▶</span>
-          Document Notes <span className="docs-count-inline">({flattenedDocumentNotes.length})</span>
-        </button>
-        <div className="expandable-body">
-          {flattenedDocumentNotes.length > 0 ? (
-            flattenedDocumentNotes.slice(0, 8).map((entry) => (
-              <div key={`doc-note-${entry.id}`} className="doc-note">
-                <span className="doc-note-file">{entry.docLabel}</span> —{' '}
-                <span className="doc-note-text">{entry.text}</span>
-              </div>
-            ))
-          ) : (
-            <div className="doc-note">
-              <span className="doc-note-text">No document notes added yet.</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className={`expandable-section ${documentsLogExpanded ? 'expanded' : ''}`}>
-        <button
-          type="button"
-          className="expandable-header"
-          onClick={() => setDocumentsLogExpanded((prev) => !prev)}
-        >
-          <span className="expandable-chevron">▶</span>
-          Processing Log
-        </button>
-        <div className="expandable-body">
-          {processingEntries.map((entry) => {
-            const isInitial = /initial/i.test(entry.detail);
-            return (
-              <div key={`phase2-log-${entry.id}`} className="log-entry">
-                <div className={`log-dot ${isInitial ? 'dot-process' : 'dot-update'}`} />
-                <div className="log-text">{entry.detail}</div>
-                <div className="log-time">{entry.time}</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }
