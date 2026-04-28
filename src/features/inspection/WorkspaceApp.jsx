@@ -48,13 +48,12 @@ import {
   formatUserRoleLabel,
   normalizeUserRole
 } from '../../utils/accessControl.js';
-import { createInspectionReportPdf } from '../../utils/reportPdf.js';
+import { createInspectionReportPdf, exportStyledInspectionReportPdf } from '../../utils/reportPdf.js';
 import {
   ANALYSIS_PROGRESS_INCREMENT,
   ANALYSIS_TICK_INTERVAL_MS,
   AI_PROCESSING_STEPS,
   AI_PROCESSING_MESSAGES,
-  AML_DESK_REVIEW_PRESET,
   CASE_TABS,
   CASE_META,
   CODE_AREA_ALIASES,
@@ -77,6 +76,7 @@ import {
   REGGIE_SUGGESTIONS,
   REPORT_SEVERITY_LABEL_MAP,
   REPORT_ACTION_DEFAULTS,
+  RISK_REGISTER_PRESET,
   REVIEW_REASON_OPTIONS,
   SEVERITY_LABEL_MAP,
   STEP_DOCUMENTS,
@@ -131,7 +131,6 @@ import ContextNoteModal from './components/ContextNoteModal.jsx';
 import DashboardPage from './components/DashboardPage.jsx';
 import DocumentsStage from './components/DocumentsStage.jsx';
 import FeedbackControls from './components/FeedbackControls.jsx';
-import HistoryStage from './components/HistoryStage.jsx';
 import LeadConfirmModal from './components/LeadConfirmModal.jsx';
 import ManualEvidenceModal from './components/ManualEvidenceModal.jsx';
 import OverviewStage from './components/OverviewStage.jsx';
@@ -212,6 +211,32 @@ function matchesDashboardDateFilter(item, activeFilter) {
   return true;
 }
 
+const PROCESSING_MODE_CLASSIFICATION = 'classification';
+const PROCESSING_MODE_FINDINGS = 'findings';
+
+const CLASSIFICATION_PROCESSING_STEPS = [
+  'Reading uploaded documents',
+  'Classifying document types',
+  'Preparing classification review'
+];
+
+const CLASSIFICATION_PROCESSING_MESSAGES = [
+  'Reading the selected case files...',
+  'Classifying documents and checking confidence...',
+  'Preparing the classification review table...'
+];
+
+const buildClassificationReason = (filename, classification) => {
+  const cleanFilename = coerceText(filename).trim() || 'document';
+  const cleanClassification = coerceText(classification).trim() || 'Unknown';
+
+  if (cleanClassification === 'Other' || cleanClassification === 'Unknown') {
+    return `The AI could not map ${cleanFilename} confidently to a known document type.`;
+  }
+
+  return `The AI matched ${cleanFilename} to ${cleanClassification} using document-name and content cues.`;
+};
+
 export default function WorkspaceApp({ currentUser, onSignOut }) {
   const currentUserEmail = currentUser?.email ?? '';
   const assetBase = import.meta.env.BASE_URL ?? '/';
@@ -247,6 +272,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [isActiveCasePersisted, setIsActiveCasePersisted] = useState(false);
   const [analysisRunning, setAnalysisRunning] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [analysisMode, setAnalysisMode] = useState(PROCESSING_MODE_FINDINGS);
 
   const [docPulse, setDocPulse] = useState(null);
   const [filterSeverity, setFilterSeverity] = useState([]);
@@ -281,7 +307,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState('suggestion');
   const [feedbackText, setFeedbackText] = useState('');
-  const [documentsPhase, setDocumentsPhase] = useState('upload');
+  const [documentsPhase, setDocumentsPhase] = useState('intake');
   const [documentWorkspaceTab, setDocumentWorkspaceTab] = useState('findings');
   const [docSearchQuery, setDocSearchQuery] = useState('');
   const [docSearchScope, setDocSearchScope] = useState('document');
@@ -312,13 +338,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [reportGenerationInProgress, setReportGenerationInProgress] = useState(false);
   const [reportGenerationMode, setReportGenerationMode] = useState('generate');
   const [reportDraftVersion, setReportDraftVersion] = useState(0);
+  const [reportAccessNotice, setReportAccessNotice] = useState('');
   const [reprocessBannerDismissed, setReprocessBannerDismissed] = useState(false);
   const [uploadAreaCollapsed, setUploadAreaCollapsed] = useState(true);
   const [activeClassificationMenu, setActiveClassificationMenu] = useState(null);
   const [confirmAllUploadsGateOpen, setConfirmAllUploadsGateOpen] = useState(false);
   const [hasViewedUploadTableEnd, setHasViewedUploadTableEnd] = useState(false);
   const [expandedUploadSummaryId, setExpandedUploadSummaryId] = useState('');
-  const [expandedCodeAreaId, setExpandedCodeAreaId] = useState('aml');
+  const [expandedCodeAreaIds, setExpandedCodeAreaIds] = useState({});
   const [expandedOverviewFindingIds, setExpandedOverviewFindingIds] = useState({});
   const [expandedViewerFindingIds, setExpandedViewerFindingIds] = useState({});
   const [overviewRequirementFilter, setOverviewRequirementFilter] = useState({ areaId: '', requirementId: '' });
@@ -511,10 +538,12 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
         if (Array.isArray(snapshot.caseMetaPatch.focusAreas)) {
           const selectedAreaSet = new Set(snapshot.caseMetaPatch.focusAreas.map((entry) => String(entry || '').trim()));
+          setSelectedFocusAreaIds(selectedAreaSet);
           setNotAssessedAreas(
             FOCUS_AREA_OPTIONS.filter((area) => !selectedAreaSet.has(area.id)).map((area) => area.label)
           );
         } else {
+          setSelectedFocusAreaIds(new Set());
           setNotAssessedAreas(NOT_ASSESSED_AREAS);
         }
 
@@ -527,8 +556,18 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         setFindingNotes(snapshot.findingNotes);
         setDocumentNotes(snapshot.documentNotes);
         setCaseContextNotes(snapshot.caseContextNotes);
+        setExpandedCodeAreaIds({});
+        setExpandedOverviewFindingIds({});
         setOverviewRequirementFilter({ areaId: '', requirementId: '' });
-        setUploadItems((snapshot.uploadItems ?? []).map((item) => prepareUploadDraft(item)));
+        const preparedUploads = (snapshot.uploadItems ?? []).map((item) => prepareUploadDraft(item));
+        setUploadItems(preparedUploads);
+        setDocumentsPhase(
+          preparedUploads.length === 0
+            ? 'intake'
+            : preparedUploads.every((item) => item.status === 'queued')
+              ? 'intake'
+              : 'review'
+        );
         setHistoryItems(snapshot.historyItems.length > 0 ? snapshot.historyItems : INITIAL_HISTORY_ITEMS);
         setInspectorObservations(snapshot.inspectorObservations ?? []);
         setReportSectionIdsByCodeArea(snapshot.reportSectionIdsByCodeArea ?? {});
@@ -698,6 +737,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     goodPractice: [],
     attention: []
   });
+  const reportExportRef = useRef(null);
   const reportEditableMetaRefs = useRef({
     interviews: [],
     summary: [],
@@ -707,6 +747,72 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const reportSectionPersistTimersRef = useRef({});
   const lastPersistedCaseSummaryRef = useRef({ caseId: '', key: '' });
 
+  const completeQueuedUploadClassification = useCallback(() => {
+    let changedUploads = [];
+
+    setUploadItems((previousItems) => {
+      const nextItems = previousItems.map((item) => {
+        if (item.status !== 'queued') return item;
+
+        const suggestedClassification = suggestClassificationFromFilename(item.name);
+        const nextItem = prepareUploadDraft({
+          ...item,
+          status: 'classified',
+          confirmed: false,
+          classification: suggestedClassification,
+          confidence: suggestedClassification === 'Other' ? 'low' : 'high',
+          classification_confidence: suggestedClassification === 'Other' ? null : 0.98,
+          classificationReason: buildClassificationReason(item.name, suggestedClassification),
+          summary:
+            item.summary ||
+            `AI classification suggests ${suggestedClassification}. Review and confirm before generating findings.`
+        });
+
+        changedUploads.push(nextItem);
+        return nextItem;
+      });
+
+      return changedUploads.length > 0 ? nextItems : previousItems;
+    });
+
+    if (changedUploads.length === 0) return;
+
+    setProcessingLog((previous) => [
+      {
+        id: `p${Date.now()}-classified`,
+        detail: `${changedUploads.length} document${
+          changedUploads.length === 1 ? '' : 's'
+        } classified and ready for review`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      },
+      ...previous
+    ]);
+    setReportNeedsRegeneration(true);
+
+    if (isActiveCasePersisted) {
+      Promise.all(
+        changedUploads.map((uploadItem) =>
+          persistUploadItem({
+            caseId: currentCaseMeta.caseId,
+            uploadItem,
+            user: currentUser
+          })
+        )
+      ).catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error('Failed to persist classified uploads', error);
+      });
+    }
+  }, [currentCaseMeta.caseId, currentUser, isActiveCasePersisted]);
+
+  const startProcessingRun = useCallback((mode) => {
+    setAnalysisMode(mode);
+    setAnalysisProgress(8);
+    setAnalysisRunning(true);
+    setCurrentStep(STEP_PROCESSING);
+    setMaxStepUnlocked((prev) => Math.max(prev, STEP_PROCESSING));
+  }, []);
+
   useEffect(() => {
     if (!analysisRunning || currentStep !== STEP_PROCESSING) {
       return;
@@ -715,7 +821,15 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     if (analysisProgress >= 100) {
       const timeout = setTimeout(() => {
         setAnalysisRunning(false);
-        setDocumentsPhase('manage');
+        setAnalysisProgress(0);
+        if (analysisMode === PROCESSING_MODE_CLASSIFICATION) {
+          completeQueuedUploadClassification();
+          setDocumentsPhase('review');
+          setCurrentStep(STEP_DOCUMENTS);
+          return;
+        }
+
+        setDocumentsPhase('review');
         setMaxStepUnlocked((prev) => Math.max(prev, STEP_OVERVIEW));
         setCurrentStep(STEP_OVERVIEW);
       }, 500);
@@ -730,7 +844,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     }, ANALYSIS_TICK_INTERVAL_MS);
 
     return () => clearTimeout(timer);
-  }, [analysisRunning, analysisProgress, currentStep]);
+  }, [analysisMode, analysisRunning, analysisProgress, completeQueuedUploadClassification, currentStep]);
 
   useEffect(() => {
     const previousStep = previousStepRef.current;
@@ -1112,14 +1226,28 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     }
   }, [activeDocId, documentsById, activeDocBoxId]);
 
+  const activeProcessingSteps =
+    analysisMode === PROCESSING_MODE_CLASSIFICATION
+      ? CLASSIFICATION_PROCESSING_STEPS
+      : AI_PROCESSING_STEPS;
+  const activeProcessingMessages =
+    analysisMode === PROCESSING_MODE_CLASSIFICATION
+      ? CLASSIFICATION_PROCESSING_MESSAGES
+      : AI_PROCESSING_MESSAGES;
+  const analysisTitle =
+    analysisMode === PROCESSING_MODE_CLASSIFICATION
+      ? 'AI classification in progress'
+      : 'AI findings generation in progress';
+  const analysisCompletionLabel =
+    analysisMode === PROCESSING_MODE_CLASSIFICATION ? 'Classification Review' : 'Overview';
   const analysisStageIndex = Math.min(
-    AI_PROCESSING_STEPS.length - 1,
-    Math.floor((analysisProgress / 100) * AI_PROCESSING_STEPS.length)
+    activeProcessingSteps.length - 1,
+    Math.floor((analysisProgress / 100) * activeProcessingSteps.length)
   );
 
   const analysisMessage =
-    AI_PROCESSING_MESSAGES[Math.min(AI_PROCESSING_MESSAGES.length - 1, analysisStageIndex)] ??
-    AI_PROCESSING_MESSAGES[0];
+    activeProcessingMessages[Math.min(activeProcessingMessages.length - 1, analysisStageIndex)] ??
+    activeProcessingMessages[0];
 
   const availableFindings = useMemo(
     () => allFindings.filter((finding) => !deletedFindingIds[finding.id]),
@@ -1143,7 +1271,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
     return [
       { id: 'critical', label: 'Non-compliant', count: counts.critical },
-      { id: 'warning', label: 'Leads', count: counts.warning },
+      { id: 'warning', label: 'Guidance', count: counts.warning },
       { id: 'pass', label: 'Compliant', count: counts.pass },
       { id: 'best_practice', label: 'Good Practice', count: counts.best_practice }
     ];
@@ -1246,6 +1374,12 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     }
   }, [rejectedCount, reviewedCount]);
 
+  useEffect(() => {
+    if (pendingReviewCount === 0 && availableFindings.length > 0) {
+      setReportAccessNotice('');
+    }
+  }, [availableFindings.length, pendingReviewCount]);
+
   const codeAreaDisplayMap = useMemo(() => {
     const base = new Map();
     FOCUS_AREA_OPTIONS.forEach((area) => base.set(area.id, area.label));
@@ -1338,7 +1472,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       },
       {
         id: 'review',
-        label: 'Leads',
+        label: 'Guidance',
         value: unresolvedLeadCount,
         detail: 'awaiting judgment',
         tone: 'review',
@@ -1754,7 +1888,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       if (targetFinding) {
         const targetCodeAreaId = normalizeCodeAreaId(safeText(targetFinding.codeArea || targetFinding.code_area, ''));
         if (targetCodeAreaId) {
-          setExpandedCodeAreaId(targetCodeAreaId);
+          setExpandedCodeAreaIds((prev) => ({ ...prev, [targetCodeAreaId]: true }));
         }
         setActiveFindingId(findingId);
       }
@@ -1769,7 +1903,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     }
     if (currentStep === STEP_OVERVIEW) return 'overview';
     if (currentStep === STEP_REPORT) return 'report';
-    if (currentStep === STEP_HISTORY) return 'history';
+    if (currentStep === STEP_HISTORY) return 'overview';
     return 'documents';
   }, [currentStep, viewerOriginStep]);
 
@@ -2039,7 +2173,13 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     [docsMarkedForReprocess]
   );
 
+  const hasCompletedClassificationRun = useMemo(
+    () => uploadItems.some((item) => item.status !== 'queued'),
+    [uploadItems]
+  );
+
   const pendingReprocessSummary = useMemo(() => {
+    if (!hasCompletedClassificationRun) return '';
     const segments = [];
     if (queuedUploadCount > 0) {
       segments.push(
@@ -2058,7 +2198,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       );
     }
     return segments.join(', ');
-  }, [queuedUploadCount, findingNoteCount, markedDocsCount, pendingScopeChangeCount]);
+  }, [queuedUploadCount, findingNoteCount, markedDocsCount, pendingScopeChangeCount, hasCompletedClassificationRun]);
 
   const flattenedDocumentNotes = useMemo(
     () =>
@@ -2122,7 +2262,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, [uploadItems.length]);
 
   useEffect(() => {
-    if (documentsPhase !== 'upload') return undefined;
+    if (documentsPhase !== 'review') return undefined;
     const lastRow = uploadTableLastRowRef.current;
     if (!lastRow || typeof IntersectionObserver === 'undefined') return undefined;
 
@@ -2141,74 +2281,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, [documentsPhase, uploadItems.length, expandedUploadSummaryId]);
 
   useEffect(() => {
-    if (appMode !== 'inspection' || currentStep !== STEP_DOCUMENTS) return;
-    if (!uploadItems.some((item) => item.status === 'queued')) return;
-
-    const timer = setTimeout(() => {
-      let changedUploads = [];
-      setUploadItems((previousItems) => {
-        const nextItems = previousItems.map((item) => {
-          if (item.status !== 'queued') return item;
-          const nextClassification =
-            !isUploadClassificationResolved(item)
-              ? suggestClassificationFromFilename(item.name)
-              : item.classification;
-          const nextItem = prepareUploadDraft({
-            ...item,
-            status: 'classified',
-            classification: nextClassification,
-            confidence: item.confidence === 'high' ? 'high' : 'medium',
-            summary:
-              item.summary ||
-              `Auto-classified from filename. Please verify and confirm before generating findings.`
-          });
-          changedUploads.push(nextItem);
-          return nextItem;
-        });
-        return changedUploads.length > 0 ? nextItems : previousItems;
-      });
-
-      if (changedUploads.length === 0) return;
-
-      setProcessingLog((previous) => [
-        {
-          id: `p${Date.now()}-classified`,
-          detail: `${changedUploads.length} document${
-            changedUploads.length === 1 ? '' : 's'
-          } finished classification and now require confirmation`,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        },
-        ...previous
-      ]);
-      setReportNeedsRegeneration(true);
-
-      if (isActiveCasePersisted) {
-        Promise.all(
-          changedUploads.map((uploadItem) =>
-            persistUploadItem({
-              caseId: currentCaseMeta.caseId,
-              uploadItem,
-              user: currentUser
-            })
-          )
-        ).catch((error) => {
-          // eslint-disable-next-line no-console
-          console.error('Failed to persist auto-classified uploads', error);
-        });
-      }
-    }, 1400);
-
-    return () => clearTimeout(timer);
-  }, [
-    appMode,
-    currentStep,
-    uploadItems,
-    currentCaseMeta.caseId,
-    currentUser,
-    isActiveCasePersisted
-  ]);
-
-  useEffect(() => {
     setReprocessBannerDismissed(false);
   }, [pendingReprocessSummary]);
 
@@ -2217,12 +2289,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       setDocCrossSearchOpen(false);
     }
   }, [documentWorkspaceTab]);
-
-  useEffect(() => {
-    if (currentStep === STEP_DOCUMENTS) {
-      setDocumentsPhase('upload');
-    }
-  }, [currentStep]);
 
   useEffect(() => {
     const assistantAllowed = appMode === 'inspection' && (currentStep === STEP_OVERVIEW || currentStep === STEP_VIEWER);
@@ -2243,10 +2309,24 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
   useEffect(() => {
     if (complianceCodeAreas.length === 0) return;
-    if (!expandedCodeAreaId) return;
-    if (complianceCodeAreas.some((area) => area.id === expandedCodeAreaId)) return;
-    setExpandedCodeAreaId(complianceCodeAreas[0].id);
-  }, [complianceCodeAreas, expandedCodeAreaId]);
+    const validIds = new Set(complianceCodeAreas.map((area) => area.id));
+    setExpandedCodeAreaIds((prev) => {
+      const entries = Object.entries(prev ?? {});
+      if (entries.length === 0) return prev;
+
+      let changed = false;
+      const next = {};
+      entries.forEach(([areaId, isExpanded]) => {
+        if (isExpanded && validIds.has(areaId)) {
+          next[areaId] = true;
+          return;
+        }
+        if (isExpanded) changed = true;
+      });
+
+      return changed ? next : prev;
+    });
+  }, [complianceCodeAreas]);
 
   const totalSteps = INSPECTION_LINEAR_FINAL_STEP;
 
@@ -2261,7 +2341,17 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, []);
 
   const handleCaseTabNavigate = (targetStep) => {
+    if (targetStep === STEP_REPORT && pendingReviewCount > 0) {
+      setReportAccessNotice(
+        reportReviewBlockedReason || 'Review all findings before generating the report.'
+      );
+      setCurrentStep(STEP_OVERVIEW);
+      return;
+    }
     if (targetStep <= maxStepUnlocked) {
+      if (targetStep === STEP_REPORT) {
+        setReportAccessNotice('');
+      }
       setCurrentStep(targetStep);
     }
   };
@@ -2282,11 +2372,13 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setViewerCodeAreaFilter('all');
     setFilterSeverity([]);
     setSeverityFilterOpen(false);
-    setExpandedCodeAreaId('aml');
+    setExpandedCodeAreaIds({});
+    setExpandedOverviewFindingIds({});
+    setOverviewRequirementFilter({ areaId: '', requirementId: '' });
     setReportDraftVersion((prev) => prev + 1);
     setReportPendingChanges(false);
     if (targetStep === STEP_DOCUMENTS) {
-      setDocumentsPhase('upload');
+      setDocumentsPhase('review');
       setDocumentWorkspaceTab('lifecycle');
     }
     if (targetStep === STEP_OVERVIEW) {
@@ -2324,7 +2416,9 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setViewerCodeAreaFilter('all');
     setFilterSeverity([]);
     setSeverityFilterOpen(false);
-    setExpandedCodeAreaId('aml');
+    setExpandedCodeAreaIds({});
+    setExpandedOverviewFindingIds({});
+    setOverviewRequirementFilter({ areaId: '', requirementId: '' });
     setReportDraftVersion((prev) => prev + 1);
     setReportPendingChanges(false);
     setDocumentWorkspaceTab('findings');
@@ -2516,6 +2610,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setCaseSetupPracticeLookup(null);
     setCaseSetupPracticeLookupError('');
     setIsCaseSetupPracticeLookupLoading(false);
+    setUploadItems([]);
+    setDocumentsPhase('intake');
     if (caseSetupFileInputRef.current) {
       caseSetupFileInputRef.current.value = '';
     }
@@ -2536,11 +2632,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setActiveClassificationMenu(null);
     setConfirmAllUploadsGateOpen(false);
     setHasViewedUploadTableEnd(false);
+    setExpandedCodeAreaIds({});
+    setExpandedOverviewFindingIds({});
+    setOverviewRequirementFilter({ areaId: '', requirementId: '' });
     setPendingScopeChangeCount(0);
     setReportDraftVersion((prev) => prev + 1);
     setAppMode('inspection');
     setCurrentStep(STEP_DOCUMENTS);
-    setMaxStepUnlocked((prev) => Math.max(prev, totalSteps));
+    setMaxStepUnlocked(STEP_DOCUMENTS);
     setIsCreatingCase(false);
   };
 
@@ -2589,7 +2688,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         nextDecision === 'rejected'
           ? 'Rejected'
           : nextDecision === 'dismissed'
-            ? 'Dismissed as lead'
+            ? 'Dismissed as guidance'
             : nextDecision === null
               ? 'Cleared decision'
               : targetFinding?.certainty === 'lead'
@@ -2624,15 +2723,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   };
 
   const handleRequestFindingDecision = (findingId, nextDecision) => {
-    const targetFinding = allFindings.find((finding) => finding.id === findingId) ?? null;
-    if (nextDecision === 'accepted' && targetFinding && isLeadFindingByTaxonomy(targetFinding)) {
-      setActiveMenuFindingId(null);
-      openLeadConfirmModal(
-        findingId,
-        currentStep === STEP_VIEWER ? STEP_VIEWER : currentStep === STEP_REPORT ? STEP_REPORT : STEP_OVERVIEW
-      );
-      return;
-    }
     if (nextDecision === 'accepted' || nextDecision === null) {
       handleFindingDecision(findingId, nextDecision);
       return;
@@ -2871,7 +2961,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         classification: 'Unknown',
         parties: 'Firm',
         interviewees: [],
-        confidence: 'low',
+        confidence: '',
         addedOn: toIsoDate(new Date()),
         summary: 'Awaiting classification and inspector verification.'
       };
@@ -2999,13 +3089,17 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
         const nextBase = {
           ...entry,
+          confirmed: false,
           classification: optionLabel === DOCUMENT_CLASSIFICATION_OTHER_OPTION ? groupLabel : optionLabel,
           classificationL1: groupLabel,
           classificationL2: optionLabel,
           classificationDetail:
             optionLabel === DOCUMENT_CLASSIFICATION_OTHER_OPTION ? entry.classificationDetail ?? '' : '',
           limitedAnalysis: optionLabel === DOCUMENT_CLASSIFICATION_OTHER_OPTION,
+          confidence: optionLabel === DOCUMENT_CLASSIFICATION_OTHER_OPTION ? 'low' : 'high',
+          classification_confidence: optionLabel === DOCUMENT_CLASSIFICATION_OTHER_OPTION ? null : 0.98,
           status: 'classified',
+          classificationReason: buildClassificationReason(entry.name, optionLabel),
           interviewees:
             optionLabel === 'Interview Transcript'
               ? normalizeUploadInterviewees(entry)
@@ -3037,7 +3131,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
         const nextEntry = prepareUploadDraft({
           ...entry,
+          confirmed: false,
           classificationDetail: value,
+          confidence: 'low',
+          classification_confidence: null,
           limitedAnalysis: true,
           status: isUploadClassificationResolved(entry) ? 'classified' : 'queued'
         });
@@ -3119,8 +3216,12 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
             ? 'queued'
             : field === 'status'
               ? value
+              : field === 'classificationJustification'
+                ? entry.status
               : isUploadClassificationResolved(entry)
-                ? 'classified'
+                ? entry.status === 'verified'
+                  ? 'verified'
+                  : 'classified'
                 : 'queued';
         const nextEntry = prepareUploadDraft({
           ...entry,
@@ -3144,7 +3245,11 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     if (!isUploadReadyForConfirmation(target)) return;
 
     const nextStatus = target.status === 'verified' ? 'classified' : 'verified';
-    const nextItem = prepareUploadDraft({ ...target, status: nextStatus });
+    const nextItem = prepareUploadDraft({
+      ...target,
+      status: nextStatus,
+      confirmed: nextStatus === 'verified'
+    });
     setUploadItems((prev) =>
       prev.map((item) => (item.id === uploadId ? nextItem : item))
     );
@@ -3204,6 +3309,46 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     confirmAllEligibleUploads();
   };
 
+  const handleRunClassification = () => {
+    if (uploadItems.length === 0) return;
+    setProcessingLog((prev) => [
+      {
+        id: `p${Date.now()}-classification`,
+        detail: 'AI document classification triggered by inspector',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      },
+      ...prev
+    ]);
+    startProcessingRun(PROCESSING_MODE_CLASSIFICATION);
+  };
+
+  const handleRerunClassification = () => {
+    if (uploadItems.length === 0) return;
+    const queuedUploads = uploadItems.map((item) =>
+      prepareUploadDraft({
+        ...item,
+        status: 'queued',
+        confirmed: false
+      })
+    );
+
+    setUploadItems(queuedUploads);
+    setReportNeedsRegeneration(true);
+    if (isActiveCasePersisted) {
+      queuedUploads.forEach((uploadItem) => persistUpdatedUploadItem(uploadItem));
+    }
+
+    setProcessingLog((prev) => [
+      {
+        id: `p${Date.now()}-reclassify`,
+        detail: 'AI document reclassification triggered by inspector',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      },
+      ...prev
+    ]);
+    startProcessingRun(PROCESSING_MODE_CLASSIFICATION);
+  };
+
   const handleGenerateFindings = () => {
     if (!allUploadsVerified) return;
     setProcessingLog((prev) => [
@@ -3216,10 +3361,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     ]);
     setReportNeedsRegeneration(true);
     setDocumentWorkspaceTab('findings');
-    setAnalysisProgress(8);
-    setAnalysisRunning(true);
-    setCurrentStep(STEP_PROCESSING);
-    setMaxStepUnlocked((prev) => Math.max(prev, STEP_PROCESSING));
+    startProcessingRun(PROCESSING_MODE_FINDINGS);
     if (isActiveCasePersisted) {
       persistGenerateFindingsEvent({
         caseId: currentCaseMeta.caseId,
@@ -3338,6 +3480,27 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     void runReportGeneration('generate');
   };
 
+  const handleAttemptOverviewReport = () => {
+    if (availableFindings.length === 0) {
+      setReportAccessNotice('Generate findings from the reviewed documents before creating the report.');
+      return;
+    }
+    if (pendingReviewCount > 0) {
+      setReportAccessNotice(
+        reportReviewBlockedReason || 'Review all findings before generating the report.'
+      );
+      return;
+    }
+
+    setReportAccessNotice('');
+    setMaxStepUnlocked((prev) => Math.max(prev, STEP_REPORT));
+    setCurrentStep(STEP_REPORT);
+
+    if (!hasGeneratedReport && !reportGenerationInProgress) {
+      void runReportGeneration('generate');
+    }
+  };
+
   const handleConfirmReportRegenerate = () => {
     if (reportGenerationInProgress) return;
     if (pendingReviewCount > 0) return;
@@ -3408,6 +3571,33 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         ...items
       ]);
     };
+    const triggerBlobDownload = (blob, filename) => {
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+    };
+    const reportFilename = `CLC_Inspection_Report_${currentCaseMeta.caseId || 'case'}.pdf`;
+
+    if (reportExportRef.current) {
+      try {
+        const { blob, filename } = await exportStyledInspectionReportPdf({
+          element: reportExportRef.current,
+          filename: reportFilename,
+          caseLabel: currentCaseMeta.caseId || currentCaseMeta.practiceName
+        });
+        triggerBlobDownload(blob, filename);
+        appendReportExportHistory();
+        return;
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to export styled report, falling back to generated PDF', error);
+      }
+    }
 
     if (isActiveCasePersisted) {
       try {
@@ -3483,7 +3673,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       summaryLines: [
         `Total findings: ${totalFindings}`,
         `Non-compliant: ${criticalCount}`,
-        `Leads: ${leadCount}`,
+        `Guidance: ${leadCount}`,
         `Compliant: ${compliantCount}`,
         `Good practice: ${goodPracticeCount}`
       ],
@@ -3523,14 +3713,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       ],
       filename: `CLC_Inspection_Report_${currentCaseMeta.caseId}.pdf`
     });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
+    triggerBlobDownload(blob, filename);
     appendReportExportHistory();
   };
 
@@ -4014,8 +4197,46 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   };
 
   const handleApplyAmlPreset = () => {
-    setSelectedFocusAreaIds(new Set(AML_DESK_REVIEW_PRESET));
+    const previousInspectionDate =
+      toDateInputValue(caseSetupPracticeLookup?.last_inspection?.date) || '2023-03-12';
+
+    setSelectedFocusAreaIds(new Set(RISK_REGISTER_PRESET));
+    setNotAssessedAreas(
+      FOCUS_AREA_OPTIONS.filter((area) => !RISK_REGISTER_PRESET.includes(area.id)).map((area) => area.label)
+    );
+    setCaseSetupRiskLevel('medium');
+    setCaseSetupPreviousInspection(previousInspectionDate);
+    setCaseSetupTransactionType((prev) => prev || CASE_META.transactionType);
+    setCaseSetupActingForLender((prev) => prev || (CASE_META.actingForLender ? 'yes' : 'no'));
+    setCaseSetupAmlTier((prev) => prev || CASE_META.amlTier);
+    setCaseSetupHolp((prev) => prev || caseSetupPracticeLookup?.holp || '');
+    setCaseSetupHofa((prev) => prev || caseSetupPracticeLookup?.hofa || '');
   };
+
+  const handleOpenNewCase = useCallback(() => {
+    setCaseCreateError('');
+    setCaseSetupPracticeName('');
+    setCaseSetupLicenceNumber('');
+    setCaseSetupHolp('');
+    setCaseSetupHofa('');
+    setCaseSetupRiskLevel('not-assessed');
+    setCaseSetupTransactionType('');
+    setCaseSetupActingForLender('');
+    setCaseSetupAmlTier('');
+    setCaseSetupPreviousInspection('');
+    setCaseSetupConcerns('');
+    setCaseSetupParties([createPartyRow()]);
+    setCaseSetupQuestionnaireFile('');
+    setCaseSetupQuestionnaireFileBlob(null);
+    setCaseSetupPracticeLookup(null);
+    setCaseSetupPracticeLookupError('');
+    setIsCaseSetupPracticeLookupLoading(false);
+    setSelectedFocusAreaIds(new Set(FOCUS_AREA_OPTIONS.map((area) => area.id)));
+    if (caseSetupFileInputRef.current) {
+      caseSetupFileInputRef.current.value = '';
+    }
+    setAppMode('caseSetup');
+  }, []);
 
   const setReportEditableRef = (section, index, node, meta = {}) => {
     const bucket = reportEditableRefs.current[section];
@@ -4651,8 +4872,11 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           ])
         )
       });
+      if (originStep === STEP_OVERVIEW && targetDocumentId) {
+        handleViewDocument(targetDocumentId, targetBoxId, findingId, originStep);
+      }
     },
-    [activeDocId, allFindings, createLeadConfirmDocumentAnchor]
+    [activeDocId, allFindings, createLeadConfirmDocumentAnchor, getFindingPreferredBoxIdForDocument, handleViewDocument]
   );
 
   const closeLeadConfirmModal = useCallback(() => {
@@ -4866,7 +5090,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       dashboardScopeTitle={dashboardScopeTitle}
       hasTeamCaseAccess={hasTeamCaseAccess}
       dashboardRoleNote={dashboardRoleNote}
-      onOpenNewCase={() => setAppMode('caseSetup')}
+      onOpenNewCase={handleOpenNewCase}
       teamView={teamView}
       setDashboardView={setDashboardView}
       dashboardCases={dashboardCases}
@@ -4955,8 +5179,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       availableFindings={availableFindings}
       findingMatchesCodeArea={findingMatchesCodeArea}
       getFindingBucketId={getFindingBucketId}
-      expandedCodeAreaId={expandedCodeAreaId}
-      setExpandedCodeAreaId={setExpandedCodeAreaId}
+      expandedCodeAreaIds={expandedCodeAreaIds}
+      setExpandedCodeAreaIds={setExpandedCodeAreaIds}
       filteredFindings={filteredFindings}
       overviewRequirementFilter={overviewRequirementFilter}
       setOverviewRequirementFilter={setOverviewRequirementFilter}
@@ -5178,14 +5402,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       hasViewedUploadTableEnd={hasViewedUploadTableEnd}
       allUploadsVerified={allUploadsVerified}
       handleConfirmAllUploads={handleConfirmAllUploads}
+      handleRunClassification={handleRunClassification}
+      handleRerunClassification={handleRerunClassification}
       handleGenerateFindings={handleGenerateFindings}
-      documentsNotesExpanded={documentsNotesExpanded}
-      setDocumentsNotesExpanded={setDocumentsNotesExpanded}
-      flattenedDocumentNotes={flattenedDocumentNotes}
-      documentsLogExpanded={documentsLogExpanded}
-      setDocumentsLogExpanded={setDocumentsLogExpanded}
       processingLog={processingLog}
-      setDocumentWorkspaceTab={setDocumentWorkspaceTab}
     />
   );
 
@@ -5212,9 +5432,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       },
       ...items
     ]);
-    setAnalysisProgress(8);
-    setAnalysisRunning(true);
-    setCurrentStep(STEP_PROCESSING);
+    startProcessingRun(PROCESSING_MODE_FINDINGS);
   };
 
   const renderCaseHeader = () => {
@@ -5225,7 +5443,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     const dataSourceLabel = isActiveCasePersisted ? 'Firestore' : 'Draft';
     const caseTabCounts = {
       overview: pendingReviewCount,
-      documents: caseDocuments.length
+      documents: Math.max(caseDocuments.length, uploadItems.length)
     };
     return (
       <CaseHeader
@@ -5254,7 +5472,13 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const renderOverviewWorkspace = () => (
     <OverviewStage
       caseDocumentsLength={caseDocuments.length}
-      onGoToDocuments={() => setCurrentStep(STEP_DOCUMENTS)}
+      onGoToDocuments={() => {
+        setDocumentsPhase(caseDocuments.length > 0 ? 'review' : 'intake');
+        setCurrentStep(STEP_DOCUMENTS);
+      }}
+      onGoToReport={handleAttemptOverviewReport}
+      canGoToReport={caseDocuments.length > 0}
+      reportBlockedMessage={reportAccessNotice}
       overviewSummaryCards={overviewSummaryCards}
       allRequirementsMet={allRequirementsMet}
       allRequirementsMetDetail={allRequirementsMetDetail}
@@ -5262,16 +5486,17 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       onOpenContextNote={() => setContextNoteOpen(true)}
       onDismissHighRejectionPrompt={() => setHighRejectionPromptDismissed(true)}
       complianceContent={renderComplianceByCodeArea()}
-      onGoToReport={() => setCurrentStep(STEP_REPORT)}
-      canGoToReport={Boolean(activeDocId) && caseDocuments.length > 0}
     />
   );
 
   const renderProcessingWorkspace = () => (
     <ProcessingStage
+      analysisTitle={analysisTitle}
       analysisMessage={analysisMessage}
       analysisProgress={analysisProgress}
       analysisStageIndex={analysisStageIndex}
+      analysisSteps={activeProcessingSteps}
+      analysisCompletionLabel={analysisCompletionLabel}
     />
   );
 
@@ -5280,6 +5505,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       availableFindings={availableFindings}
       onGoToDocumentsTab={() => {
         setCurrentStep(STEP_DOCUMENTS);
+        setDocumentsPhase('review');
         setDocumentWorkspaceTab('lifecycle');
       }}
       hasGeneratedReport={hasGeneratedReport}
@@ -5329,6 +5555,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       handleDeleteObservation={handleDeleteObservation}
       notAssessedAreas={notAssessedAreas}
       reportAppendixRows={reportAppendixRows}
+      reportExportRef={reportExportRef}
     />
   );
 
@@ -5347,32 +5574,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           </div>
         );
       case STEP_HISTORY:
-        return (
-          <HistoryStage
-            reportPendingChanges={reportPendingChanges}
-            pendingReprocessSummary={pendingReprocessSummary}
-            onReprocessNow={() => {
-              setDocsMarkedForReprocess({});
-              setPendingScopeChangeCount(0);
-              setReportPendingChanges(false);
-              setAnalysisProgress(8);
-              setAnalysisRunning(true);
-              setCurrentStep(STEP_PROCESSING);
-            }}
-            onOpenHistoryFinding={handleOpenHistoryFinding}
-            currentCaseMeta={currentCaseMeta}
-            hasInspectionHistory={hasInspectionHistory}
-            historyTrendRows={historyTrendRows}
-            historyFindingsRows={historyFindingsRows}
-            currentCaseOutcome={currentCaseOutcome}
-            formatOutcomeLabel={formatOutcomeLabel}
-            reviewedCount={reviewedCount}
-            availableFindingsCount={availableFindings.length}
-            recurringFindingCount={recurringFindingCount}
-            onBackToOverview={() => setCurrentStep(STEP_OVERVIEW)}
-            onOpenReport={() => setCurrentStep(STEP_REPORT)}
-          />
-        );
+        return renderOverviewWorkspace();
       case STEP_REPORT:
         return renderReportWorkspace();
       default:
@@ -5400,7 +5602,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       : appMode === 'caseSetup'
         ? 'New Inspection Case'
         : 'Dashboard';
-  const shellShowHeaderContext = !(appMode === 'inspection' && currentStep === STEP_VIEWER);
   const shellShowHeaderContextChevron = false;
   const shellCompactHeader = appMode === 'inspection' && currentStep === STEP_VIEWER;
   const shellShowAssistant =
@@ -5410,23 +5611,13 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       ? 'Use the dashboard to open an existing inspection case or start a new one.'
       : appMode === 'caseSetup'
         ? 'Set the inspection scope, case properties and parties before uploading evidence.'
-        : currentStep === STEP_DOCUMENTS
-          ? 'Upload evidence, confirm the rows you want included, and then generate findings for this case.'
-          : currentStep === STEP_PROCESSING
-            ? 'The case is being analysed. Progress updates and results are written back into the workspace as processing completes.'
-            : currentStep === STEP_OVERVIEW
-              ? 'Review findings by requirement and code area, then confirm, reject or dismiss them before reporting.'
-              : currentStep === STEP_VIEWER
-                ? 'Inspect the source document, highlights and linked findings side by side, then jump back to the related requirement if needed.'
-                : currentStep === STEP_HISTORY
-                  ? 'Review the case timeline, previous inspection context and recurring issues for this practice.'
-                  : 'Generate, edit and export the inspection report and action plan for the current case.';
+        : '';
   const handleJumpToRequirement = useCallback(
     (finding) => {
       const areaId = normalizeCodeAreaId(safeText(finding?.codeArea || finding?.code_area, ''));
       const requirementId = safeText(finding?.requirementId || finding?.requirement_id, '');
       if (areaId) {
-        setExpandedCodeAreaId(areaId);
+        setExpandedCodeAreaIds((prev) => ({ ...prev, [areaId]: true }));
       }
       setOverviewRequirementFilter(areaId ? { areaId, requirementId } : { areaId: '', requirementId: '' });
       setCurrentStep(STEP_OVERVIEW);
@@ -5437,7 +5628,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     if (appMode === 'inspection') {
       const caseTabCounts = {
         overview: pendingReviewCount,
-        documents: caseDocuments.length
+        documents: Math.max(caseDocuments.length, uploadItems.length)
       };
 
       return [
@@ -5447,17 +5638,15 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           detail: 'All inspection cases',
           onSelect: handleGoHome
         },
-        ...CASE_TABS.map((tab) => ({
+        ...CASE_TABS.filter((tab) => tab.step <= maxStepUnlocked).map((tab) => ({
           id: tab.id,
           label: tab.label,
           detail:
             tab.id === 'overview'
               ? 'Review findings'
               : tab.id === 'documents'
-                ? 'Upload and verify evidence'
-                : tab.id === 'history'
-                  ? 'Timeline and recurring items'
-                  : 'Generate and export output',
+                ? 'Select and classify evidence'
+                : 'Generate and export output',
           count: Object.prototype.hasOwnProperty.call(caseTabCounts, tab.id) ? caseTabCounts[tab.id] : undefined,
           disabled: tab.step > maxStepUnlocked,
           showAlert: tab.id === 'report' && reportStale,
@@ -5478,7 +5667,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           id: 'case-setup',
           label: 'New Case',
           detail: 'Set up inspection scope',
-          onSelect: () => setAppMode('caseSetup')
+          onSelect: handleOpenNewCase
         }
       ];
     }
@@ -5496,9 +5685,11 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     caseDocuments.length,
     handleCaseTabNavigate,
     handleGoHome,
+    handleOpenNewCase,
     maxStepUnlocked,
     pendingReviewCount,
-    reportStale
+    reportStale,
+    uploadItems.length
   ]);
   const shellActiveNavigationId =
     appMode === 'inspection'
@@ -5525,7 +5716,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         assistantOpen={false}
         appTitle={shellAppTitle}
         headerContext={shellHeaderContext}
-        showHeaderContext
+        showHeaderContext={false}
         showHeaderContextChevron={false}
         compactHeader={false}
         showNavigationMenu
@@ -5550,7 +5741,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         assistantOpen={false}
         appTitle={shellAppTitle}
         headerContext={shellHeaderContext}
-        showHeaderContext
+        showHeaderContext={false}
         showHeaderContextChevron={false}
         compactHeader={false}
         showNavigationMenu
@@ -5575,7 +5766,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         assistantOpen={shellShowAssistant && reggieOpen}
         appTitle={shellAppTitle}
         headerContext={shellHeaderContext}
-        showHeaderContext={shellShowHeaderContext}
+        showHeaderContext={false}
         showHeaderContextChevron={shellShowHeaderContextChevron}
         compactHeader={shellCompactHeader}
         showNavigationMenu
@@ -5653,9 +5844,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
                 },
                 ...prev
               ]);
-              setAnalysisProgress(8);
-              setAnalysisRunning(true);
-              setCurrentStep(STEP_PROCESSING);
+              startProcessingRun(PROCESSING_MODE_FINDINGS);
             }}
           />
           <ReportRegenerateModal

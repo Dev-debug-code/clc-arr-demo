@@ -195,7 +195,7 @@ export function prepareUploadDraft(uploadItem) {
     status: coerceText(uploadItem?.status) || (sampleMetadata ? 'classified' : 'queued'),
     classification: coerceText(uploadItem?.classification) || sampleMetadata?.classification || 'Unknown',
     parties: coerceText(uploadItem?.parties) || sampleMetadata?.parties || 'Firm',
-    confidence: coerceText(uploadItem?.confidence) || sampleMetadata?.confidence || 'low',
+    confidence: coerceText(uploadItem?.confidence),
     summary:
       coerceText(uploadItem?.summary) ||
       sampleMetadata?.summary ||

@@ -1,4 +1,4 @@
-import DocumentsManagePhase from './DocumentsManagePhase.jsx';
+import DocumentsIntakePhase from './DocumentsIntakePhase.jsx';
 import DocumentsUploadPhase from './DocumentsUploadPhase.jsx';
 
 export default function DocumentsStage({
@@ -56,6 +56,8 @@ export default function DocumentsStage({
   allUploadsVerified,
   handleConfirmAllUploads,
   handleGenerateFindings,
+  handleRunClassification,
+  handleRerunClassification,
   processingLog
 }) {
   const resolveConfidenceState = (value) => {
@@ -84,6 +86,15 @@ export default function DocumentsStage({
             time: '--:--'
           }
         ];
+  const reviewPhaseVisible =
+    documentsPhase === 'review' ||
+    uploadItems.some((item) => {
+      const normalizedItem = prepareUploadDraft(item);
+      return normalizedItem.status !== 'queued';
+    });
+  const visiblePhaseOptions = documentPhaseOptions.filter(
+    (phase) => phase.id === 'intake' || reviewPhaseVisible
+  );
 
   return (
     <div className="stage-card">
@@ -96,25 +107,42 @@ export default function DocumentsStage({
           className="visually-hidden"
           onChange={handleUploadFileSelection}
         />
-        <div className="docs-wireframe-phase-switch">
-          {documentPhaseOptions.map((phase) => (
-            <label key={phase.id} className="docs-phase-radio">
-              <input
-                type="radio"
-                name="documents-phase"
-                checked={documentsPhase === phase.id}
-                onChange={() => setDocumentsPhase(phase.id)}
-              />
-              {phase.label}
-            </label>
-          ))}
-        </div>
+        {visiblePhaseOptions.length > 1 ? (
+          <div className="docs-wireframe-phase-switch" role="tablist" aria-label="Document workflow stages">
+            {visiblePhaseOptions.map((phase) => (
+              <button
+                key={phase.id}
+                type="button"
+                role="tab"
+                aria-selected={documentsPhase === phase.id}
+                className={`docs-phase-tab${documentsPhase === phase.id ? ' active' : ''}`}
+                onClick={() => setDocumentsPhase(phase.id)}
+              >
+                {phase.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
-        {documentsPhase === 'upload' ? (
-          <DocumentsUploadPhase
+        {documentsPhase === 'intake' ? (
+          <DocumentsIntakePhase
             uploadAreaCollapsed={uploadAreaCollapsed}
             setUploadAreaCollapsed={setUploadAreaCollapsed}
             openDocumentsFilePicker={openDocumentsFilePicker}
+            handleUploadDrop={handleUploadDrop}
+            uploadItems={uploadItems}
+            formatShortDisplayDate={formatShortDisplayDate}
+            currentCaseMeta={currentCaseMeta}
+            toIsoDate={toIsoDate}
+            handleRunClassification={handleRunClassification}
+          />
+        ) : (
+          <DocumentsUploadPhase
+            setDocumentsPhase={setDocumentsPhase}
+            openDocumentsFilePicker={openDocumentsFilePicker}
+            handleRerunClassification={handleRerunClassification}
+            uploadAreaCollapsed={uploadAreaCollapsed}
+            setUploadAreaCollapsed={setUploadAreaCollapsed}
             handleUploadDrop={handleUploadDrop}
             uploadItems={uploadItems}
             prepareUploadDraft={prepareUploadDraft}
@@ -161,12 +189,6 @@ export default function DocumentsStage({
             handleConfirmAllUploads={handleConfirmAllUploads}
             handleGenerateFindings={handleGenerateFindings}
             processingEntries={processingEntries}
-          />
-        ) : (
-          <DocumentsManagePhase
-            documentRows={documentRows}
-            setDocumentsPhase={setDocumentsPhase}
-            openDocumentsFilePicker={openDocumentsFilePicker}
           />
         )}
       </div>

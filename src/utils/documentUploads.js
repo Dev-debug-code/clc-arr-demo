@@ -47,17 +47,24 @@ export const DOCUMENT_CLASSIFICATION_GROUPS = [
   {
     id: 'financial_record',
     label: 'Financial Record',
-    options: ['Bank Statement']
+    options: ['Bank Statement', 'Giftor Source of Funds']
   },
   {
     id: 'compliance_record',
     label: 'Compliance Record',
-    options: ['CDD Records', 'Training Register']
+    options: ['CDD Records', 'Training Register', 'Client Risk Assessment', 'Sanctions Screening', 'PEP Screening']
   },
   {
     id: 'client_matter_document',
     label: 'Client Matter Document',
-    options: ['Fee Estimate', 'Source of Funds Declaration']
+    options: [
+      'Fee Estimate',
+      'Source of Funds Declaration',
+      'Identity Verification',
+      'Proof of Address',
+      'Gift Letter',
+      'Giftor ID Verification'
+    ]
   },
   {
     id: 'communications_and_interviews',
@@ -306,8 +313,11 @@ export const normalizeUploadDraft = (uploadItem) => {
   const explicitStatus = normalizeText(safeUploadItem?.status).toLowerCase();
   const mappedWorkflowStatus = mapProcessingStatusToWorkflowStatus(processingStatus, classificationLabel);
   const uiWorkflowStatus = ['queued', 'classified', 'verified', 'attention'].includes(explicitStatus) ? explicitStatus : '';
-  const classificationConfidence =
-    safeUploadItem?.classification_confidence ?? safeUploadItem?.classificationConfidence ?? safeUploadItem?.confidence ?? null;
+  const persistedClassificationConfidence =
+    safeUploadItem?.classification_confidence ?? safeUploadItem?.classificationConfidence ?? null;
+  const uiConfidence = safeUploadItem?.confidence ?? null;
+  const normalizedPersistedClassificationConfidence = normalizeConfidenceLabel(persistedClassificationConfidence);
+  const normalizedUiConfidence = normalizeConfidenceLabel(uiConfidence);
   const processingPath = normalizeText(safeUploadItem?.processing_path ?? safeUploadItem?.processingPath);
   const featuresFound = Array.isArray(safeUploadItem?.features_found)
     ? safeUploadItem.features_found
@@ -325,6 +335,20 @@ export const normalizeUploadDraft = (uploadItem) => {
     : (mappedWorkflowStatus && (!uiWorkflowStatus || uiWorkflowStatus === 'queued'))
       ? mappedWorkflowStatus
       : uiWorkflowStatus || 'queued';
+  const derivedConfidence =
+    normalizedPersistedClassificationConfidence ||
+    (
+      normalizedUiConfidence &&
+      (classificationLabel === 'Unknown' || limitedAnalysis || classificationL2 === DOCUMENT_CLASSIFICATION_OTHER_OPTION)
+        ? normalizedUiConfidence
+        :
+        ''
+    ) ||
+    (classificationLabel === 'Unknown'
+      ? 'low'
+      : limitedAnalysis || classificationL2 === DOCUMENT_CLASSIFICATION_OTHER_OPTION
+        ? 'low'
+        : 'high');
 
   return {
     ...safeUploadItem,
@@ -332,9 +356,9 @@ export const normalizeUploadDraft = (uploadItem) => {
     confirmed,
     processingStatus,
     processing_status: processingStatus,
-    confidence: normalizeConfidenceLabel(classificationConfidence) || normalizeConfidenceLabel(safeUploadItem?.confidence) || 'low',
-    classificationConfidence: classificationConfidence,
-    classification_confidence: classificationConfidence,
+    confidence: derivedConfidence,
+    classificationConfidence: persistedClassificationConfidence,
+    classification_confidence: persistedClassificationConfidence,
     classification: classificationLabel,
     classificationL1,
     classificationL2,

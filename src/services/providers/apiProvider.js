@@ -734,6 +734,9 @@ export async function loadCaseWorkspaceData(caseId) {
       intervieweeRole: documentRow.interview_role || documentRow.interviewRole || '',
       interviewDate: documentRow.interview_date || documentRow.interviewDate || '',
       confidence: documentRow.confidence,
+      classificationReason: documentRow.classification_reason || documentRow.classificationReason || '',
+      classificationJustification:
+        documentRow.classification_justification || documentRow.classificationJustification || '',
       summary: documentRow.summary
     })
   );
@@ -1185,6 +1188,16 @@ export async function persistUploadItem({ caseId, uploadItem }) {
       getUploadClassificationPersistenceValue(normalizedUploadItem)
     ),
     parties: String(normalizedUploadItem.parties || '').trim().toLowerCase() || null,
+    classification_reason:
+      String(
+        normalizedUploadItem.classificationReason ?? normalizedUploadItem.classification_reason ?? ''
+      ).trim() || null,
+    classification_justification:
+      String(
+        normalizedUploadItem.classificationJustification ??
+          normalizedUploadItem.classification_justification ??
+          ''
+      ).trim() || null,
     confirmed: normalizedUploadItem.status === 'verified'
   };
 

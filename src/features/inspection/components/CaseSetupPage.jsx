@@ -1,4 +1,9 @@
-import { FOCUS_AREA_OPTIONS } from '../config.js';
+import {
+  CASE_ACTING_FOR_LENDER_OPTIONS,
+  CASE_AML_TIER_OPTIONS,
+  CASE_TRANSACTION_TYPE_OPTIONS,
+  FOCUS_AREA_OPTIONS
+} from '../config.js';
 import { formatShortDisplayDate, toDateInputValue } from '../helpers.js';
 
 export default function CaseSetupPage({
@@ -18,6 +23,12 @@ export default function CaseSetupPage({
   caseSetupHofa,
   caseSetupRiskLevel,
   setCaseSetupRiskLevel,
+  caseSetupTransactionType,
+  setCaseSetupTransactionType,
+  caseSetupActingForLender,
+  setCaseSetupActingForLender,
+  caseSetupAmlTier,
+  setCaseSetupAmlTier,
   caseSetupPreviousInspection,
   caseSetupConcerns,
   setCaseSetupConcerns,
@@ -50,16 +61,16 @@ export default function CaseSetupPage({
   return (
     <div className="case-setup-shell">
       <div className="case-setup-back">
-        <a
-          href="#"
-          className="back-link"
+        <button
+          type="button"
+          className="case-setup-back-button"
           onClick={(event) => {
-            event.preventDefault();
             onBackToDashboard();
           }}
         >
-          ← Back to Dashboard
-        </a>
+          <span aria-hidden="true">←</span>
+          <span>Back to Dashboard</span>
+        </button>
       </div>
       {caseCreateError ? <div className="alert alert-warning small">{caseCreateError}</div> : null}
       <h1>New Inspection Case</h1>
@@ -102,7 +113,7 @@ export default function CaseSetupPage({
             <p>{matchedPractice.name || 'Matched practice'}. History will be linked automatically.</p>
             <button
               type="button"
-              className="btn btn-xs secondary"
+              className="btn btn-secondary btn-sm"
               onClick={() => {
                 const matchedLicenceNumber = String(matchedPractice.licence_number || '').trim();
                 if (matchedLicenceNumber) {
@@ -150,10 +161,53 @@ export default function CaseSetupPage({
       </section>
 
       <section className="case-setup-section">
-        <h3>
-          Inspection Context <span className="panel-subtitle">Optional</span>
-        </h3>
+        <h3>Case Properties</h3>
+        <p className="panel-subtitle" style={{ marginBottom: '12px' }}>
+          These inputs shape which checks are selected and how the case is risk-rated for the demo.
+        </p>
         <div className="case-setup-grid">
+          <label>
+            Transaction type
+            <select
+              value={caseSetupTransactionType}
+              onChange={(event) => setCaseSetupTransactionType(event.target.value)}
+            >
+              <option value="">Select transaction type</option>
+              {CASE_TRANSACTION_TYPE_OPTIONS.map((option) => (
+                <option key={`transaction-type-${option.value}`} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Acting for lender
+            <select
+              value={caseSetupActingForLender}
+              onChange={(event) => setCaseSetupActingForLender(event.target.value)}
+            >
+              <option value="">Select an option</option>
+              {CASE_ACTING_FOR_LENDER_OPTIONS.map((option) => (
+                <option key={`acting-for-lender-${option.value}`} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            AML tier
+            <select
+              value={caseSetupAmlTier}
+              onChange={(event) => setCaseSetupAmlTier(event.target.value)}
+            >
+              <option value="">Select AML tier</option>
+              {CASE_AML_TIER_OPTIONS.map((option) => (
+                <option key={`aml-tier-${option.value}`} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <label>
             Risk level
             <select
@@ -166,6 +220,14 @@ export default function CaseSetupPage({
               <option value="high">High</option>
             </select>
           </label>
+        </div>
+      </section>
+
+      <section className="case-setup-section">
+        <h3>
+          Inspection Context <span className="panel-subtitle">Optional</span>
+        </h3>
+        <div className="case-setup-grid">
           <label>
             Previous inspection
             <input
@@ -178,6 +240,9 @@ export default function CaseSetupPage({
 
         <label>
           Focus areas
+          <p className="panel-subtitle" style={{ margin: '6px 0 10px' }}>
+            All code areas start selected. Use the quick-select buttons to scope the inspection.
+          </p>
           <div className="case-setup-focus-list">
             {FOCUS_AREA_OPTIONS.map((area) => (
               <label key={area.id} className="case-setup-checkbox">
@@ -192,16 +257,19 @@ export default function CaseSetupPage({
           </div>
         </label>
         <div className="case-setup-quick-select">
-          <button type="button" className="btn btn-xs ghost" onClick={handleSelectAllFocusAreas}>
+          <button type="button" className="btn btn-tertiary btn-sm" onClick={handleSelectAllFocusAreas}>
             Select all
           </button>
-          <button type="button" className="btn btn-xs ghost" onClick={handleDeselectAllFocusAreas}>
+          <button type="button" className="btn btn-tertiary btn-sm" onClick={handleDeselectAllFocusAreas}>
             Deselect all
           </button>
-          <button type="button" className="btn btn-xs secondary" onClick={handleApplyAmlPreset}>
-            AML desk review preset
+          <button type="button" className="btn btn-tertiary btn-sm" onClick={handleApplyAmlPreset}>
+            Populate from risk register
           </button>
         </div>
+        <p className="panel-subtitle" style={{ marginTop: '8px' }}>
+          Suggests the demo focus areas and case properties from the prior risk profile.
+        </p>
         {selectedFocusAreaIds.size === 0 ? (
           <p className="case-setup-error">Select at least one focus area.</p>
         ) : null}
@@ -253,7 +321,7 @@ export default function CaseSetupPage({
                 </select>
                 <button
                   type="button"
-                  className="btn btn-xs ghost party-remove-btn"
+                  className="btn btn-ghost btn-sm party-remove-btn"
                   onClick={() => handleRemovePartyRow(party.id)}
                   title="Remove"
                   aria-label="Remove party row"
@@ -263,7 +331,7 @@ export default function CaseSetupPage({
               </div>
             ))}
           </div>
-          <button type="button" className="btn btn-xs ghost" onClick={handleAddPartyRow}>
+          <button type="button" className="btn btn-tertiary btn-sm" onClick={handleAddPartyRow}>
             + Add party
           </button>
         </div>
@@ -299,7 +367,7 @@ export default function CaseSetupPage({
             </p>
             <button
               type="button"
-              className="btn btn-xs secondary upload-placeholder-btn"
+              className="btn btn-secondary btn-sm upload-placeholder-btn"
               onClick={(event) => {
                 event.stopPropagation();
                 caseSetupFileInputRef.current?.click();
@@ -324,7 +392,7 @@ export default function CaseSetupPage({
               <span>📄 {caseSetupQuestionnaireFile}</span>
               <button
                 type="button"
-                className="btn btn-xs ghost"
+                className="btn btn-ghost btn-sm"
                 title="Remove file"
                 aria-label="Remove file"
                 onClick={() => {
@@ -345,7 +413,7 @@ export default function CaseSetupPage({
       <div className="action-bar">
         <a
           href="#"
-          className="btn ghost"
+          className="btn btn-ghost"
           onClick={(event) => {
             event.preventDefault();
             onBackToDashboard();
@@ -355,7 +423,7 @@ export default function CaseSetupPage({
         </a>
         <button
           type="button"
-          className="btn primary"
+          className="btn btn-primary"
           onClick={handleCreateCase}
           disabled={!isCreateEnabled || isCreatingCase}
         >

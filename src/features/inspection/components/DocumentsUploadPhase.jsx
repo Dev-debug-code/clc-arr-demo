@@ -3,11 +3,20 @@ import { useEffect, useMemo, useState } from 'react';
 const SOURCE_CLASSIFICATION_ENTRIES = [
   { groupLabel: 'Policy Document', optionLabel: 'AML Policy' },
   { groupLabel: 'Financial Record', optionLabel: 'Bank Statement' },
+  { groupLabel: 'Financial Record', optionLabel: 'Giftor Source of Funds' },
   { groupLabel: 'Compliance Record', optionLabel: 'CDD Records' },
   { groupLabel: 'Compliance Record', optionLabel: 'Training Register' },
+  { groupLabel: 'Compliance Record', optionLabel: 'Client Risk Assessment' },
+  { groupLabel: 'Compliance Record', optionLabel: 'Sanctions Screening' },
+  { groupLabel: 'Compliance Record', optionLabel: 'PEP Screening' },
   { groupLabel: 'Communications & Interviews', optionLabel: 'Interview Transcript' },
   { groupLabel: 'Policy Document', optionLabel: 'Complaints Procedure' },
-  { groupLabel: 'Client Matter Document', optionLabel: 'Fee Estimate' }
+  { groupLabel: 'Client Matter Document', optionLabel: 'Fee Estimate' },
+  { groupLabel: 'Client Matter Document', optionLabel: 'Identity Verification' },
+  { groupLabel: 'Client Matter Document', optionLabel: 'Proof of Address' },
+  { groupLabel: 'Client Matter Document', optionLabel: 'Gift Letter' },
+  { groupLabel: 'Client Matter Document', optionLabel: 'Giftor ID Verification' },
+  { groupLabel: 'Client Matter Document', optionLabel: 'Source of Funds Declaration' }
 ];
 
 const buildClassificationEntries = (documentClassificationGroups, currentValue, currentGroupLabel) => {
@@ -60,10 +69,10 @@ const buildClassificationGroups = (documentClassificationGroups, otherOption, cu
 };
 
 export default function DocumentsUploadPhase({
+  setDocumentsPhase,
   uploadAreaCollapsed,
-  setUploadAreaCollapsed,
   openDocumentsFilePicker,
-  handleUploadDrop,
+  handleRerunClassification,
   uploadItems,
   prepareUploadDraft,
   formatUploadClassificationLabel,
@@ -110,14 +119,14 @@ export default function DocumentsUploadPhase({
   processingEntries,
   hasViewedUploadTableEnd
 }) {
+  void openDocumentsFilePicker;
+  void uploadAreaCollapsed;
   void stepDocuments;
   void verifiedUploadCount;
   void incompleteInterviewUploadCount;
   void processingEntries;
 
   const [classificationGroupByUploadId, setClassificationGroupByUploadId] = useState({});
-  const [partyInputUploadId, setPartyInputUploadId] = useState('');
-  const [partyInputValue, setPartyInputValue] = useState('');
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -129,8 +138,6 @@ export default function DocumentsUploadPhase({
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
         setActiveClassificationMenu(null);
-        setPartyInputUploadId('');
-        setPartyInputValue('');
       }
     };
 
@@ -156,65 +163,50 @@ export default function DocumentsUploadPhase({
       isUploadLimitedAnalysis(normalizedItem)
     );
   }).length;
+  const generateFindingsBlockedReason =
+    unclassifiedUploadCount > 0
+      ? `Classify all ${unclassifiedUploadCount} remaining document${unclassifiedUploadCount === 1 ? '' : 's'} first.`
+      : incompleteInterviewUploadCount > 0
+        ? `Complete the interview details for ${incompleteInterviewUploadCount} transcript${incompleteInterviewUploadCount === 1 ? '' : 's'} before continuing.`
+        : unverifiedUploadCount > 0
+          ? `Confirm all ${unverifiedUploadCount} document${unverifiedUploadCount === 1 ? '' : 's'} before generating findings.`
+          : '';
 
   return (
     <div className="docs-wireframe-phase">
-      {uploadAreaCollapsed ? (
-        <button type="button" className="upload-collapsed" onClick={() => setUploadAreaCollapsed(false)}>
-          + Add more documents
-        </button>
-      ) : (
-        <div
-          className="upload-area"
-          role="button"
-          tabIndex={0}
-          onClick={openDocumentsFilePicker}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              openDocumentsFilePicker();
-            }
-          }}
-          onDragOver={(event) => {
-            event.preventDefault();
-          }}
-          onDrop={handleUploadDrop}
-        >
-          <div className="upload-icon">☁</div>
-          <div className="upload-title">Drop files here or click to upload</div>
-          <div className="upload-subtitle">PDF documents up to 32MB each</div>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={(event) => {
-              event.stopPropagation();
-              openDocumentsFilePicker();
-            }}
-          >
-            Choose files
-          </button>
-        </div>
-      )}
-
       <div className="section-heading">
         <h2>
-          Uploaded Documents <span className="docs-count-inline">({uploadItems.length})</span>
+          Classification review <span className="docs-count-inline">({uploadItems.length})</span>
         </h2>
+        <div className="section-heading-actions">
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDocumentsPhase('intake')}>
+            Back to document intake
+          </button>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={handleRerunClassification}>
+            Re-run AI classification
+          </button>
+        </div>
       </div>
+
+      <p className="panel-subtitle docs-phase-intro">
+        Review the AI classifications, override anything that looks wrong, and confirm the rows you want used before
+        generating findings.
+      </p>
 
       {uploadItems.length === 0 ? (
         <div className="empty-state-inline">
-          <h4>No uploads queued</h4>
-          <p>Add documents to begin classification and verification.</p>
+          <h4>No classified documents yet</h4>
+          <p>Go back to document intake to add files and run AI classification first.</p>
         </div>
       ) : (
         <table className="table docs-wire-table docs-wire-table--phase-one">
           <thead>
             <tr>
-              <th style={{ width: '40px' }}>✓</th>
-              <th>Name</th>
+              <th style={{ width: '104px' }}>Confirm</th>
               <th>Classification</th>
-              <th>Parties</th>
+              <th>Name</th>
+              <th>Reason</th>
+              <th>Justification</th>
               <th style={{ width: '100px' }}>Confidence</th>
               <th style={{ width: '80px' }}>Added</th>
             </tr>
@@ -228,17 +220,20 @@ export default function DocumentsUploadPhase({
               const isVerified =
                 normalizedItem.status === 'verified' && isUploadReadyForConfirmation(normalizedItem);
               const isReadyForConfirmation = isUploadReadyForConfirmation(normalizedItem);
-              const showSummary = expandedUploadSummaryId === item.id && textOf(item.summary, '');
               const confidenceState = resolveConfidenceState(normalizedItem.confidence);
-              const parties = textOf(normalizedItem.parties, '')
-                .split(',')
-                .map((entry) => entry.trim())
-                .filter(Boolean);
               const interviewees = normalizeUploadInterviewees(normalizedItem);
               const isInterviewTranscript = isInterviewTranscriptUpload(normalizedItem);
               const isLimitedAnalysis = isUploadLimitedAnalysis(normalizedItem);
               const isLowConfidence = confidenceState === 'attention';
               const linkedDocumentId = resolveLinkedDocumentId(normalizedItem);
+              const classificationReason = textOf(
+                normalizedItem.classificationReason ?? normalizedItem.classification_reason,
+                textOf(item.summary, '')
+              );
+              const classificationJustification = textOf(
+                normalizedItem.classificationJustification ?? normalizedItem.classification_justification,
+                ''
+              );
               const rowClassName = [isLowConfidence ? 'row-amber' : '', isUnknown ? 'row-warning' : '', isClassifying ? 'row-classifying' : '']
                 .filter(Boolean)
                 .join(' ');
@@ -274,52 +269,35 @@ export default function DocumentsUploadPhase({
                   className={rowClassName}
                   ref={index === uploadItems.length - 1 ? uploadTableLastRowRef : null}
                 >
-                  <td>
+                  <td className="docs-confirm-cell">
                     {isClassifying ? (
                       <span className="doc-status-icon classifying" title="Classifying...">
                         —
                       </span>
                     ) : (
-                      <button
-                        type="button"
-                        className={`doc-status-icon ${isVerified ? 'confirmed' : 'unconfirmed'}`}
-                        onClick={() => handleToggleUploadConfirmed(item.id)}
+                      <label
+                        className={`doc-confirm-toggle ${isVerified ? 'is-checked' : ''} ${
+                          !isReadyForConfirmation ? 'is-disabled' : ''
+                        }`}
                         title={
                           isUnknown
                             ? 'Select classification first'
                             : hasIncompleteUploadInterviewees(normalizedItem)
                               ? 'Complete interviewee details first'
                               : isVerified
-                                ? 'Click to unconfirm'
-                                : 'Click to confirm'
+                                ? 'Untick to remove this document from findings generation'
+                                : 'Tick to use this document for findings generation'
                         }
-                        disabled={!isReadyForConfirmation}
                       >
-                        {isVerified ? '✓' : '○'}
-                      </button>
-                    )}
-                  </td>
-                  <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {item.summary ? (
-                      <button
-                        type="button"
-                        className="summary-toggle-inline"
-                        onClick={() => setExpandedUploadSummaryId((prev) => (prev === item.id ? '' : item.id))}
-                      >
-                        {showSummary ? '▼' : '▶'}
-                      </button>
-                    ) : null}
-                    {linkedDocumentId ? (
-                      <button
-                        type="button"
-                        className="link-button"
-                        onClick={() => handleViewDocument(linkedDocumentId, null, null, stepDocuments)}
-                        title="Open document viewer"
-                      >
-                        {item.name}
-                      </button>
-                    ) : (
-                      item.name
+                        <input
+                          type="checkbox"
+                          checked={isVerified}
+                          disabled={!isReadyForConfirmation}
+                          onChange={() => handleToggleUploadConfirmed(item.id)}
+                          aria-label={`Use ${item.name} for findings generation`}
+                        />
+                        <span className="doc-confirm-toggle__control" aria-hidden="true" />
+                      </label>
                     )}
                   </td>
                   <td>
@@ -348,7 +326,7 @@ export default function DocumentsUploadPhase({
                           }}
                           aria-expanded={isClassificationMenuOpen}
                         >
-                          <span>{isUnknown ? '-- Select classification --' : classification}</span>
+                          <span>{isUnknown ? 'Choose document type' : classification}</span>
                           <span className="classification-trigger__chevron">
                             {isClassificationMenuOpen ? '▲' : '▼'}
                           </span>
@@ -356,52 +334,49 @@ export default function DocumentsUploadPhase({
 
                         {isClassificationMenuOpen && activeGroup ? (
                           <div className="classification-menu" onClick={(event) => event.stopPropagation()}>
-                            <div className="classification-menu__groups">
-                              {classificationGroups.map((group) => (
-                                <button
-                                  key={`${item.id}-${group.id}`}
-                                  type="button"
-                                  className={`classification-menu__group${group.label === activeGroup.label ? ' active' : ''}`}
-                                  onMouseEnter={() =>
-                                    setClassificationGroupByUploadId((prev) => ({
-                                      ...prev,
-                                      [item.id]: group.label
-                                    }))
-                                  }
-                                  onFocus={() =>
-                                    setClassificationGroupByUploadId((prev) => ({
-                                      ...prev,
-                                      [item.id]: group.label
-                                    }))
-                                  }
-                                  onClick={() =>
-                                    setClassificationGroupByUploadId((prev) => ({
-                                      ...prev,
-                                      [item.id]: group.label
-                                    }))
-                                  }
-                                >
-                                  {group.label}
-                                </button>
-                              ))}
-                            </div>
-                            <div className="classification-menu__options">
-                              <div className="classification-menu__heading">{activeGroup.label}</div>
-                              {activeGroup.options.map((optionLabel) => (
-                                <button
-                                  key={`${item.id}-${activeGroup.label}-${optionLabel}`}
-                                  type="button"
-                                  className={`classification-menu__option${
-                                    optionLabel === documentClassificationOtherOption ? ' classification-menu__option--limited' : ''
-                                  }`}
-                                  onClick={() =>
-                                    handleUploadClassificationSelect(item.id, activeGroup.label, optionLabel)
-                                  }
-                                >
-                                  {optionLabel}
-                                </button>
-                              ))}
-                            </div>
+                            <p className="classification-menu__hint">
+                              Choose the closest document category first, then the specific document type.
+                            </p>
+                            <label className="classification-menu__field">
+                              <span className="classification-menu__heading">Document category</span>
+                              <select
+                                className="classification-menu__select"
+                                value={activeGroup.label}
+                                onChange={(event) =>
+                                  setClassificationGroupByUploadId((prev) => ({
+                                    ...prev,
+                                    [item.id]: event.target.value
+                                  }))
+                                }
+                              >
+                                {classificationGroups.map((group) => (
+                                  <option key={`${item.id}-${group.id}`} value={group.label}>
+                                    {group.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className="classification-menu__field">
+                              <span className="classification-menu__heading">Document type</span>
+                              <select
+                                className="classification-menu__select"
+                                value={normalizedItem.classificationL1 === activeGroup.label ? normalizedItem.classificationL2 ?? '' : ''}
+                                onChange={(event) => {
+                                  if (!event.target.value) return;
+                                  handleUploadClassificationSelect(item.id, activeGroup.label, event.target.value);
+                                }}
+                              >
+                                <option value="">Select document type</option>
+                                {activeGroup.options.map((optionLabel) => (
+                                  <option
+                                    key={`${item.id}-${activeGroup.label}-${optionLabel}`}
+                                    value={optionLabel}
+                                  >
+                                    {optionLabel}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
                           </div>
                         ) : null}
 
@@ -505,71 +480,45 @@ export default function DocumentsUploadPhase({
                       </div>
                     )}
                   </td>
+                  <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
+                    {linkedDocumentId ? (
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => handleViewDocument(linkedDocumentId, null, null, stepDocuments)}
+                        title="Open document viewer"
+                      >
+                        {item.name}
+                      </button>
+                    ) : (
+                      item.name
+                    )}
+                  </td>
+                  <td>
+                    {isClassifying ? (
+                      <span className="classifying-text">
+                        <span className="spinner" />
+                        Re-running AI classification...
+                      </span>
+                    ) : (
+                      <div className="docs-reason-cell">
+                        {classificationReason || 'AI classification reason will appear here after processing.'}
+                      </div>
+                    )}
+                  </td>
                   <td>
                     {isClassifying ? (
                       <span className="dash-muted">—</span>
                     ) : (
-                      <div className="party-chip-row">
-                        {parties.map((party, partyIndex) => (
-                          <span key={`${item.id}-party-${party}-${partyIndex}`} className="party-chip">
-                            {party}
-                            <button
-                              type="button"
-                              className="chip-remove"
-                              onClick={() => {
-                                const nextParties = parties.filter((_, rowIndex) => rowIndex !== partyIndex);
-                                handleUploadFieldChange(item.id, 'parties', nextParties.join(', '));
-                              }}
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                        {partyInputUploadId === item.id ? (
-                          <input
-                            type="text"
-                            className="form-control form-control-sm party-chip-input"
-                            value={partyInputValue}
-                            placeholder="Party name..."
-                            onChange={(event) => setPartyInputValue(event.target.value)}
-                            onBlur={() => {
-                              const cleanValue = partyInputValue.trim();
-                              if (cleanValue) {
-                                handleUploadFieldChange(item.id, 'parties', [...parties, cleanValue].join(', '));
-                              }
-                              setPartyInputUploadId('');
-                              setPartyInputValue('');
-                            }}
-                            onKeyDown={(event) => {
-                              if (event.key === 'Enter') {
-                                event.preventDefault();
-                                const cleanValue = partyInputValue.trim();
-                                if (cleanValue) {
-                                  handleUploadFieldChange(item.id, 'parties', [...parties, cleanValue].join(', '));
-                                }
-                                setPartyInputUploadId('');
-                                setPartyInputValue('');
-                              }
-                              if (event.key === 'Escape') {
-                                setPartyInputUploadId('');
-                                setPartyInputValue('');
-                              }
-                            }}
-                            autoFocus
-                          />
-                        ) : (
-                          <button
-                            type="button"
-                            className="party-chip party-add"
-                            onClick={() => {
-                              setPartyInputUploadId(item.id);
-                              setPartyInputValue('');
-                            }}
-                          >
-                            + Add
-                          </button>
-                        )}
-                      </div>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        value={classificationJustification}
+                        placeholder="Optional reviewer note..."
+                        onChange={(event) =>
+                          handleUploadFieldChange(item.id, 'classificationJustification', event.target.value)
+                        }
+                      />
                     )}
                   </td>
                   <td>
@@ -583,16 +532,6 @@ export default function DocumentsUploadPhase({
                 </tr>
               ];
 
-              if (showSummary) {
-                rows.push(
-                  <tr key={`upload-summary-${item.id}`} className="summary-row">
-                    <td colSpan={6}>
-                      <div className="summary-block">{item.summary}</div>
-                    </td>
-                  </tr>
-                );
-              }
-
               return rows;
             })}
           </tbody>
@@ -600,10 +539,13 @@ export default function DocumentsUploadPhase({
       )}
 
       <div className="warning-messages">
+        <div className="warning-line muted">
+          Tick each confirm box after the classification looks right. Only confirmed rows are used for findings generation.
+        </div>
         {classificationCorrectionCount > 0 ? (
           <div className="warning-line amber">
             ⚠ {classificationCorrectionCount} document{classificationCorrectionCount === 1 ? '' : 's'} need
-            classification correction
+            classification attention before findings generation
           </div>
         ) : null}
         <div className="warning-line muted">
@@ -614,7 +556,7 @@ export default function DocumentsUploadPhase({
       <div className="bottom-actions">
         <button
           type="button"
-          className="btn btn-secondary"
+          className="btn btn-secondary btn-sm docs-bulk-confirm-btn"
           disabled={confirmableUploadCount === 0}
           onClick={() => {
             if (!window.confirm(`Confirm all remaining ${confirmableUploadCount} document${confirmableUploadCount === 1 ? '' : 's'}?`)) {
@@ -626,18 +568,23 @@ export default function DocumentsUploadPhase({
             !hasViewedUploadTableEnd ? 'Confirm all classifications' : 'Confirm all classified rows'
           }
         >
-          Confirm all remaining ({confirmableUploadCount})
+          {confirmableUploadCount > 0
+            ? `Confirm all classified rows (${confirmableUploadCount})`
+            : 'All classified rows confirmed'}
         </button>
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn btn-primary btn-lg"
           disabled={!allUploadsVerified}
           onClick={handleGenerateFindings}
-          title="All documents must be classified and confirmed before generating findings."
+          title={generateFindingsBlockedReason || 'Generate findings from the confirmed documents.'}
         >
           Generate findings
         </button>
       </div>
+      {generateFindingsBlockedReason ? (
+        <p className="empty-state-helper docs-action-helper">{generateFindingsBlockedReason}</p>
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,9 @@
 export default function OverviewStage({
   caseDocumentsLength,
   onGoToDocuments,
+  onGoToReport,
+  canGoToReport,
+  reportBlockedMessage,
   overviewSummaryCards,
   complianceContent,
   allRequirementsMet,
@@ -26,6 +29,10 @@ export default function OverviewStage({
           <div className="edge-empty-card__icon overview-all-met-icon">✓</div>
           <h3>All assessed requirements met</h3>
           <p>{allRequirementsMetDetail}</p>
+          <button type="button" className="btn primary" onClick={onGoToReport}>
+            Generate report
+          </button>
+          {reportBlockedMessage ? <p className="empty-state-helper">{reportBlockedMessage}</p> : null}
         </div>
       ) : null}
       {caseDocumentsLength > 0 && !allRequirementsMet ? (
@@ -59,6 +66,12 @@ export default function OverviewStage({
             ))}
           </div>
           {complianceContent}
+          <div className="bottom-actions">
+            <button type="button" className="btn primary" onClick={onGoToReport}>
+              Generate report
+            </button>
+          </div>
+          {reportBlockedMessage ? <p className="empty-state-helper">{reportBlockedMessage}</p> : null}
         </>
       ) : null}
     </div>

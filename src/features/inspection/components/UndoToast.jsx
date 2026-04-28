@@ -14,7 +14,7 @@ export default function UndoToast({ undoDecision, onUndo }) {
           </>
         ) : undoDecision.nextDecision === 'dismissed' ? (
           <>
-            Lead <strong>dismissed</strong>.
+            Guidance <strong>dismissed</strong>.
           </>
         ) : (
           'Decision cleared.'

@@ -40,7 +40,7 @@ export default function CaseHeader({
         </div>
       ) : null}
       <div className="case-header__tabs" role="tablist" aria-label="Case views">
-        {CASE_TABS.map((tab) => {
+        {CASE_TABS.filter((tab) => tab.step <= maxStepUnlocked).map((tab) => {
           const isActive = activeCaseTabId === tab.id;
           const isUnlocked = tab.step <= maxStepUnlocked;
           return (

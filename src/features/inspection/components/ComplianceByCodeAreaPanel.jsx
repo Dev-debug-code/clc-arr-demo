@@ -9,8 +9,8 @@ export default function ComplianceByCodeAreaPanel({
   availableFindings,
   findingMatchesCodeArea,
   getFindingBucketId,
-  expandedCodeAreaId,
-  setExpandedCodeAreaId,
+  expandedCodeAreaIds,
+  setExpandedCodeAreaIds,
   filteredFindings,
   overviewRequirementFilter,
   setOverviewRequirementFilter,
@@ -80,21 +80,29 @@ export default function ComplianceByCodeAreaPanel({
             const summarize = (areaId) => {
               const requirementRows = requirementsByCodeArea[areaId] ?? [];
               const areaFindings = availableFindings.filter((finding) => findingMatchesCodeArea(finding, areaId));
-              const attentionCount = areaFindings.filter((entry) => getFindingBucketId(entry) === 'critical').length;
-              const leadCount = areaFindings.filter((entry) => getFindingBucketId(entry) === 'warning').length;
+              const activeFindings = areaFindings.filter((finding) => {
+                const reviewState = findingDecisions[finding.id] ?? 'unreviewed';
+                return reviewState !== 'rejected' && reviewState !== 'dismissed';
+              });
+              const attentionCount = activeFindings.filter((entry) => getFindingBucketId(entry) === 'critical').length;
+              const leadCount = activeFindings.filter((entry) => getFindingBucketId(entry) === 'warning').length;
+              const pendingReviewCount = areaFindings.filter(
+                (finding) => (findingDecisions[finding.id] ?? 'unreviewed') === 'unreviewed'
+              ).length;
               const assessableRequirements = requirementRows.filter((entry) => !isRequirementExcluded(entry.status));
               const metRequirements = assessableRequirements.filter((entry) => isRequirementMet(entry.status)).length;
               return {
                 attentionCount,
                 leadCount,
+                pendingReviewCount,
                 metRequirements,
                 totalRequirements: assessableRequirements.length
               };
             };
             const leftStats = summarize(left.id);
             const rightStats = summarize(right.id);
-            const leftWeight = leftStats.attentionCount * 100 + leftStats.leadCount * 10;
-            const rightWeight = rightStats.attentionCount * 100 + rightStats.leadCount * 10;
+            const leftWeight = leftStats.attentionCount * 100 + leftStats.leadCount * 10 + leftStats.pendingReviewCount;
+            const rightWeight = rightStats.attentionCount * 100 + rightStats.leadCount * 10 + rightStats.pendingReviewCount;
             if (rightWeight !== leftWeight) return rightWeight - leftWeight;
             const leftCompliant =
               leftStats.attentionCount === 0 &&
@@ -116,8 +124,8 @@ export default function ComplianceByCodeAreaPanel({
               filteredFindings={filteredFindings}
               findingMatchesCodeArea={findingMatchesCodeArea}
               getFindingBucketId={getFindingBucketId}
-              expandedCodeAreaId={expandedCodeAreaId}
-              setExpandedCodeAreaId={setExpandedCodeAreaId}
+              expandedCodeAreaIds={expandedCodeAreaIds}
+              setExpandedCodeAreaIds={setExpandedCodeAreaIds}
               overviewRequirementFilter={overviewRequirementFilter}
               setOverviewRequirementFilter={setOverviewRequirementFilter}
               overviewFilterRef={overviewFilterRef}
@@ -176,6 +184,14 @@ export default function ComplianceByCodeAreaPanel({
           subtitle="Excluded from this inspection"
           actionLabel="Restore to assessment"
           onAction={handleRestoreNotAssessedArea}
+        />
+        <NotAssessedAreasPanel
+          expanded={notApplicableExpanded}
+          setExpanded={setNotApplicableExpanded}
+          entries={notApplicableAreas}
+          title="Not Applicable"
+          emptyText="No requirements marked as not applicable."
+          subtitle="Excluded from this case"
         />
       </div>
     </section>

@@ -159,14 +159,22 @@ export const auditFindings = rawDocuments.flatMap((doc) => {
   }
   return doc.findings.map((finding, index) => {
     const derivedId = finding.id ?? `${doc.file_id || doc.filename}-finding-${index + 1}`;
+    const severity = normaliseSeverity(finding.type, doc.severity);
+    const isGoodPractice = severity === 'best_practice';
+    const polarity = severity === 'pass' || isGoodPractice ? 'compliant' : 'non_compliant';
+    const certainty = severity === 'warning' ? 'lead' : 'finding';
     return {
       id: derivedId,
-      severity: normaliseSeverity(finding.type, doc.severity),
+      severity,
       codeArea: inferCodeArea(doc, finding),
       title: finding.title ?? doc.document_type,
       detail: finding.deviation ?? finding?.source?.text ?? '',
       documentId: doc.file_id ?? doc.filename,
       boxId: finding.id ?? derivedId,
+      certainty,
+      polarity,
+      isGoodPractice,
+      reviewStatus: 'unreviewed',
       source: finding.source,
       reference: finding.reference
     };

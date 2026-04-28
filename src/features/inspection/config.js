@@ -24,8 +24,8 @@ export const CASE_META = {
   holp: 'Sarah Chen',
   hofa: 'James Wright',
   transactionType: 'purchase',
-  actingForLender: false,
-  amlTier: 'standard',
+  actingForLender: true,
+  amlTier: 'enhanced',
   knownParties: []
 };
 
@@ -40,15 +40,14 @@ export const INSPECTION_LINEAR_FINAL_STEP = STEP_REPORT;
 export const WORKFLOW_STEP_CONFIG = [
   { id: 1, title: 'Dashboard', subtitle: 'Choose or resume a case' },
   { id: 2, title: 'Case Setup', subtitle: 'Create the inspection case' },
-  { id: 3, title: 'Documents', subtitle: 'Upload and verify evidence' },
-  { id: 4, title: 'Review', subtitle: 'Overview, viewer and history' },
+  { id: 3, title: 'Documents', subtitle: 'Select and classify evidence' },
+  { id: 4, title: 'Review', subtitle: 'Overview and viewer' },
   { id: 5, title: 'Report', subtitle: 'Generate and export output' }
 ];
 
 export const CASE_TABS = [
   { id: 'documents', label: 'Documents', step: STEP_DOCUMENTS },
   { id: 'overview', label: 'Overview', step: STEP_OVERVIEW },
-  { id: 'history', label: 'History', step: STEP_HISTORY },
   { id: 'report', label: 'Report', step: STEP_REPORT }
 ];
 
@@ -64,15 +63,15 @@ export const AI_PROCESSING_MESSAGES = [
   'Classifying documents and validating metadata...',
   'Extracting policy clauses, dates and parties...',
   'Running compliance checks across assessed code areas...',
-  'Linking evidence highlights to findings and leads...',
+  'Linking evidence highlights to findings and guidance...',
   'Preparing overview and reviewer actions...'
 ];
 
 export const INITIAL_HISTORY_ITEMS = [];
 
 export const DOCUMENT_PHASE_OPTIONS = [
-  { id: 'upload', label: 'Phase 1: Upload & Verify' },
-  { id: 'manage', label: 'Phase 2: Ongoing Management' }
+  { id: 'intake', label: '1. Select Documents' },
+  { id: 'review', label: '2. Review Classifications' }
 ];
 
 export const INITIAL_UPLOAD_ITEMS = [
@@ -101,7 +100,7 @@ export const INITIAL_UPLOAD_ITEMS = [
         contextNote: 'Present for AML supervision discussion.'
       }
     ],
-    confidence: 'medium',
+    confidence: 'high',
     summary:
       'Interview transcript indicates strong supervision controls and periodic compliance refresh activity.'
   })
@@ -154,6 +153,7 @@ export const MANUAL_CASE_LEVEL_SOURCE_OPTIONS = [
 
 export const FOCUS_AREA_OPTIONS = [
   { id: 'aml', label: 'Anti-Money Laundering & CTF' },
+  { id: 'cyber', label: 'Cyber Security & Cyber Essentials' },
   { id: 'accounts', label: 'Accounts Code' },
   { id: 'lenders', label: 'Acting for Lenders / Mortgage Fraud Prevention' },
   { id: 'insurance', label: 'Ancillary Insurance Intermediaries' },
@@ -193,7 +193,7 @@ export const CASE_AML_TIER_OPTIONS = [
   { value: 'simplified', label: 'Simplified' }
 ];
 
-export const AML_DESK_REVIEW_PRESET = ['aml', 'accounts', 'lenders', 'client-care', 'management'];
+export const RISK_REGISTER_PRESET = ['aml', 'cyber'];
 
 export const REGGIE_SUGGESTIONS = [
   'Source of funds documentation',
@@ -206,6 +206,7 @@ export const RECURRING_FINDING_IDS = new Set(['CRIT-003', 'WARN-002']);
 
 export const COMPLIANCE_CODE_AREAS = [
   { id: 'aml', name: 'Anti-Money Laundering & CTF', met: '6/9', attention: 3, goodPractice: 1, lead: 1 },
+  { id: 'cyber', name: 'Cyber Security & Cyber Essentials', met: '0/0' },
   { id: 'client-care', name: 'Client Care & Terms of Engagement', met: '3/6', attention: 3 },
   { id: 'accounts', name: 'Accounts Code', met: '5/6', attention: 1 },
   { id: 'management', name: 'Management & Supervision', met: '4/5', attention: 1 },
@@ -217,6 +218,7 @@ export const NOT_ASSESSED_AREAS = ['Insurance Distribution', 'Acting for Lenders
 export const VIEWER_CODE_AREA_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'aml', label: 'AML & CTF' },
+  { id: 'cyber', label: 'Cyber' },
   { id: 'accounts', label: 'Accounts Code' },
   { id: 'complaints', label: 'Complaints Code' },
   { id: 'conflicts', label: 'Conflicts of Interest' },
@@ -234,7 +236,7 @@ export const FINDING_FILTER_LABEL_MAP = {
   all: 'All',
   unreviewed: 'Unreviewed',
   reviewed: 'Reviewed',
-  leads: 'Leads',
+  leads: 'Guidance',
   non_compliant: 'Attention',
   compliant: 'Compliant',
   good_practice: 'Good Practice',
@@ -246,14 +248,14 @@ export const FINDING_FILTER_LABEL_MAP = {
 
 export const FINDING_SEVERITY_BADGE_MAP = {
   critical: 'Finding',
-  warning: 'Lead',
+  warning: 'Guidance',
   best_practice: 'Good practice',
   pass: 'Compliant'
 };
 
 export const SEVERITY_LABEL_MAP = {
   critical: 'Critical',
-  warning: 'Lead',
+  warning: 'Guidance',
   pass: 'Compliant',
   best_practice: 'Good Practice'
 };
@@ -273,15 +275,15 @@ export const CODE_AREA_REQUIREMENT_SAMPLES = {
   ],
   'client-care': [
     { id: 'cc-1', label: 'Terms of engagement issued', status: 'compliant' },
-    { id: 'cc-2', label: 'Scope communicated clearly', status: 'non_compliant' },
-    { id: 'cc-3', label: 'Fees transparency evidence', status: 'lead' }
+    { id: 'cc-2', label: 'Scope communicated clearly', status: 'compliant' },
+    { id: 'cc-3', label: 'Fees transparency evidence', status: 'compliant' }
   ],
   accounts: [
     { id: 'ac-1', label: 'Client account reconciliations', status: 'compliant' },
-    { id: 'ac-2', label: 'Residual balances controls', status: 'non_compliant' }
+    { id: 'ac-2', label: 'Residual balances controls', status: 'compliant' }
   ],
   management: [
-    { id: 'mg-1', label: 'Supervision process documented', status: 'lead' },
+    { id: 'mg-1', label: 'Supervision process documented', status: 'compliant' },
     { id: 'mg-2', label: 'Escalation route clear', status: 'compliant' }
   ],
   undertakings: [{ id: 'un-1', label: 'Undertakings register maintained', status: 'compliant' }],
@@ -315,6 +317,7 @@ export const CODE_AREA_KEYWORDS = {
     'risk assessment',
     'ctf'
   ],
+  cyber: ['cyber', 'cyber essentials', 'information security', 'phishing', 'firewall'],
   'client-care': ['client care', 'terms of engagement', 'engagement letter', 'client communication'],
   complaints: ['complaint', 'complaints', 'ombudsman'],
   management: ['management', 'supervision', 'mlro', 'governance', 'training'],
@@ -330,6 +333,9 @@ export const CODE_AREA_ALIASES = {
   'anti-money laundering': 'aml',
   'anti-money laundering ctf': 'aml',
   'anti-money laundering & ctf': 'aml',
+  cyber: 'cyber',
+  'cyber security': 'cyber',
+  'cyber essentials': 'cyber',
   complaints: 'complaints',
   'complaints code': 'complaints',
   'client care': 'client-care',

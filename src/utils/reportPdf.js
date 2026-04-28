@@ -1,3 +1,6 @@
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+
 const PDF_PAGE_WIDTH = 595.28;
 const PDF_PAGE_HEIGHT = 841.89;
 const PDF_MARGIN_X = 54;
@@ -117,6 +120,129 @@ function sanitizeFilename(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '') || 'case';
+}
+
+function buildDefaultReportFilename(filename, caseLabel) {
+  return filename || `CLC_Inspection_Report_${sanitizeFilename(caseLabel || 'case')}.pdf`;
+}
+
+async function waitForReportAssets(element) {
+  if (!element) return;
+
+  if (element.ownerDocument?.fonts?.ready) {
+    try {
+      await element.ownerDocument.fonts.ready;
+    } catch {
+      // Ignore font readiness failures and continue with best-effort capture.
+    }
+  }
+
+  const images = Array.from(element.querySelectorAll('img'));
+  await Promise.all(
+    images.map(
+      (image) =>
+        new Promise((resolve) => {
+          if (image.complete) {
+            resolve();
+            return;
+          }
+
+          const finalize = () => {
+            image.removeEventListener('load', finalize);
+            image.removeEventListener('error', finalize);
+            resolve();
+          };
+
+          image.addEventListener('load', finalize, { once: true });
+          image.addEventListener('error', finalize, { once: true });
+        })
+    )
+  );
+}
+
+export async function exportStyledInspectionReportPdf({
+  element,
+  filename = '',
+  caseLabel = ''
+}) {
+  if (!(element instanceof HTMLElement)) {
+    throw new Error('A rendered report element is required for styled PDF export.');
+  }
+
+  await waitForReportAssets(element);
+
+  const viewportScale =
+    typeof window !== 'undefined' && Number.isFinite(window.devicePixelRatio)
+      ? window.devicePixelRatio
+      : 1;
+  const captureScale = Math.max(2, Math.min(viewportScale, 3));
+  const sourceWidth = Math.max(element.scrollWidth, element.clientWidth, element.offsetWidth);
+
+  const canvas = await html2canvas(element, {
+    backgroundColor: '#ffffff',
+    useCORS: true,
+    logging: false,
+    scale: captureScale,
+    windowWidth: Math.max(element.scrollWidth, element.ownerDocument?.documentElement?.clientWidth || 0),
+    onclone: (clonedDocument) => {
+      const clonedRoot = clonedDocument.querySelector('[data-report-export-root="true"]');
+      if (!clonedRoot) return;
+
+      clonedRoot.style.width = `${sourceWidth}px`;
+      clonedRoot.style.maxWidth = `${sourceWidth}px`;
+      clonedRoot.style.margin = '0';
+      clonedRoot.style.border = 'none';
+      clonedRoot.style.borderRadius = '0';
+      clonedRoot.style.boxShadow = 'none';
+      clonedRoot.style.background = '#ffffff';
+
+      clonedDocument.body.style.margin = '0';
+      clonedDocument.body.style.background = '#ffffff';
+
+      clonedRoot.querySelectorAll('button, .add-action-row, .tooltip-text').forEach((node) => {
+        node.remove();
+      });
+
+      clonedRoot.querySelectorAll('[contenteditable="true"]').forEach((node) => {
+        node.setAttribute('contenteditable', 'false');
+        node.style.outline = 'none';
+        node.style.boxShadow = 'none';
+        node.style.background = 'transparent';
+      });
+    }
+  });
+
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'pt',
+    format: 'a4',
+    compress: true
+  });
+
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 12;
+  const printableWidth = pageWidth - margin * 2;
+  const printableHeight = pageHeight - margin * 2;
+  const renderedImageHeight = (canvas.height * printableWidth) / canvas.width;
+  const imageData = canvas.toDataURL('image/png');
+  let heightRemaining = renderedImageHeight;
+  let yOffset = margin;
+
+  pdf.addImage(imageData, 'PNG', margin, yOffset, printableWidth, renderedImageHeight, undefined, 'FAST');
+  heightRemaining -= printableHeight;
+
+  while (heightRemaining > 0) {
+    pdf.addPage();
+    yOffset = margin - (renderedImageHeight - heightRemaining - margin);
+    pdf.addImage(imageData, 'PNG', margin, yOffset, printableWidth, renderedImageHeight, undefined, 'FAST');
+    heightRemaining -= printableHeight;
+  }
+
+  return {
+    blob: pdf.output('blob'),
+    filename: buildDefaultReportFilename(filename, caseLabel)
+  };
 }
 
 function createPage() {
@@ -350,8 +476,7 @@ export function createInspectionReportPdf({
 
   const pageStreams = pages.map((page) => page.operations.join('\n'));
   const blob = buildPdfDocument(pageStreams);
-  const resolvedFilename =
-    filename || `CLC_Inspection_Report_${sanitizeFilename(caseMeta.caseId || caseMeta.practiceName || 'case')}.pdf`;
+  const resolvedFilename = buildDefaultReportFilename(filename, caseMeta.caseId || caseMeta.practiceName);
 
   return {
     blob,

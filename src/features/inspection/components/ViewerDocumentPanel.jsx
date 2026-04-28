@@ -1,5 +1,4 @@
 import PdfOverlayViewer from '../../../components/PdfOverlayViewer.jsx';
-import { CASE_TABS } from '../config.js';
 
 export default function ViewerDocumentPanel({
   docViewerRef,
@@ -32,21 +31,9 @@ export default function ViewerDocumentPanel({
         <div className="doc-panel-header-main">
           <div className="doc-top-nav">
             <div className="doc-top-nav-left">
-              <button
-                type="button"
-                className="btn btn-icon btn-xs ghost"
-                onClick={handleViewerBack}
-                disabled={viewerSelectionHistory.length === 0}
-                title={
-                  viewerSelectionHistory.length === 0
-                    ? 'No previous selection - use breadcrumb to navigate'
-                    : 'Go to previous selection'
-                }
-              >
-                ←
-              </button>
               <button type="button" className="doc-breadcrumb-link" onClick={() => setCurrentStep(viewerBackStep)}>
-                {viewerBackLabel}
+                <span aria-hidden="true">←</span>
+                <span>{`Back to ${viewerBackLabel}`}</span>
               </button>
             </div>
             <div className="doc-top-nav-center">
@@ -71,30 +58,6 @@ export default function ViewerDocumentPanel({
                 ▶
               </button>
             </div>
-          </div>
-          <div className="viewer-case-tabs" role="tablist" aria-label="Case views">
-            {CASE_TABS.map((tab) => {
-              const isUnlocked = tab.step <= maxStepUnlocked;
-              const isActive = activeCaseTabId === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`case-tab viewer-case-tab${isActive ? ' active' : ''}`}
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-disabled={!isUnlocked}
-                  disabled={!isUnlocked}
-                  onClick={() => {
-                    if (isUnlocked) {
-                      handleCaseTabNavigate(tab.step);
-                    }
-                  }}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
           </div>
         </div>
       </div>

@@ -97,6 +97,8 @@ export const deriveLegacyFindingSeverity = (finding) => {
   if (certainty === 'lead') return 'warning';
 
   const fallbackSeverity = String(finding?.severity || '').trim().toLowerCase();
+  if (fallbackSeverity === 'best_practice' || fallbackSeverity === 'pass') return fallbackSeverity;
+  if (fallbackSeverity === 'warning') return 'critical';
   return fallbackSeverity || 'critical';
 };
 
@@ -228,6 +230,14 @@ export const suggestClassificationFromFilename = (filename) => {
   const name = String(filename ?? '').toLowerCase();
   if (!name) return 'Other';
   if (name.includes('interview') || name.includes('mlro')) return 'Interview Transcript';
+  if (name.includes('pep')) return 'PEP Screening';
+  if (name.includes('sanction')) return 'Sanctions Screening';
+  if (name.includes('risk') && name.includes('assessment')) return 'Client Risk Assessment';
+  if (name.includes('proof') && name.includes('address')) return 'Proof of Address';
+  if (name.includes('giftor') && name.includes('id')) return 'Giftor ID Verification';
+  if (name.includes('giftor') && name.includes('source')) return 'Giftor Source of Funds';
+  if (name.includes('gift') && name.includes('letter')) return 'Gift Letter';
+  if (name.includes('identity') || (name.includes('client') && name.includes('id'))) return 'Identity Verification';
   if (name.includes('bank') || name.includes('statement')) return 'Bank Statement';
   if (name.includes('complaint')) return 'Complaints Procedure';
   if (name.includes('source') || name.includes('fund')) return 'Source of Funds Declaration';

@@ -1,13 +1,18 @@
-import { AI_PROCESSING_STEPS } from '../config.js';
-
-export default function ProcessingStage({ analysisMessage, analysisProgress, analysisStageIndex }) {
+export default function ProcessingStage({
+  analysisTitle,
+  analysisMessage,
+  analysisProgress,
+  analysisStageIndex,
+  analysisSteps,
+  analysisCompletionLabel
+}) {
   return (
     <div className="stage-card processing">
       <div className="processing-icon" aria-hidden="true">
         ⚙
       </div>
       <div>
-        <h2>AI Processing in progress</h2>
+        <h2>{analysisTitle}</h2>
         <p className="panel-subtitle">{analysisMessage}</p>
       </div>
       <div
@@ -24,7 +29,7 @@ export default function ProcessingStage({ analysisMessage, analysisProgress, ana
       </div>
       <p className="progress-status">{Math.round(analysisProgress)}% complete</p>
       <div className="progress-steps">
-        {AI_PROCESSING_STEPS.map((label, index) => {
+        {analysisSteps.map((label, index) => {
           const status = index < analysisStageIndex ? 'completed' : index === analysisStageIndex ? 'active' : '';
           return (
             <div key={label} className={`progress-step ${status}`}>
@@ -36,7 +41,9 @@ export default function ProcessingStage({ analysisMessage, analysisProgress, ana
           );
         })}
       </div>
-      <p className="panel-subtitle">You will be taken to Overview automatically once processing completes.</p>
+      <p className="panel-subtitle">
+        You will be taken to {analysisCompletionLabel} automatically once processing completes.
+      </p>
     </div>
   );
 }

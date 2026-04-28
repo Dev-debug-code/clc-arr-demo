@@ -36,7 +36,8 @@ export default function ReportGeneratedContent({
   handleUpdateObservation,
   handleDeleteObservation,
   notAssessedAreas,
-  reportAppendixRows
+  reportAppendixRows,
+  reportExportRef
 }) {
   const practiceDetailRefs = useRef([]);
   const practiceDetailRows = [
@@ -74,7 +75,7 @@ export default function ReportGeneratedContent({
       {reportPendingChanges ? (
         <div className="alert-banner warning">
           ⚠ Unprocessed changes pending
-          <button type="button" className="btn btn-xs secondary" onClick={onOpenPendingChangesGate}>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={onOpenPendingChangesGate}>
             Reprocess now
           </button>
         </div>
@@ -84,7 +85,7 @@ export default function ReportGeneratedContent({
           <span>⚠</span> Findings updated since last report generation.
           <button
             type="button"
-            className="btn btn-xs primary"
+            className="btn btn-primary btn-sm"
             onClick={onOpenRegenerateConfirm}
             disabled={!reportCanGenerate}
           >
@@ -98,11 +99,11 @@ export default function ReportGeneratedContent({
         </div>
       ) : null}
       <div className="report-export-row">
-        <button type="button" className="btn primary" onClick={onExportReport}>
-          Export PDF
+        <button type="button" className="btn btn-primary btn-lg" onClick={onExportReport}>
+          Download PDF
         </button>
       </div>
-      <div className="report-card">
+      <div ref={reportExportRef} className="report-card" data-report-export-root="true">
         <div className="report-content">
           <div className="report-header report-card-header">
             <img src={`${assetBase}assets/clc_logo.png`} alt="CLC" />

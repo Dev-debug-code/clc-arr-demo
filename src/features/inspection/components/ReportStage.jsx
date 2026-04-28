@@ -42,7 +42,8 @@ export default function ReportStage({
   handleUpdateObservation,
   handleDeleteObservation,
   notAssessedAreas,
-  reportAppendixRows
+  reportAppendixRows,
+  reportExportRef
 }) {
   return (
     <div className="stage-card report-stage">
@@ -132,6 +133,7 @@ export default function ReportStage({
           handleDeleteObservation={handleDeleteObservation}
           notAssessedAreas={notAssessedAreas}
           reportAppendixRows={reportAppendixRows}
+          reportExportRef={reportExportRef}
         />
       )}
     </div>

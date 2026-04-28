@@ -82,7 +82,7 @@ export default function ViewerFindingsPanel({
         non_compliant: 'Non-compliant',
         compliant: 'Compliant',
         good_practice: 'Good Practice',
-        leads: 'Leads',
+        leads: 'Guidance',
         inspector_added: 'Inspector-added',
         reviewed: 'Reviewed',
         unreviewed: 'Unreviewed'
@@ -108,7 +108,10 @@ export default function ViewerFindingsPanel({
         <div>
           <h3>Findings for this document</h3>
           <p className="panel-subtitle">
-            Findings and leads · {findingsForActiveDocument.length} shown / {totalFindingsForActiveDocument} total
+            Findings and guidance · {findingsForActiveDocument.length} shown / {totalFindingsForActiveDocument} total
+          </p>
+          <p className="panel-subtitle">
+            Decisions made here update the same finding review state shown in Overview.
           </p>
         </div>
       </div>
@@ -141,7 +144,7 @@ export default function ViewerFindingsPanel({
                 ['non_compliant', 'Non-compliant'],
                 ['compliant', 'Compliant'],
                 ['good_practice', 'Good Practice'],
-                ['leads', 'Leads'],
+                ['leads', 'Guidance'],
                 ['inspector_added', 'Inspector-added'],
                 ['reviewed', 'Reviewed'],
                 ['unreviewed', 'Unreviewed']
@@ -391,19 +394,6 @@ export default function ViewerFindingsPanel({
                     <div className="finding-section">
                       <div className="finding-section-head">
                         <div className="finding-section-label">Regulatory requirement</div>
-                        <span className="tooltip-wrap">
-                          <button
-                            type="button"
-                            className="jump-link-btn"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleJumpToRequirement(finding);
-                            }}
-                          >
-                            <span className="jump-link">Jump to requirement</span>
-                          </button>
-                          <span className="tooltip-text">Opens the linked requirement in overview</span>
-                        </span>
                       </div>
                       <div className="finding-quote">{formatReferenceText(finding.reference)}</div>
                     </div>
@@ -467,7 +457,7 @@ export default function ViewerFindingsPanel({
                       ))
                     )}
                   </div>
-                  <div className="finding-actions">
+                  <div className="finding-actions viewer-finding-actions">
                     {isLeadFinding && reviewState === 'unreviewed' ? (
                       <>
                         <button
@@ -475,7 +465,7 @@ export default function ViewerFindingsPanel({
                           className="btn btn-xs primary"
                           onClick={(event) => {
                             event.stopPropagation();
-                            openLeadConfirmModal(finding.id, STEP_VIEWER);
+                            handleRequestFindingDecision(finding.id, 'accepted');
                           }}
                         >
                           Confirm as finding

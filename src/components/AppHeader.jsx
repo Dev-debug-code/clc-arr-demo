@@ -75,14 +75,6 @@ export default function AppHeader({
         ) : null}
         {currentUserEmail ? (
           <div className="workspace-header__actions">
-            {pageHelpText ? (
-              <span className="tooltip-wrap workspace-header__help-wrap">
-                <button type="button" className="workspace-header__help" aria-label="About this page">
-                  ?
-                </button>
-                <span className="tooltip-text tooltip-text--wide">{pageHelpText}</span>
-              </span>
-            ) : null}
             {typeof onOpenAssistant === 'function' ? (
               <button
                 type="button"
