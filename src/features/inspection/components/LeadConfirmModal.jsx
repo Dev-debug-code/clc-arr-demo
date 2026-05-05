@@ -332,7 +332,7 @@ export default function LeadConfirmModal({
             ) : null}
           </>
         ) : (
-          <p className="panel-subtitle">This guidance item could not be loaded.</p>
+          <p className="panel-subtitle">This review item could not be loaded.</p>
         )}
         <div className="modal-actions">
           {step > 1 ? (

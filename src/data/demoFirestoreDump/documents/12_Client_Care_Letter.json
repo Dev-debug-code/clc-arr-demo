@@ -1,0 +1,35 @@
+{
+  "parties": "Client",
+  "confirmed": true,
+  "id": "12_Client_Care_Letter",
+  "summary": "Client care letter and terms of engagement signed by Joe Bloggs (16 October 2024).",
+  "confidence": "high",
+  "models_agree": true,
+  "filename": "12_Client_Care_Letter.pdf",
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/12_Client_Care_Letter.pdf",
+  "documentType": "Client Care Letter",
+  "classification_confidence": 0.9,
+  "overlayBoxes": [],
+  "updatedAt": "2026-05-05T20:42:47.911928+00:00",
+  "processing_status": "complete",
+  "classification": "Other",
+  "createdAt": "2026-05-05T20:42:47.911928+00:00",
+  "features_found": [
+    "letterhead",
+    "fee_estimate",
+    "complaints_section"
+  ],
+  "parties_found": [
+    "Joe Bloggs"
+  ],
+  "extracted_fields": {
+    "letter_date": "16/10/2024",
+    "supervising_ap": "David Thompson",
+    "fee_estimate": "1850",
+    "client_name": "Joe Bloggs"
+  },
+  "status": "verified",
+  "severity": "warning",
+  "processing_path": "ocr_then_classify_then_extract",
+  "name": "12_Client_Care_Letter.pdf"
+}

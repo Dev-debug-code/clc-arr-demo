@@ -23,8 +23,9 @@ export default function ReggiePanel({
       <aside className="reggie-panel" role="dialog" aria-modal="true" aria-label="Reggie assistant">
         <header className="reggie-panel__header">
           <div>
+            <div className="reggie-panel__eyebrow">Assistant</div>
             <h3>Reggie</h3>
-            <p>{reggieScope === 'document' ? 'This document' : 'All documents'}</p>
+            <p>{reggieScope === 'document' ? 'Focused on this document' : 'Scanning across the full case'}</p>
           </div>
           <button type="button" className="btn btn-xs ghost" onClick={onClose}>
             Close
@@ -39,15 +40,14 @@ export default function ReggiePanel({
                   <polyline points="6.5,10.5 8.75,12.75 13.5,7.5" />
                 </svg>
               </div>
-              <p>
-                Regulatory Guidance &amp; Inspection Engine
-                <br />
-                <span>I can help you explore this case</span>
-              </p>
+              <p>Regulatory Guidance &amp; Inspection Engine</p>
+              <span>Use Reggie to surface linked evidence, cross-document patterns and quick drafting prompts.</span>
             </div>
           ) : null}
           {reggieMessages.length === 0 ? (
-            <div className="reggie-suggestions">
+            <div className="reggie-suggestions-wrap">
+              <div className="reggie-section-label">Suggested prompts</div>
+              <div className="reggie-suggestions">
               {suggestions.map((prompt) => (
                 <button
                   key={prompt}
@@ -58,6 +58,7 @@ export default function ReggiePanel({
                   {prompt}
                 </button>
               ))}
+              </div>
             </div>
           ) : null}
           {reggieMessages.map((message) => (
@@ -69,22 +70,25 @@ export default function ReggiePanel({
             const relatedDoc = documentsById.get(finding.documentId);
             return (
               <article key={`reggie-source-${finding.id}`} className="reggie-source-card">
+                <div className="reggie-source-card__label">Relevant source</div>
                 <strong>{safeText(finding.title, 'Finding')}</strong>
                 <p>{relatedDoc?.label ?? 'Document'} · {safeSourceField(finding.source, 'section', 'Source excerpt')}</p>
-                <button
-                  type="button"
-                  className="btn btn-xs ghost"
-                  onClick={() => onJumpToEvidence(finding)}
-                >
-                  Jump to evidence
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-xs secondary"
-                  onClick={() => onAddAsFinding(finding)}
-                >
-                  Add as finding
-                </button>
+                <div className="reggie-source-card__actions">
+                  <button
+                    type="button"
+                    className="btn btn-xs ghost"
+                    onClick={() => onJumpToEvidence(finding)}
+                  >
+                    Jump to evidence
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-xs secondary"
+                    onClick={() => onAddAsFinding(finding)}
+                  >
+                    Add as finding
+                  </button>
+                </div>
               </article>
             );
           })}
@@ -106,16 +110,8 @@ export default function ReggiePanel({
                 : 'Ask Reggie about this case...'
             }
           />
-          <button
-            type="button"
-            className="btn btn-xs ghost reggie-voice-btn"
-            title="Voice input (UI only)"
-            aria-label="Voice input"
-          >
-            🎤
-          </button>
-          <button type="button" className="btn btn-xs secondary reggie-send-btn" onClick={onSend} title="Send">
-            ➤
+          <button type="button" className="btn secondary reggie-send-btn" onClick={onSend} title="Send">
+            Send
           </button>
         </div>
       </aside>

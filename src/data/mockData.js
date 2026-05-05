@@ -7,7 +7,7 @@ export const NAV_TABS = [
 export const STEP_CONFIG = [
   { id: 1, title: 'Documents', subtitle: 'Upload, classify and verify documents' },
   { id: 2, title: 'AI Processing', subtitle: 'Process and classify uploaded evidence' },
-  { id: 3, title: 'Overview', subtitle: 'Review findings and leads' },
+  { id: 3, title: 'Overview', subtitle: 'Review findings and items requiring review' },
   { id: 4, title: 'Document Viewer', subtitle: 'Inspect evidence and annotate' },
   { id: 5, title: 'Report', subtitle: 'Review and export output' },
   { id: 6, title: 'Case History', subtitle: 'Review processing and user activity (manual)' }

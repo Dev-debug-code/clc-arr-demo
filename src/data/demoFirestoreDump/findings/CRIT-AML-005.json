@@ -1,0 +1,36 @@
+{
+  "isGoodPractice": false,
+  "id": "CRIT-AML-005",
+  "reviewStatus": "unreviewed",
+  "evidencePassages": [
+    {
+      "document_id": "11_MLRO_Interview_Transcript",
+      "page": 1,
+      "id": "CRIT-AML-005-p1",
+      "section": "Interview transcript at 00:02:41",
+      "text": "we're mainly just checking that the numbers broadly stack up",
+      "box_id": "CRIT-AML-005",
+      "file": "11_MLRO_Interview_Transcript.json"
+    }
+  ],
+  "detail": "In interview, the firm's Money Laundering Reporting Officer (MLRO) described source-of-funds verification as 'mainly just checking that the numbers broadly stack up... if it looks consistent, we tick the box on the file checklist'. This informal practice contradicts the firm's written AML procedure, which requires reasonable enquiries with copies of all relevant documentation retained for 5 years, and would not produce the audit trail required by CLC AML Guidance.",
+  "codeArea": "aml",
+  "reference": "CLC AML Guidance, Procedure \u00a719-20",
+  "evidence_strength": "supported",
+  "documentId": "11_MLRO_Interview_Transcript",
+  "updatedAt": "2026-05-05T20:44:03.529203+00:00",
+  "source": {
+    "page": 1,
+    "file": "11_MLRO_Interview_Transcript.json",
+    "section": "Interview transcript at 00:02:41",
+    "text": "we're mainly just checking that the numbers broadly stack up"
+  },
+  "createdAt": "2026-05-05T20:44:03.529203+00:00",
+  "boxId": "CRIT-AML-005",
+  "requirementId": "aml-4",
+  "polarity": "non_compliant",
+  "title": "MLRO Source-of-Funds Process Below Firm Standard",
+  "severity": "critical",
+  "certainty": "finding",
+  "is_good_practice": false
+}

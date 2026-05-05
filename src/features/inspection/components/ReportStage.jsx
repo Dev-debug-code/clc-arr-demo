@@ -88,7 +88,7 @@ export default function ReportStage({
           <h3>Your findings are ready</h3>
           <p>
             The report will be assembled from your reviewed findings, including action plan items
-            for accepted non-compliant findings (critical and guidance).
+            for accepted non-compliant findings and accepted items that required review.
           </p>
           <button type="button" className="btn primary" onClick={onGenerateReport} disabled={!reportCanGenerate}>
             Generate report

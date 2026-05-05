@@ -1,0 +1,36 @@
+{
+  "isGoodPractice": false,
+  "id": "CRIT-AML-006",
+  "reviewStatus": "unreviewed",
+  "evidencePassages": [
+    {
+      "document_id": "00_Firm_AML_Policy",
+      "page": 1,
+      "id": "CRIT-AML-006-p1",
+      "section": "Section 2.3.2",
+      "text": "Utility bills (gas, electricity, water, telephone) dated within the last 6 months",
+      "box_id": "CRIT-AML-006",
+      "file": "00_Firm_AML_Policy.pdf"
+    }
+  ],
+  "detail": "The firm's AML policy \u00a72.3.2 permits utility bills dated within the last 6 months for address verification. CLC AML Guidance specifies utility bills must be less than 3 months old. The firm's written policy sets a lower standard than the regulatory guidance \u2014 any address verification relying on a utility bill between 3 and 6 months old would be non-compliant with CLC guidance even if compliant with the firm's own policy.",
+  "codeArea": "aml",
+  "reference": "CLC AML Guidance, Procedure \u00a73.2",
+  "evidence_strength": "strong",
+  "documentId": "00_Firm_AML_Policy",
+  "updatedAt": "2026-05-05T20:44:03.529203+00:00",
+  "source": {
+    "page": 1,
+    "file": "00_Firm_AML_Policy.pdf",
+    "section": "Section 2.3.2",
+    "text": "Utility bills (gas, electricity, water, telephone) dated within the last 6 months"
+  },
+  "createdAt": "2026-05-05T20:44:03.529203+00:00",
+  "boxId": "CRIT-AML-006",
+  "requirementId": "aml-5",
+  "polarity": "non_compliant",
+  "title": "Firm Policy Allows Older Address Evidence Than CLC Guidance Permits",
+  "severity": "critical",
+  "certainty": "finding",
+  "is_good_practice": false
+}

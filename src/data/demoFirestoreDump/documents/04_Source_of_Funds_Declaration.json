@@ -1,0 +1,51 @@
+{
+  "parties": "Client",
+  "confirmed": true,
+  "id": "04_Source_of_Funds_Declaration",
+  "summary": "Source of funds declaration signed by Joe Bloggs (16 October 2024).",
+  "confidence": "high",
+  "models_agree": true,
+  "filename": "04_Source_of_Funds_Declaration.pdf",
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/04_Source_of_Funds_Declaration.pdf",
+  "documentType": "Source of Funds Declaration",
+  "classification_confidence": 0.95,
+  "overlayBoxes": [
+    {
+      "page": 1,
+      "pageno": 0,
+      "id": "GP-AML-001",
+      "bbox": [
+        25,
+        560,
+        560,
+        690
+      ],
+      "category": "Itemised Source of Funds",
+      "details": "The source of funds declaration itemises each funding source individually \u2014 personal savings of \u00a3675,000 and gift from father of \u00a3200,000 \u2014 rather than providing a single total. This exceeds the minimum requirement and creates a clear audit trail, allowing each source to be verified independently.",
+      "title": "Strong Practice: Source of Funds Itemised by Stream",
+      "severity": "best_practice"
+    }
+  ],
+  "updatedAt": "2026-05-05T20:42:47.911928+00:00",
+  "processing_status": "complete",
+  "classification": "Source of Funds Declaration",
+  "createdAt": "2026-05-05T20:42:47.911928+00:00",
+  "features_found": [
+    "sof_table",
+    "poca_acknowledgment"
+  ],
+  "parties_found": [
+    "Joe Bloggs"
+  ],
+  "extracted_fields": {
+    "declarant": "Joe Bloggs",
+    "declaration_date": "16/10/2024",
+    "gift_amount": "200000",
+    "personal_savings": "675000",
+    "total_funds": "875000"
+  },
+  "status": "verified",
+  "severity": "warning",
+  "processing_path": "ocr_then_classify_then_extract",
+  "name": "04_Source_of_Funds_Declaration.pdf"
+}

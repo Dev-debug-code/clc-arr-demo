@@ -4,6 +4,7 @@ export default function DocumentsIntakePhase({
   openDocumentsFilePicker,
   handleUploadDrop,
   uploadItems,
+  handleRemoveUploadItem,
   formatShortDisplayDate,
   currentCaseMeta,
   toIsoDate,
@@ -74,6 +75,7 @@ export default function DocumentsIntakePhase({
               <th>Name</th>
               <th style={{ width: '180px' }}>Stage</th>
               <th style={{ width: '110px' }}>Added</th>
+              <th style={{ width: '110px' }}>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -90,6 +92,19 @@ export default function DocumentsIntakePhase({
                   <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{item.name}</td>
                   <td>{stageLabel}</td>
                   <td>{formatShortDisplayDate(item.addedOn ?? currentCaseMeta.started ?? toIsoDate(new Date()))}</td>
+                  <td>
+                    {item.status === 'queued' ? (
+                      <button
+                        type="button"
+                        className="btn btn-xs ghost docs-remove-btn"
+                        onClick={() => handleRemoveUploadItem(item.id)}
+                      >
+                        Remove
+                      </button>
+                    ) : (
+                      <span className="docs-locked-label">Locked</span>
+                    )}
+                  </td>
                 </tr>
               );
             })}

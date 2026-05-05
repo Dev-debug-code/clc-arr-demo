@@ -182,7 +182,9 @@ export default function DashboardPage({
                 <h3>{item.practice}</h3>
                 <span>{item.id}</span>
               </div>
-              <span>Started {item.started}</span>
+              <div className="dashboard-case-card__top-meta">
+                <span>Started {item.started}</span>
+              </div>
             </div>
             <div className="dashboard-progress">
               <div className="dashboard-progress__track">
@@ -192,7 +194,7 @@ export default function DashboardPage({
             </div>
             <p className="dashboard-case-card__meta">
               {item.unreviewed > 0 || item.leads > 0
-                ? `(${item.unreviewed}) unreviewed · (${item.leads}) guidance · ${item.goodPractice} good practice`
+                ? `(${item.unreviewed}) unreviewed · (${item.leads}) requires review · ${item.goodPractice} good practice`
                 : 'All reviewed ✓'}
             </p>
             <p className="dashboard-case-card__meta">
@@ -240,7 +242,9 @@ export default function DashboardPage({
                       <h3>{item.practice}</h3>
                       <span>{item.id}</span>
                     </div>
-                    <span>Completed {item.lastActivity}</span>
+                    <div className="dashboard-case-card__top-meta">
+                      <span>Completed {item.lastActivity}</span>
+                    </div>
                   </div>
                   <p className="dashboard-case-card__meta">
                     Outcome: <span className="completed-outcome-badge">{formatOutcomeLabel(item.outcome)}</span>

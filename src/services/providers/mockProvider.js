@@ -19,14 +19,19 @@ export {
   persistReportAction,
   persistReportActionDelete,
   persistCasePatch,
+  deleteCaseRecord,
   persistContextNote,
   persistDocumentNote,
   persistFindingDecision,
   persistFindingNote,
+  persistGeneratedWorkspace,
   persistGenerateFindingsEvent,
   persistGenerateReport,
+  runSimulatedClassification,
+  runSimulatedFindingsGeneration,
   persistConfirmAllUploads,
-  persistUploadItem
+  persistUploadItem,
+  persistUploadItemDelete
 } from './firestoreProvider.js';
 
 export { prepareUploadDraft, prepareWorkspaceSnapshot } from './firestoreProvider.js';

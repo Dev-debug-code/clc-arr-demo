@@ -59,6 +59,7 @@ export const DOCUMENT_CLASSIFICATION_GROUPS = [
     label: 'Client Matter Document',
     options: [
       'Fee Estimate',
+      'Client Care Letter',
       'Source of Funds Declaration',
       'Identity Verification',
       'Proof of Address',

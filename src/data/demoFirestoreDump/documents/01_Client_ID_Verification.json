@@ -1,0 +1,50 @@
+{
+  "parties": "Client",
+  "confirmed": true,
+  "id": "01_Client_ID_Verification",
+  "summary": "Client identity verification record for Joe Bloggs (UK passport).",
+  "confidence": "high",
+  "models_agree": true,
+  "filename": "01_Client_ID_Verification.pdf",
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/01_Client_ID_Verification.pdf",
+  "documentType": "Identity Verification",
+  "classification_confidence": 0.91,
+  "overlayBoxes": [
+    {
+      "page": 1,
+      "pageno": 0,
+      "id": "CRIT-AML-001",
+      "bbox": [
+        24,
+        57,
+        385,
+        341
+      ],
+      "category": "Attached Passport Copy",
+      "details": "The verification record marks the certified passport as accepted for client Joe Bloggs, but the attached image shows a different person. This is a fundamental customer due diligence (CDD) failure and does not satisfy lender identity requirements when acting for a lender.",
+      "title": "Identity Document Does Not Match Client",
+      "severity": "critical"
+    }
+  ],
+  "updatedAt": "2026-05-05T20:42:47.911928+00:00",
+  "processing_status": "complete",
+  "classification": "CDD Records",
+  "createdAt": "2026-05-05T20:42:47.911928+00:00",
+  "features_found": [
+    "passport_field",
+    "verification_checklist"
+  ],
+  "parties_found": [
+    "Joe Bloggs"
+  ],
+  "extracted_fields": {
+    "subject_name": "Joe Bloggs",
+    "verification_date": "15/10/2024",
+    "verifier": "Sarah Example",
+    "document_type": "UK Passport"
+  },
+  "status": "verified",
+  "severity": "critical",
+  "processing_path": "ocr_then_classify_then_extract",
+  "name": "01_Client_ID_Verification.pdf"
+}

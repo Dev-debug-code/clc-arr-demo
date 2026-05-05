@@ -3,6 +3,10 @@ import {
   getUploadClassificationPersistenceValue,
   normalizeUploadDraft
 } from '../../utils/documentUploads.js';
+import {
+  buildSimulatedClassifiedUploads,
+  buildSimulatedFindingsWorkspace
+} from '../simulatedAnalysis.js';
 
 function toIsoDateLabel(value) {
   if (!value) return '';
@@ -395,6 +399,18 @@ export function prepareWorkspaceSnapshot({ documents = [], findings = [] }) {
     documents,
     findings
   };
+}
+
+export async function persistGeneratedWorkspace() {
+  return { persisted: false, supported: false };
+}
+
+export async function deleteCaseRecord() {
+  return { deleted: false, supported: false };
+}
+
+export async function persistUploadItemDelete() {
+  return { deleted: false, supported: false };
 }
 
 export async function lookupPracticeByLicenceNumber(licenceNumber) {
@@ -1228,6 +1244,14 @@ export async function persistConfirmAllUploads({ caseId }) {
   return requestJson(`/cases/${encodeURIComponent(cleanCaseId)}/documents/confirm-all`, {
     method: 'POST'
   });
+}
+
+export async function runSimulatedClassification({ uploadItems = [] }) {
+  return buildSimulatedClassifiedUploads(uploadItems);
+}
+
+export async function runSimulatedFindingsGeneration({ uploadItems = [] }) {
+  return buildSimulatedFindingsWorkspace(uploadItems);
 }
 
 export async function persistGenerateFindingsEvent({ caseId }) {

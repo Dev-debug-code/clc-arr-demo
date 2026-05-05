@@ -12,6 +12,7 @@ const SOURCE_CLASSIFICATION_ENTRIES = [
   { groupLabel: 'Communications & Interviews', optionLabel: 'Interview Transcript' },
   { groupLabel: 'Policy Document', optionLabel: 'Complaints Procedure' },
   { groupLabel: 'Client Matter Document', optionLabel: 'Fee Estimate' },
+  { groupLabel: 'Client Matter Document', optionLabel: 'Client Care Letter' },
   { groupLabel: 'Client Matter Document', optionLabel: 'Identity Verification' },
   { groupLabel: 'Client Matter Document', optionLabel: 'Proof of Address' },
   { groupLabel: 'Client Matter Document', optionLabel: 'Gift Letter' },
@@ -335,10 +336,10 @@ export default function DocumentsUploadPhase({
                         {isClassificationMenuOpen && activeGroup ? (
                           <div className="classification-menu" onClick={(event) => event.stopPropagation()}>
                             <p className="classification-menu__hint">
-                              Choose the closest document category first, then the specific document type.
+                              Choose the closest category first, then the specific subcategory.
                             </p>
                             <label className="classification-menu__field">
-                              <span className="classification-menu__heading">Document category</span>
+                              <span className="classification-menu__heading">Category</span>
                               <select
                                 className="classification-menu__select"
                                 value={activeGroup.label}
@@ -357,7 +358,7 @@ export default function DocumentsUploadPhase({
                               </select>
                             </label>
                             <label className="classification-menu__field">
-                              <span className="classification-menu__heading">Document type</span>
+                              <span className="classification-menu__heading">Subcategory</span>
                               <select
                                 className="classification-menu__select"
                                 value={normalizedItem.classificationL1 === activeGroup.label ? normalizedItem.classificationL2 ?? '' : ''}
@@ -366,7 +367,7 @@ export default function DocumentsUploadPhase({
                                   handleUploadClassificationSelect(item.id, activeGroup.label, event.target.value);
                                 }}
                               >
-                                <option value="">Select document type</option>
+                                <option value="">Select subcategory</option>
                                 {activeGroup.options.map((optionLabel) => (
                                   <option
                                     key={`${item.id}-${activeGroup.label}-${optionLabel}`}

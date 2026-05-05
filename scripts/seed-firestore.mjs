@@ -1,9 +1,17 @@
 import { applicationDefault, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import { buildDemoGeneratedWorkspace } from "./demo-generated-workspace.mjs";
+import { suggestClassificationFromFilename } from "../src/features/inspection/helpers.js";
+import {
+  toPersistedDocumentShape,
+  toPersistedFindingShape
+} from "../src/services/generatedWorkspacePersistence.js";
 
-const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "clc-dev-485413";
-const DATABASE_ID = process.env.FIREBASE_DATABASE_ID || "clc-dev-db";
-const ORGANIZATION_ID = process.env.FIREBASE_ORGANIZATION_ID || "clc-dev";
+export const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "clc-dev-485413";
+export const DATABASE_ID = process.env.FIREBASE_DATABASE_ID || "clc-dev-db";
+export const ORGANIZATION_ID = process.env.FIREBASE_ORGANIZATION_ID || "clc-dev";
 const USER_ID = process.env.FIREBASE_USER_ID || "QUBxigoLNMaGYsi8pbNZrvtSF3A2";
 const USER_EMAIL = process.env.FIREBASE_USER_EMAIL || "ace1996@live.co.uk";
 const USER_DISPLAY_NAME = process.env.FIREBASE_USER_DISPLAY_NAME || "Alex Carter";
@@ -29,7 +37,7 @@ initializeApp({
   projectId: PROJECT_ID
 });
 
-const database = getFirestore(DATABASE_ID);
+export const database = getFirestore(DATABASE_ID);
 const now = FieldValue.serverTimestamp();
 
 const MAIN_CASE_ID = "CLC-12458";
@@ -88,12 +96,17 @@ function buildAssignedInspectorFields(user) {
   };
 }
 
-const DASHBOARD_CASES = [
+export const DASHBOARD_CASES = [
   {
     id: MAIN_CASE_ID,
+    seedUploads: [
+      "01_Client_ID_Verification.pdf",
+      "03_Client_Risk_Assessment.pdf",
+      "05_Bank_Statements_Client.pdf"
+    ],
     data: {
       caseId: MAIN_CASE_ID,
-      practiceName: "Hartley & Partners Solicitors",
+      practiceName: "Example Conveyancing Co Ltd",
       licenceNumber: MAIN_CASE_ID,
       ...buildAssignedInspectorFields(PRIMARY_USER),
       status: "active",
@@ -105,8 +118,7 @@ const DASHBOARD_CASES = [
       started: "12 Feb 2026",
       previousInspection: "March 2023",
       focusAreas: DEFAULT_FOCUS_AREAS,
-      preInspectionConcerns:
-        "Prior inspection flagged AML evidence gaps and complaints website wording drift.",
+      preInspectionConcerns: "Seeded demo case aligned to the canned evidence set.",
       knownParties: MAIN_CASE_PARTIES,
       processing_status: "complete",
       has_unprocessed_changes: true,
@@ -114,7 +126,7 @@ const DASHBOARD_CASES = [
       hasUnprocessedChanges: true,
       unprocessedSummary: "2 new documents, 1 note added",
       progress: 66,
-      progressLabel: "6/9 requirements met",
+      progressLabel: "0/3 requirements reviewed",
       unreviewed: 7,
       leads: 3,
       goodPractice: 1,
@@ -130,9 +142,17 @@ const DASHBOARD_CASES = [
   },
   {
     id: "CLC-09821",
+    seedUploads: [
+      "02_Proof_of_Address.pdf",
+      "04_Source_of_Funds_Declaration.pdf",
+      "06_Gift_Letter.pdf",
+      "07_Giftor_ID_Verification.pdf",
+      "09_Sanctions_Screening.pdf",
+      "10_PEP_Screening.pdf"
+    ],
     data: {
       caseId: "CLC-09821",
-      practiceName: "Webb Conveyancing Ltd",
+      practiceName: "Example Conveyancing Co Ltd - Completed",
       licenceNumber: "CLC-09821",
       ...buildAssignedInspectorFields(PRIMARY_USER),
       status: "completed",
@@ -144,13 +164,13 @@ const DASHBOARD_CASES = [
       started: "3 Feb 2026",
       previousInspection: "Jan 2024",
       focusAreas: ["complaints", "client-care", "accounts"],
-      preInspectionConcerns: "Routine follow-up inspection with lower inherent AML risk.",
+      preInspectionConcerns: "Completed seeded case with low-risk supporting documents.",
       knownParties: SECONDARY_CASE_PARTIES,
       processing_status: "complete",
       has_unprocessed_changes: false,
       unprocessed_summary: "",
       progress: 100,
-      progressLabel: "10/10 requirements met",
+      progressLabel: "0/0 requirements reviewed",
       unreviewed: 0,
       leads: 0,
       goodPractice: 2,
@@ -164,9 +184,13 @@ const DASHBOARD_CASES = [
   },
   {
     id: "CLC-15502",
+    seedUploads: [
+      "05_Bank_Statements_Client.pdf",
+      "10_PEP_Screening.pdf"
+    ],
     data: {
       caseId: "CLC-15502",
-      practiceName: "Singh & Co Licensed Conveyancers",
+      practiceName: "Example Conveyancing Co Ltd - Review",
       licenceNumber: "CLC-15502",
       ...buildAssignedInspectorFields(SECONDARY_INSPECTOR),
       status: "active",
@@ -178,14 +202,13 @@ const DASHBOARD_CASES = [
       started: "10 Feb 2026",
       previousInspection: "N/A",
       focusAreas: ["aml", "management", "accounts"],
-      preInspectionConcerns:
-        "Enhanced due diligence expected because of higher-risk client profile and lender involvement.",
+      preInspectionConcerns: "Seeded review case with one unresolved warning and one good practice item.",
       knownParties: HIGH_RISK_CASE_PARTIES,
       processing_status: "classified",
       has_unprocessed_changes: true,
       unprocessed_summary: "1 document awaiting extraction",
       progress: 43,
-      progressLabel: "3/7 requirements met",
+      progressLabel: "0/1 requirements reviewed",
       unreviewed: 8,
       leads: 1,
       goodPractice: 0,
@@ -199,606 +222,206 @@ const DASHBOARD_CASES = [
   }
 ];
 
-const BASELINE_DOCUMENTS = [
-  {
-    id: "00_Firm_AML_Policy",
-    name: "00_Firm_AML_Policy.pdf",
-    filename: "00_Firm_AML_Policy.pdf",
-    classification: "AML Policy",
+function buildSeedUpload(filename, index = 0) {
+  const classification = suggestClassificationFromFilename(filename);
+  return {
+    id: `up${index + 1}`,
+    name: filename,
+    filename,
     status: "verified",
     confirmed: true,
     processing_status: "complete",
-    classification_confidence: 0.98,
-    processing_path: "ocr_then_classify_then_extract",
-    features_found: ["policy_controls", "sar_procedure", "risk_assessment"],
-    models_agree: true,
+    classification,
+    classification_confidence: classification === "Other" ? null : 0.98,
+    processing_path: "frontend_demo_seed",
+    features_found: [],
+    models_agree: classification !== "Other",
     parties: "Firm",
-    confidence: "high",
-    summary: "Practice-wide AML policy with controls, escalation and monitoring references.",
-    severity: "warning",
-    overlayBoxes: [
-      {
-        id: "CRIT-003",
-        bbox: [0.15, 0.24, 0.83, 0.31],
-        page: 1,
-        pageno: 0,
-        category: "Practice-wide risk assessment",
-        severity: "critical",
-        title: "Practice-wide risk assessment",
-        details: "PWRA does not fully reflect current risk factors."
-      },
-      {
-        id: "WARN-AML-001",
-        bbox: [0.14, 0.47, 0.82, 0.53],
-        page: 2,
-        pageno: 1,
-        category: "SAR reporting",
-        severity: "warning",
-        title: "SAR reporting process",
-        details: "Internal SAR escalation outcomes are inconsistently captured."
-      },
-      {
-        id: "CRIT-ACC-001",
-        bbox: [0.2, 0.58, 0.86, 0.65],
-        page: 2,
-        pageno: 1,
-        category: "Accounts reconciliation",
-        severity: "critical",
-        title: "Client account reconciliation trail",
-        details: "Month-end reconciliation evidence is not consistently linked to matter ledgers."
-      },
-      {
-        id: "GP-UND-001",
-        bbox: [0.22, 0.7, 0.88, 0.77],
-        page: 2,
-        pageno: 1,
-        category: "Undertakings process",
-        severity: "best_practice",
-        title: "Undertakings tracking",
-        details: "Owners and due dates are explicitly tracked with escalation reminders."
-      }
-    ]
-  },
-  {
-    id: "04_Source_of_Funds_Declaration",
-    name: "04_Source_of_Funds_Declaration.pdf",
-    filename: "04_Source_of_Funds_Declaration.pdf",
-    classification: "Source of Funds Declaration",
-    status: "verified",
-    confirmed: true,
-    processing_status: "complete",
-    classification_confidence: 0.9,
-    processing_path: "ocr_then_classify_then_extract",
-    features_found: ["sof_narrative", "client_declaration"],
-    models_agree: true,
-    parties: "Client",
-    confidence: "medium",
-    summary: "Source of funds declaration and supporting narrative.",
-    severity: "warning",
-    overlayBoxes: [
-      {
-        id: "WARN-SOF-001",
-        bbox: [0.18, 0.39, 0.86, 0.45],
-        page: 1,
-        pageno: 0,
-        category: "Source of funds",
-        severity: "warning",
-        title: "Source of funds documentation",
-        details: "Narrative detail and corroboration are incomplete."
-      }
-    ]
-  },
-  {
-    id: "summary_document",
-    name: "Website_Screenshot_Complaints.pdf",
-    filename: "Website_Screenshot_Complaints.pdf",
-    classification: "Website Evidence",
-    status: "verified",
-    confirmed: true,
-    processing_status: "complete",
-    classification_confidence: 0.95,
-    processing_path: "classify_only",
-    features_found: ["website_disclosure", "complaints_wording"],
-    models_agree: true,
-    parties: "Firm",
-    confidence: "high",
-    summary: "Current website complaints disclosure screenshot.",
-    severity: "warning",
-    overlayBoxes: [
-      {
-        id: "WARN-COMP-001",
-        bbox: [0.1, 0.28, 0.88, 0.36],
-        page: 1,
-        pageno: 0,
-        category: "Complaints Code",
-        severity: "warning",
-        title: "Complaints website disclosure",
-        details: "Website wording uses outdated code references."
-      },
-      {
-        id: "CRIT-CC-001",
-        bbox: [0.12, 0.52, 0.87, 0.61],
-        page: 1,
-        pageno: 0,
-        category: "Client care disclosures",
-        severity: "critical",
-        title: "Client care disclosure gap",
-        details: "Client-facing disclosure wording omits required escalation contact details."
-      }
-    ]
+    confidence: classification === "Other" ? "low" : "high",
+    summary: "Seeded from the shared canned PDF dataset."
+  };
+}
+
+function buildWorkspaceForCase(row) {
+  const uploads = (Array.isArray(row?.seedUploads) ? row.seedUploads : []).map((filename, index) =>
+    buildSeedUpload(filename, index)
+  );
+  const workspace = buildDemoGeneratedWorkspace(uploads);
+  return { uploads, workspace };
+}
+
+function countFindingsBySeverity(findings = []) {
+  return findings.reduce(
+    (counts, finding) => {
+      const severity = String(finding?.severity || "").trim().toLowerCase();
+      if (severity === "critical") counts.critical += 1;
+      else if (severity === "warning") counts.warning += 1;
+      else if (severity === "best_practice") counts.bestPractice += 1;
+      else if (severity === "pass") counts.pass += 1;
+      return counts;
+    },
+    { critical: 0, warning: 0, bestPractice: 0, pass: 0 }
+  );
+}
+
+function hasReviewedDecision(finding) {
+  const reviewStatus = String(finding?.reviewStatus || finding?.review_status || "").trim().toLowerCase();
+  return ["accepted", "confirmed", "rejected", "dismissed"].includes(reviewStatus);
+}
+
+function buildSeededWorkspace(row) {
+  const baseWorkspace = buildWorkspaceForCase(row).workspace;
+  const findings = Array.isArray(baseWorkspace?.findings)
+    ? baseWorkspace.findings.map((finding) => {
+        const existingReviewStatus = String(finding?.reviewStatus || finding?.review_status || "").trim().toLowerCase();
+        const normalizedSeverity = String(finding?.severity || "").trim().toLowerCase();
+        const isUnreviewedSeedState = !existingReviewStatus || existingReviewStatus === "unreviewed";
+
+        let reviewStatus = existingReviewStatus || "unreviewed";
+        if (row?.data?.status === "completed") {
+          reviewStatus = isUnreviewedSeedState ? "accepted" : existingReviewStatus;
+        } else if (normalizedSeverity === "best_practice" || normalizedSeverity === "pass") {
+          reviewStatus = isUnreviewedSeedState ? "accepted" : existingReviewStatus;
+        }
+
+        return {
+          ...finding,
+          reviewStatus
+        };
+      })
+    : [];
+
+  return {
+    ...baseWorkspace,
+    findings
+  };
+}
+
+function buildDashboardCaseData(row, workspace) {
+  const requirements = Array.isArray(workspace?.requirements) ? workspace.requirements : [];
+  const findings = Array.isArray(workspace?.findings) ? workspace.findings : [];
+  const counts = countFindingsBySeverity(findings);
+  const findingsByRequirement = new Map();
+  findings.forEach((finding) => {
+    const requirementId = String(finding?.requirementId || "").trim();
+    if (!requirementId) return;
+    const rows = findingsByRequirement.get(requirementId) ?? [];
+    rows.push(finding);
+    findingsByRequirement.set(requirementId, rows);
+  });
+
+  const reviewedCount = requirements.reduce((count, requirement) => {
+    const relatedFindings = findingsByRequirement.get(String(requirement?.id || "").trim()) ?? [];
+    if (relatedFindings.length === 0) return count;
+    return relatedFindings.every(hasReviewedDecision) ? count + 1 : count;
+  }, 0);
+  const totalCount = requirements.length;
+
+  return {
+    ...row.data,
+    outcome:
+      row?.data?.status === "completed"
+        ? counts.critical > 0
+          ? "non_compliant"
+          : counts.warning > 0
+            ? "generally_compliant"
+            : "compliant"
+        : row.data.outcome,
+    progress: totalCount > 0 ? Math.round((reviewedCount / totalCount) * 100) : 100,
+    progressLabel: totalCount > 0 ? `${reviewedCount}/${totalCount} requirements reviewed` : "No requirements generated",
+    unreviewed: findings.filter((finding) => !hasReviewedDecision(finding)).length,
+    leads: counts.warning,
+    goodPractice: counts.bestPractice,
+    processing_status: findings.length > 0 ? "complete" : "classified",
+    has_unprocessed_changes: false,
+    unprocessed_summary: "",
+    hasUnprocessedChanges: false,
+    unprocessedSummary: ""
+  };
+}
+
+function buildReportArtifacts(workspace) {
+  const findings = Array.isArray(workspace?.findings) ? workspace.findings : [];
+  const byArea = new Map();
+  findings.forEach((finding) => {
+    const area = String(finding?.codeArea || "aml").trim() || "aml";
+    const lines = byArea.get(area) ?? [];
+    const detail = String(finding?.detail || finding?.title || "Finding").trim();
+    if (detail) {
+      lines.push(detail);
+    }
+    byArea.set(area, lines);
+  });
+
+  const severityCounts = countFindingsBySeverity(findings);
+  const summaryText =
+    findings.length > 0
+      ? `${severityCounts.critical} non-compliant, ${severityCounts.warning} requires review, ${severityCounts.bestPractice} good practice across ${byArea.size || 1} code area(s).`
+      : "No seeded findings are linked to this case.";
+
+  const reportCurrent = {
+    executiveSummary: summaryText,
+    executive_summary: summaryText,
+    overallRating:
+      severityCounts.critical > 0
+        ? "requires_attention"
+        : severityCounts.warning > 0
+          ? "review_required"
+          : "compliant",
+    overall_rating:
+      severityCounts.critical > 0
+        ? "requires_attention"
+        : severityCounts.warning > 0
+          ? "review_required"
+          : "compliant",
+    generated_at: "2026-05-03T12:00:00Z"
+  };
+
+  const reportSections = Array.from(byArea.entries()).map(([codeAreaId, lines]) => ({
+    id: `section_${codeAreaId}`,
+    codeAreaId,
+    lines
+  }));
+
+  const reportActions = findings
+    .filter((finding) => ["critical", "warning"].includes(String(finding?.severity || "").trim().toLowerCase()))
+    .slice(0, 4)
+    .map((finding, index) => ({
+      id: `ra${index + 1}`,
+      action: String(finding?.title || "Review finding").trim(),
+      codeRef: typeof finding?.reference === "object" ? finding.reference?.section || "" : String(finding?.reference || ""),
+      codeArea: String(finding?.codeArea || "AML").trim().toUpperCase() || "AML",
+      deadline: "2026-05-31",
+      person: "",
+      status: "open"
+    }));
+
+  return { reportCurrent, reportSections, reportActions };
+}
+
+const CASE_WORKSPACE_COLLECTIONS = [
+  "documents",
+  "requirements",
+  "findings",
+  "history",
+  "events",
+  "contextNotes",
+  "findingNotes",
+  "documentNotes",
+  "uploads",
+  "observations",
+  "reportActions",
+  "reportSections",
+  "report"
+];
+
+async function clearCaseWorkspaceCollections(caseBase) {
+  for (const collectionName of CASE_WORKSPACE_COLLECTIONS) {
+    await deleteCollectionTree(database.collection(`${caseBase}/${collectionName}`));
   }
-];
+}
 
-const BASELINE_FINDINGS = [
-  {
-    id: "CRIT-003",
-    severity: "critical",
-    certainty: "finding",
-    polarity: "non_compliant",
-    is_good_practice: false,
-    codeArea: "aml",
-    title: "Practice-wide risk assessment is out of date",
-    detail: "The PWRA does not fully reflect current risk factors.",
-    documentId: "00_Firm_AML_Policy",
-    boxId: "CRIT-003",
-    source: {
-      file: "00_Firm_AML_Policy.pdf",
-      page: 1,
-      section: "Practice-wide risk assessment",
-      text: "The firm-wide risk assessment has not been updated to include emerging channels."
-    },
-    evidencePassages: [
-      {
-        id: "CRIT-003-p1",
-        document_id: "00_Firm_AML_Policy",
-        file: "00_Firm_AML_Policy.pdf",
-        page: 1,
-        section: "Practice-wide risk assessment",
-        text: "The firm-wide risk assessment has not been updated to include emerging channels.",
-        box_id: "CRIT-003"
-      }
-    ],
-    reference: "AML Code S3.2.1",
-    requirementId: "aml-1",
-    evidence_strength: "strong",
-    origin: "backend",
-    reviewStatus: "unreviewed"
-  },
-  {
-    id: "WARN-AML-001",
-    severity: "warning",
-    certainty: "lead",
-    polarity: "non_compliant",
-    is_good_practice: false,
-    codeArea: "aml",
-    title: "SAR reporting process lacks outcome tracking",
-    detail: "Internal SAR escalation outcomes are inconsistently captured in the SAR log.",
-    documentId: "00_Firm_AML_Policy",
-    boxId: "WARN-AML-001",
-    source: {
-      file: "00_Firm_AML_Policy.pdf",
-      page: 2,
-      section: "SAR reporting",
-      text: "Suspicious activity reports are escalated, but outcomes are not consistently recorded."
-    },
-    evidencePassages: [
-      {
-        id: "WARN-AML-001-p1",
-        document_id: "00_Firm_AML_Policy",
-        file: "00_Firm_AML_Policy.pdf",
-        page: 2,
-        section: "SAR reporting",
-        text: "Suspicious activity reports are escalated, but outcomes are not consistently recorded.",
-        box_id: "WARN-AML-001"
-      }
-    ],
-    reference: "AML Code S3.8.2",
-    requirementId: "aml-2",
-    evidence_strength: "supported",
-    origin: "backend",
-    reviewStatus: "unreviewed"
-  },
-  {
-    id: "WARN-SOF-001",
-    severity: "warning",
-    certainty: "lead",
-    polarity: "non_compliant",
-    is_good_practice: false,
-    codeArea: "aml",
-    title: "Source of funds documentation incomplete",
-    detail: "In multiple files, source-of-funds narrative and corroboration are incomplete.",
-    documentId: "04_Source_of_Funds_Declaration",
-    boxId: "WARN-SOF-001",
-    source: {
-      file: "04_Source_of_Funds_Declaration.pdf",
-      page: 1,
-      section: "Source of funds",
-      text: "Funds declared from savings, but corroboration references are partial."
-    },
-    evidencePassages: [
-      {
-        id: "WARN-SOF-001-p1",
-        document_id: "04_Source_of_Funds_Declaration",
-        file: "04_Source_of_Funds_Declaration.pdf",
-        page: 1,
-        section: "Source of funds",
-        text: "Funds declared from savings, but corroboration references are partial.",
-        box_id: "WARN-SOF-001"
-      },
-      {
-        id: "WARN-SOF-001-p2",
-        document_id: "00_Firm_AML_Policy",
-        file: "00_Firm_AML_Policy.pdf",
-        page: 2,
-        section: "Enhanced due diligence trigger",
-        text: "Enhanced due diligence checks are required where source corroboration remains incomplete.",
-        box_id: "WARN-AML-001"
-      }
-    ],
-    reference: "AML Code S4.1.2",
-    requirementId: "aml-2",
-    evidence_strength: "supported",
-    origin: "backend",
-    reviewStatus: "unreviewed"
-  },
-  {
-    id: "WARN-COMP-001",
-    severity: "warning",
-    certainty: "lead",
-    polarity: "non_compliant",
-    is_good_practice: false,
-    codeArea: "complaints",
-    title: "Complaints website disclosure needs update",
-    detail: "Website content requires updates to align with latest code references.",
-    documentId: "summary_document",
-    boxId: "WARN-COMP-001",
-    source: {
-      file: "Website_Screenshot_Complaints.pdf",
-      page: 1,
-      section: "Complaints section",
-      text: "Complaints references do not match the latest code wording."
-    },
-    evidencePassages: [
-      {
-        id: "WARN-COMP-001-p1",
-        document_id: "summary_document",
-        file: "Website_Screenshot_Complaints.pdf",
-        page: 1,
-        section: "Complaints section",
-        text: "Complaints references do not match the latest code wording.",
-        box_id: "WARN-COMP-001"
-      }
-    ],
-    reference: "Complaints Code S2.1",
-    requirementId: "co-1",
-    evidence_strength: "indicative",
-    origin: "backend",
-    reviewStatus: "unreviewed"
-  },
-  {
-    id: "CRIT-ACC-001",
-    severity: "critical",
-    certainty: "finding",
-    polarity: "non_compliant",
-    is_good_practice: false,
-    codeArea: "accounts",
-    title: "Client account reconciliation trail is incomplete",
-    detail: "Month-end reconciliation evidence is not consistently linked to matter ledgers.",
-    documentId: "00_Firm_AML_Policy",
-    boxId: "CRIT-ACC-001",
-    source: {
-      file: "00_Firm_AML_Policy.pdf",
-      page: 2,
-      section: "Accounts reconciliation",
-      text: "Reconciliation summary exists but ledger-level cross-reference is missing for sampled matters."
-    },
-    evidencePassages: [
-      {
-        id: "CRIT-ACC-001-p1",
-        document_id: "00_Firm_AML_Policy",
-        file: "00_Firm_AML_Policy.pdf",
-        page: 2,
-        section: "Accounts reconciliation",
-        text: "Reconciliation summary exists but ledger-level cross-reference is missing for sampled matters.",
-        box_id: "CRIT-ACC-001"
-      }
-    ],
-    reference: "Accounts Code S5.3",
-    requirementId: "ac-2",
-    evidence_strength: "strong",
-    origin: "backend",
-    reviewStatus: "unreviewed"
-  },
-  {
-    id: "CRIT-CC-001",
-    severity: "critical",
-    certainty: "finding",
-    polarity: "non_compliant",
-    is_good_practice: false,
-    codeArea: "client-care",
-    title: "Client care escalation contact is missing",
-    detail: "Client-facing disclosure wording omits required escalation contact details.",
-    documentId: "summary_document",
-    boxId: "CRIT-CC-001",
-    source: {
-      file: "Website_Screenshot_Complaints.pdf",
-      page: 1,
-      section: "Client care disclosure",
-      text: "Escalation contact details are not visible in the published client-care text."
-    },
-    evidencePassages: [
-      {
-        id: "CRIT-CC-001-p1",
-        document_id: "summary_document",
-        file: "Website_Screenshot_Complaints.pdf",
-        page: 1,
-        section: "Client care disclosure",
-        text: "Escalation contact details are not visible in the published client-care text.",
-        box_id: "CRIT-CC-001"
-      }
-    ],
-    reference: "Client Care Code S2.3",
-    requirementId: "cc-2",
-    evidence_strength: "strong",
-    origin: "backend",
-    reviewStatus: "unreviewed"
-  },
-  {
-    id: "GP-UND-001",
-    severity: "best_practice",
-    certainty: "finding",
-    polarity: "compliant",
-    is_good_practice: true,
-    codeArea: "undertakings",
-    title: "Undertakings tracking is strong",
-    detail: "Undertakings register and deadline tracking are consistently maintained.",
-    documentId: "00_Firm_AML_Policy",
-    boxId: "GP-UND-001",
-    source: {
-      file: "00_Firm_AML_Policy.pdf",
-      page: 2,
-      section: "Undertakings process",
-      text: "Owners and due dates are explicitly tracked with escalation reminders."
-    },
-    evidencePassages: [
-      {
-        id: "GP-UND-001-p1",
-        document_id: "00_Firm_AML_Policy",
-        file: "00_Firm_AML_Policy.pdf",
-        page: 2,
-        section: "Undertakings process",
-        text: "Owners and due dates are explicitly tracked with escalation reminders.",
-        box_id: "GP-UND-001"
-      }
-    ],
-    reference: "Undertakings Code S1.1",
-    requirementId: "un-1",
-    evidence_strength: "strong",
-    origin: "backend",
-    reviewStatus: "unreviewed"
-  }
-];
-
-const BASELINE_REQUIREMENTS = [
-  { id: "aml-1", codeArea: "aml", label: "Practice-wide risk assessment current", status: "non_compliant" },
-  { id: "aml-2", codeArea: "aml", label: "Source of funds evidence complete", status: "lead" },
-  { id: "aml-3", codeArea: "aml", label: "Ongoing monitoring documented", status: "compliant" },
-  { id: "cc-1", codeArea: "client-care", label: "Terms of engagement issued", status: "compliant" },
-  { id: "cc-2", codeArea: "client-care", label: "Scope communicated clearly", status: "compliant" },
-  { id: "cc-3", codeArea: "client-care", label: "Fees transparency evidence", status: "compliant" },
-  { id: "ac-1", codeArea: "accounts", label: "Client account reconciliations", status: "compliant" },
-  { id: "ac-2", codeArea: "accounts", label: "Residual balances controls", status: "compliant" },
-  { id: "mg-1", codeArea: "management", label: "Supervision process documented", status: "compliant" },
-  { id: "mg-2", codeArea: "management", label: "Escalation route clear", status: "compliant" },
-  { id: "un-1", codeArea: "undertakings", label: "Undertakings register maintained", status: "good_practice" },
-  { id: "co-1", codeArea: "complaints", label: "Complaints process visible to clients", status: "lead_linked" }
-];
-
-const BASELINE_UPLOADS = [
-  {
-    id: "up1",
-    name: "00_Firm_AML_Policy.pdf",
-    filename: "00_Firm_AML_Policy.pdf",
-    status: "verified",
-    confirmed: true,
-    processing_status: "complete",
-    classification: "AML Policy",
-    classification_confidence: 0.99,
-    processing_path: "ocr_then_classify_then_extract",
-    features_found: ["policy_controls", "aml_references", "sar_procedure"],
-    models_agree: true,
-    parties: "Firm",
-    confidence: "high",
-    summary: "Seeded baseline upload linked to sample case-file evidence."
-  },
-  {
-    id: "up2",
-    name: "01_Client_ID_Verification.pdf",
-    filename: "01_Client_ID_Verification.pdf",
-    status: "verified",
-    confirmed: true,
-    processing_status: "complete",
-    classification: "CDD Records",
-    classification_confidence: 0.96,
-    processing_path: "ocr_then_classify_then_extract",
-    features_found: ["passport", "id_check"],
-    models_agree: true,
-    parties: "Client",
-    confidence: "high",
-    summary: "Client identification pack and verification evidence."
-  },
-  {
-    id: "up3",
-    name: "02_Proof_of_Address.pdf",
-    filename: "02_Proof_of_Address.pdf",
-    status: "verified",
-    confirmed: true,
-    processing_status: "complete",
-    classification: "CDD Records",
-    classification_confidence: 0.95,
-    processing_path: "ocr_then_classify_then_extract",
-    features_found: ["proof_of_address"],
-    models_agree: true,
-    parties: "Client",
-    confidence: "high",
-    summary: "Proof of address evidence for the sampled client matter."
-  },
-  {
-    id: "up4",
-    name: "03_Client_Risk_Assessment.pdf",
-    filename: "03_Client_Risk_Assessment.pdf",
-    status: "classified",
-    confirmed: false,
-    processing_status: "classified",
-    classification: "CDD Records",
-    classification_confidence: 0.84,
-    processing_path: "ocr_then_classify",
-    features_found: ["risk_assessment_form"],
-    models_agree: true,
-    parties: "Client",
-    confidence: "medium",
-    summary: "Client risk assessment form awaiting final verification."
-  },
-  {
-    id: "up5",
-    name: "04_Source_of_Funds_Declaration.pdf",
-    filename: "04_Source_of_Funds_Declaration.pdf",
-    status: "verified",
-    confirmed: true,
-    processing_status: "complete",
-    classification: "Source of Funds Declaration",
-    classification_confidence: 0.91,
-    processing_path: "ocr_then_classify_then_extract",
-    features_found: ["sof_declaration", "funding_narrative"],
-    models_agree: true,
-    parties: "Client",
-    confidence: "medium",
-    summary: "Seeded baseline upload linked to sample source-of-funds evidence."
-  },
-  {
-    id: "up6",
-    name: "05_Bank_Statements_Client.pdf",
-    filename: "05_Bank_Statements_Client.pdf",
-    status: "verified",
-    confirmed: true,
-    processing_status: "complete",
-    classification: "Bank Statement",
-    classification_confidence: 0.97,
-    processing_path: "ocr_then_classify_then_extract",
-    features_found: ["statement_header", "transactions"],
-    models_agree: true,
-    parties: "Client",
-    confidence: "high",
-    summary: "Bank statement pack used to corroborate source-of-funds activity."
-  },
-  {
-    id: "up7",
-    name: "06_Gift_Letter.pdf",
-    filename: "06_Gift_Letter.pdf",
-    status: "verified",
-    confirmed: true,
-    processing_status: "complete",
-    classification: "Other",
-    classification_confidence: 0.76,
-    processing_path: "ocr_then_classify_then_extract",
-    features_found: ["gift_letter"],
-    models_agree: false,
-    parties: "Giftor, Client",
-    confidence: "medium",
-    summary: "Gift letter supporting third-party contribution to transaction funding."
-  },
-  {
-    id: "up8",
-    name: "07_Giftor_ID_Verification.pdf",
-    filename: "07_Giftor_ID_Verification.pdf",
-    status: "verified",
-    confirmed: true,
-    processing_status: "complete",
-    classification: "CDD Records",
-    classification_confidence: 0.92,
-    processing_path: "ocr_then_classify_then_extract",
-    features_found: ["giftor_id"],
-    models_agree: true,
-    parties: "Giftor",
-    confidence: "medium",
-    summary: "Giftor identity verification evidence linked to the gift letter."
-  },
-  {
-    id: "up9",
-    name: "08_Giftor_Source_of_Funds.pdf",
-    filename: "08_Giftor_Source_of_Funds.pdf",
-    status: "attention",
-    confirmed: false,
-    processing_status: "failed_partial",
-    classification: "Source of Funds Declaration",
-    classification_confidence: 0.61,
-    processing_path: "ocr_then_classify_then_extract",
-    features_found: ["giftor_sof"],
-    models_agree: false,
-    parties: "Giftor",
-    confidence: "low",
-    summary: "Giftor source-of-funds evidence needs classification correction or replacement."
-  },
-  {
-    id: "up10",
-    name: "09_Sanctions_Screening.pdf",
-    filename: "09_Sanctions_Screening.pdf",
-    status: "classified",
-    confirmed: false,
-    processing_status: "classified",
-    classification: "Other",
-    classification_confidence: 0.74,
-    processing_path: "ocr_then_classify",
-    features_found: ["screening_result"],
-    models_agree: false,
-    parties: "Client",
-    confidence: "high",
-    summary: "Seeded baseline upload linked to sample sanctions screening evidence."
-  }
-];
-
-const BASELINE_REPORT = {
-  executiveSummary:
-    "Initial baseline review indicates attention in AML risk assessment, source-of-funds corroboration, and client-facing complaints wording. Follow-up actions have been captured for inspector review.",
-  executive_summary:
-    "Initial baseline review indicates attention in AML risk assessment, source-of-funds corroboration, and client-facing complaints wording. Follow-up actions have been captured for inspector review.",
-  overallRating: "requires_attention",
-  overall_rating: "requires_attention",
-  generated_at: "2026-03-24T09:20:00Z"
-};
-
-const BASELINE_REPORT_SECTIONS = [
-  {
-    id: "section_aml",
-    codeAreaId: "aml",
-    lines: [
-      "Practice-wide risk assessment requires update for current risk channels.",
-      "Source-of-funds corroboration is inconsistent across sampled files."
-    ]
-  },
-  {
-    id: "section_complaints",
-    codeAreaId: "complaints",
-    lines: ["Complaints website wording references outdated code phrasing."]
-  },
-  {
-    id: "section_accounts",
-    codeAreaId: "accounts",
-    lines: ["Month-end reconciliation evidence is not consistently linked to matter ledgers."]
-  },
-  {
-    id: "section_client-care",
-    codeAreaId: "client-care",
-    lines: ["Client-facing escalation contact details are missing in published disclosure text."]
-  },
-  {
-    id: "section_undertakings",
-    codeAreaId: "undertakings",
-    lines: ["Undertakings tracking controls appear mature and consistently evidenced."]
-  }
-];
-
-async function deleteDocumentTree(documentRef) {
+export async function deleteDocumentTree(documentRef) {
   const subcollections = await documentRef.listCollections();
   for (const subcollection of subcollections) {
     await deleteCollectionTree(subcollection);
@@ -806,14 +429,14 @@ async function deleteDocumentTree(documentRef) {
   await documentRef.delete();
 }
 
-async function deleteCollectionTree(collectionRef) {
+export async function deleteCollectionTree(collectionRef) {
   const snapshot = await collectionRef.get();
   for (const docSnap of snapshot.docs) {
     await deleteDocumentTree(docSnap.ref);
   }
 }
 
-async function resetOrganizationTree() {
+export async function resetOrganizationTree() {
   const orgRef = database.doc(`organizations/${ORGANIZATION_ID}`);
   const orgSnapshot = await orgRef.get();
   if (!orgSnapshot.exists) {
@@ -823,7 +446,7 @@ async function resetOrganizationTree() {
   return true;
 }
 
-async function seedOrganization() {
+export async function seedOrganization() {
   await database.doc(`organizations/${ORGANIZATION_ID}`).set(
     {
       name: "CLC Dev",
@@ -850,37 +473,38 @@ async function seedOrganization() {
   }
 }
 
-async function seedDashboardCases() {
+export async function seedDashboardCases(workspacesByCaseId = new Map()) {
   const basePath = `organizations/${ORGANIZATION_ID}/cases`;
   for (const row of DASHBOARD_CASES) {
-    await database.doc(`${basePath}/${row.id}`).set(row.data, { merge: true });
+    const workspace = workspacesByCaseId.get(row.id) ?? buildSeededWorkspace(row);
+    await database.doc(`${basePath}/${row.id}`).set(buildDashboardCaseData(row, workspace), { merge: true });
   }
 }
 
-async function seedCaseWorkspace(caseId) {
-  const caseBase = `organizations/${ORGANIZATION_ID}/cases/${caseId}`;
+export async function seedCaseWorkspace(caseRowOrId) {
+  const row =
+    typeof caseRowOrId === "string"
+      ? DASHBOARD_CASES.find((entry) => entry.id === caseRowOrId)
+      : caseRowOrId;
+  if (!row) {
+    throw new Error(`Unknown seed case: ${String(caseRowOrId)}`);
+  }
 
-  for (const item of BASELINE_DOCUMENTS) {
+  const caseBase = `organizations/${ORGANIZATION_ID}/cases/${row.id}`;
+  const { uploads } = buildWorkspaceForCase(row);
+  const workspace = buildSeededWorkspace(row);
+  const documents = Array.isArray(workspace?.documents) ? workspace.documents : [];
+  const findings = Array.isArray(workspace?.findings) ? workspace.findings : [];
+  const requirements = Array.isArray(workspace?.requirements) ? workspace.requirements : [];
+  const { reportCurrent, reportSections, reportActions } = buildReportArtifacts(workspace);
+
+  await clearCaseWorkspaceCollections(caseBase);
+  await database.doc(caseBase).set(buildDashboardCaseData(row, workspace), { merge: true });
+
+  for (const item of documents) {
     await database.doc(`${caseBase}/documents/${item.id}`).set(
       {
-        ...item,
-        documentType: item.classification,
-        extracted_fields:
-          item.id === "04_Source_of_Funds_Declaration"
-            ? {
-                funding_source: "Savings and bonus",
-                declared_amount: "875000"
-              }
-            : item.id === "00_Firm_AML_Policy"
-              ? { policy_owner: "COLP/MLRO", review_cycle_months: 12 }
-              : {},
-        parties_found:
-          item.id === "04_Source_of_Funds_Declaration"
-            ? ["Amira Khan", "Saeed Khan"]
-            : item.id === "summary_document"
-              ? ["Hartley & Partners Solicitors"]
-              : [],
-        storagePath: null,
+        ...toPersistedDocumentShape(item),
         createdAt: now,
         updatedAt: now
       },
@@ -888,7 +512,7 @@ async function seedCaseWorkspace(caseId) {
     );
   }
 
-  for (const item of BASELINE_UPLOADS) {
+  for (const item of uploads) {
     await database.doc(`${caseBase}/uploads/${item.id}`).set(
       {
         ...item,
@@ -900,10 +524,10 @@ async function seedCaseWorkspace(caseId) {
     );
   }
 
-  for (const item of BASELINE_FINDINGS) {
+  for (const item of findings) {
     await database.doc(`${caseBase}/findings/${item.id}`).set(
       {
-        ...item,
+        ...toPersistedFindingShape(item),
         createdAt: now,
         updatedAt: now
       },
@@ -911,7 +535,7 @@ async function seedCaseWorkspace(caseId) {
     );
   }
 
-  for (const item of BASELINE_REQUIREMENTS) {
+  for (const item of requirements) {
     await database.doc(`${caseBase}/requirements/${item.codeArea}__${item.id}`).set(
       {
         requirementId: item.id,
@@ -928,7 +552,7 @@ async function seedCaseWorkspace(caseId) {
   await database.doc(`${caseBase}/history/h1`).set(
     {
       timestampLabel: "09:05",
-      detail: "Case created and baseline data loaded",
+      detail: "Case created from seeded canned PDF workspace",
       actor: "System",
       createdAt: now
     },
@@ -938,7 +562,7 @@ async function seedCaseWorkspace(caseId) {
   await database.doc(`${caseBase}/history/h2`).set(
     {
       timestampLabel: "09:18",
-      detail: "Initial processing run completed",
+      detail: `Seeded ${findings.length} findings across ${documents.length} document(s)`,
       actor: "System",
       createdAt: now
     },
@@ -947,7 +571,7 @@ async function seedCaseWorkspace(caseId) {
 
   await database.doc(`${caseBase}/contextNotes/cn1`).set(
     {
-      text: "Focus on AML evidence chain and complaints disclosure wording.",
+      text: row.data.preInspectionConcerns || "Seeded from canned PDF workspace.",
       actor: PRIMARY_USER.displayName,
       actorUserId: PRIMARY_USER.id,
       timestampLabel: "09:20",
@@ -956,47 +580,26 @@ async function seedCaseWorkspace(caseId) {
     { merge: true }
   );
 
-  await database.doc(`${caseBase}/reportActions/ra1`).set(
-    {
-      action: "Update PWRA for current regulatory framework",
-      codeRef: "AML Code S3.2.1",
-      codeArea: "AML",
-      deadline: "2026-02-28",
-      person: "",
-      status: "open",
-      createdAt: now,
-      updatedAt: now
-    },
-    { merge: true }
-  );
-
-  await database.doc(`${caseBase}/reportActions/ra2`).set(
-    {
-      action: "Update complaints website wording and escalation details",
-      codeRef: "Complaints Code S2.1",
-      codeArea: "Complaints",
-      deadline: "2026-03-05",
-      person: "",
-      status: "open",
-      createdAt: now,
-      updatedAt: now
-    },
-    { merge: true }
-  );
+  for (const action of reportActions) {
+    await database.doc(`${caseBase}/reportActions/${action.id}`).set(
+      {
+        ...action,
+        createdAt: now,
+        updatedAt: now
+      },
+      { merge: true }
+    );
+  }
 
   await database.doc(`${caseBase}/report/current`).set(
     {
-      executiveSummary: BASELINE_REPORT.executiveSummary,
-      executive_summary: BASELINE_REPORT.executive_summary,
-      overallRating: BASELINE_REPORT.overallRating,
-      overall_rating: BASELINE_REPORT.overall_rating,
-      generated_at: BASELINE_REPORT.generated_at,
+      ...reportCurrent,
       updatedAt: now
     },
     { merge: true }
   );
 
-  for (const section of BASELINE_REPORT_SECTIONS) {
+  for (const section of reportSections) {
     await database.doc(`${caseBase}/reportSections/${section.id}`).set(
       {
         sectionId: section.id,
@@ -1010,9 +613,11 @@ async function seedCaseWorkspace(caseId) {
       { merge: true }
     );
   }
+
+  return { uploads, workspace };
 }
 
-async function run() {
+export async function run() {
   if (SHOULD_RESET || RESET_ONLY) {
     const removed = await resetOrganizationTree();
     console.log(
@@ -1032,20 +637,25 @@ async function run() {
     await seedCaseWorkspace(row.id);
   }
 
-  console.log("Seed complete: baseline wireframe data loaded.");
+  console.log("Seed complete: generated demo cases loaded from the shared canned PDF dataset.");
 }
 
-run().catch((error) => {
-  console.error("Seed failed:", error);
-  const message = String(error?.message || "");
-  if (message.includes("invalid_rapt") || message.includes("invalid_grant")) {
-    console.error("");
-    console.error("Authentication refresh required (ADC token expired).");
-    console.error("Run:");
-    console.error("  gcloud auth application-default login");
-    console.error("");
-    console.error("Then run seed again:");
-    console.error("  npm run seed:db:fresh");
-  }
-  process.exitCode = 1;
-});
+const isDirectRun =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isDirectRun) {
+  run().catch((error) => {
+    console.error("Seed failed:", error);
+    const message = String(error?.message || "");
+    if (message.includes("invalid_rapt") || message.includes("invalid_grant")) {
+      console.error("");
+      console.error("Authentication refresh required (ADC token expired).");
+      console.error("Run:");
+      console.error("  gcloud auth application-default login");
+      console.error("");
+      console.error("Then run seed again:");
+      console.error("  npm run seed:db:fresh");
+    }
+    process.exitCode = 1;
+  });
+}

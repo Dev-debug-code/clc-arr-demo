@@ -1,0 +1,51 @@
+{
+  "status": "attention",
+  "parties": "James Whitfield",
+  "id": "10_PEP_Screening",
+  "summary": "PEP and sanctions screening report \u2014 subject name James Whitfield does not match the client (Joe Bloggs). Likely misfiled from another matter.",
+  "confidence": "low",
+  "models_agree": false,
+  "filename": "10_PEP_Screening.pdf",
+  "confirmed": false,
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/10_PEP_Screening.pdf",
+  "documentType": "PEP Screening",
+  "classification_confidence": 0.61,
+  "overlayBoxes": [
+    {
+      "page": 1,
+      "pageno": 0,
+      "id": "LEAD-AML-003",
+      "bbox": [
+        60,
+        730,
+        270,
+        750
+      ],
+      "category": "Client Details",
+      "details": "The Politically Exposed Person (PEP) and sanctions screening report on file is in the name 'James Whitfield', which doesn't appear to match any party in this case (client: Joe Bloggs; donor: John Bloggs Senior). Worth confirming whether the document was misfiled from another matter and whether screening was completed for the actual case parties.",
+      "title": "Politically Exposed Person Check Appears to Be for the Wrong Individual",
+      "severity": "warning"
+    }
+  ],
+  "classification_flag": "unmatched_party",
+  "updatedAt": "2026-05-05T20:42:47.911928+00:00",
+  "processing_status": "failed_partial",
+  "classification": "CDD Records",
+  "createdAt": "2026-05-05T20:42:47.911928+00:00",
+  "features_found": [
+    "pep_screen_header",
+    "watchlist_table"
+  ],
+  "parties_found": [
+    "James Whitfield"
+  ],
+  "extracted_fields": {
+    "screening_date": "15/10/2024",
+    "subject_name": "James Whitfield",
+    "employer": "Example Investment Bank"
+  },
+  "flag_reason": "Document relates to 'James Whitfield' \u2014 does not match any known party in this case (client: Joe Bloggs, giftor: John Bloggs Senior). This document may have been misfiled from another matter.",
+  "severity": "warning",
+  "processing_path": "ocr_then_classify_then_extract",
+  "name": "10_PEP_Screening.pdf"
+}

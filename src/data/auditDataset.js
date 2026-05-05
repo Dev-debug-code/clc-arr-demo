@@ -1,195 +1,148 @@
-import summaryDocument from './caseFiles/summary_document.json';
-import policyDoc from './caseFiles/00_Firm_AML_Policy.json';
-import clientIdDoc from './caseFiles/01_Client_ID_Verification.json';
-import proofAddressDoc from './caseFiles/02_Proof_of_Address.json';
-import riskAssessmentDoc from './caseFiles/03_Client_Risk_Assessment.json';
-import sofDeclarationDoc from './caseFiles/04_Source_of_Funds_Declaration.json';
-import bankStatementsDoc from './caseFiles/05_Bank_Statements_Client.json';
-import giftLetterDoc from './caseFiles/06_Gift_Letter.json';
-import giftorIdDoc from './caseFiles/07_Giftor_ID_Verification.json';
-import giftorSofDoc from './caseFiles/08_Giftor_Source_of_Funds.json';
-import sanctionsDoc from './caseFiles/09_Sanctions_Screening.json';
-import pepDoc from './caseFiles/10_PEP_Screening.json';
+import auditCaseDoc from './demoFirestoreDump/case.json';
 
-const rawDocuments = [
-  policyDoc,
-  clientIdDoc,
-  proofAddressDoc,
-  riskAssessmentDoc,
-  sofDeclarationDoc,
-  bankStatementsDoc,
-  giftLetterDoc,
-  giftorIdDoc,
-  giftorSofDoc,
-  sanctionsDoc,
-  pepDoc
-];
+const documentModules = import.meta.glob('./demoFirestoreDump/documents/*.json', { eager: true });
+const findingModules = import.meta.glob('./demoFirestoreDump/findings/*.json', { eager: true });
+const requirementModules = import.meta.glob('./demoFirestoreDump/requirements/*.json', { eager: true });
 
-const severityMap = {
-  critical: 'critical',
-  warning: 'warning',
-  pass: 'pass',
-  best_practice: 'best_practice',
-  note: 'note'
-};
+function asJson(moduleValue) {
+  return moduleValue?.default ?? moduleValue ?? {};
+}
+
+function coerceText(value) {
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value).trim();
+  return '';
+}
+
+function compareByStableId(left, right) {
+  const leftId = coerceText(left?.id || left?.requirementId || left?.filename);
+  const rightId = coerceText(right?.id || right?.requirementId || right?.filename);
+  return leftId.localeCompare(rightId, undefined, { numeric: true, sensitivity: 'base' });
+}
 
 function normaliseSeverity(value, fallback = 'pass') {
-  const key = (value || '').toLowerCase();
-  return severityMap[key] ?? fallback;
+  const normalized = coerceText(value).toLowerCase();
+  if (normalized === 'critical') return 'critical';
+  if (normalized === 'warning') return 'warning';
+  if (normalized === 'best_practice') return 'best_practice';
+  if (normalized === 'pass') return 'pass';
+  return fallback;
 }
 
-function normalisePages(value) {
-  if (Array.isArray(value)) {
-    const pages = value
-      .map((entry) => {
-        if (!Number.isFinite(entry)) return null;
-        return Math.max(Math.round(entry), 1);
-      })
-      .filter((entry) => entry !== null);
-    return pages.length > 0 ? pages : [1];
+function preferredClassification(classification, documentType) {
+  const cleanClassification = coerceText(classification);
+  const cleanDocumentType = coerceText(documentType);
+  if (cleanClassification && cleanClassification.toLowerCase() !== 'other') {
+    return cleanClassification;
   }
-  if (Number.isFinite(value)) {
-    return [Math.max(Math.round(value), 1)];
-  }
-  return [1];
+  return cleanDocumentType || cleanClassification || 'Unknown';
 }
 
-function extractBoundingBoxes(source) {
-  if (!source || typeof source !== 'object') {
-    return [];
+function buildFindingSource(finding) {
+  if (finding?.source && typeof finding.source === 'object') {
+    return finding.source;
   }
-  const entries = Object.entries(source)
-    .map(([key, value]) => {
-      if (!/^bbox\d*$/i.test(key)) {
-        return null;
-      }
-      if (!Array.isArray(value) || value.length !== 4) {
-        return null;
-      }
-      const orderMatch = key.match(/^bbox(\d*)$/i);
-      const orderValue = orderMatch && orderMatch[1] ? Number.parseInt(orderMatch[1], 10) : 1;
-      const order = Number.isFinite(orderValue) ? orderValue : 1;
-      return { order, box: value };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.order - b.order);
-  return entries.map((entry) => entry.box);
+
+  const firstPassage = Array.isArray(finding?.evidencePassages)
+    ? finding.evidencePassages[0]
+    : Array.isArray(finding?.evidence_passages)
+      ? finding.evidence_passages[0]
+      : null;
+
+  if (!firstPassage || typeof firstPassage !== 'object') {
+    return null;
+  }
+
+  return {
+    file: firstPassage.file ?? '',
+    page: firstPassage.page ?? 1,
+    section: firstPassage.section ?? '',
+    text: firstPassage.text ?? ''
+  };
 }
 
-function buildOverlayBoxes(doc) {
-  if (!Array.isArray(doc.findings)) return [];
-  return doc.findings.flatMap((finding, index) => {
-    const source = finding?.source ?? {};
-    const bboxes = extractBoundingBoxes(source);
-    if (bboxes.length === 0) {
-      return [];
-    }
-    const pages = normalisePages(source.page);
-    const combos = [];
-    const count = Math.max(pages.length, bboxes.length);
-    for (let i = 0; i < count; i += 1) {
-      const pageNumber = pages[i] ?? pages[pages.length - 1] ?? pages[0] ?? 1;
-      const bbox = bboxes[i] ?? bboxes[0];
-      if (!Array.isArray(bbox) || bbox.length !== 4) {
-        continue;
-      }
-      const id = finding.id ?? `${doc.file_id || doc.filename}-box-${index + 1}`;
-      combos.push({
-        id,
-        bbox,
-        page: pageNumber,
-        pageno: Math.max(Math.round(pageNumber - 1), 0),
-        category: finding?.source?.section ?? doc.document_type,
-        severity: normaliseSeverity(finding?.type, doc.severity),
-        title: finding.title ?? doc.document_type,
-        details: finding.deviation ?? finding?.source?.text ?? ''
-      });
-    }
-    return combos;
-  });
-}
+const rawDocuments = Object.values(documentModules).map(asJson).sort(compareByStableId);
+const rawFindings = Object.values(findingModules).map(asJson).sort(compareByStableId);
+const rawRequirements = Object.values(requirementModules).map(asJson).sort(compareByStableId);
 
-function inferCodeArea(doc, finding) {
-  const haystack = [
-    doc?.file_id,
-    doc?.filename,
-    doc?.document_type,
-    finding?.title,
-    finding?.deviation,
-    finding?.source?.section,
-    finding?.reference?.section
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-
-  if (haystack.includes('complaint')) return 'complaints';
-  if (haystack.includes('undertaking')) return 'undertakings';
-  if (haystack.includes('account') || haystack.includes('reconciliation')) return 'accounts';
-  if (haystack.includes('management') || haystack.includes('supervision')) return 'management';
-  if (
-    haystack.includes('aml') ||
-    haystack.includes('money laundering') ||
-    haystack.includes('ctf') ||
-    haystack.includes('source of funds') ||
-    haystack.includes('risk assessment') ||
-    haystack.includes('sanction') ||
-    haystack.includes('pep') ||
-    haystack.includes('identity')
-  ) {
-    return 'aml';
-  }
-  return 'aml';
-}
-
-export const auditDocuments = rawDocuments.map((doc) => ({
-  ...doc,
-  id: doc.file_id ?? doc.filename,
-  label: doc.document_type ?? doc.file_id ?? doc.filename,
-  severity: normaliseSeverity(doc.severity, 'pass'),
-  pdf: `assets/case-files/${doc.filename}`,
-  overlay: {
-    boxes: buildOverlayBoxes(doc)
-  }
+export const auditRequirements = rawRequirements.map((requirement) => ({
+  ...requirement,
+  id: coerceText(requirement.requirementId || requirement.id),
+  requirementId: coerceText(requirement.requirementId || requirement.id),
+  codeArea: coerceText(requirement.codeArea) || 'aml',
+  label: coerceText(requirement.label) || coerceText(requirement.requirementId || requirement.id),
+  status: coerceText(requirement.status) || 'compliant'
 }));
 
-export const auditFindings = rawDocuments.flatMap((doc) => {
-  if (!Array.isArray(doc.findings) || doc.findings.length === 0) {
-    return [];
-  }
-  return doc.findings.map((finding, index) => {
-    const derivedId = finding.id ?? `${doc.file_id || doc.filename}-finding-${index + 1}`;
-    const severity = normaliseSeverity(finding.type, doc.severity);
-    const isGoodPractice = severity === 'best_practice';
-    const polarity = severity === 'pass' || isGoodPractice ? 'compliant' : 'non_compliant';
-    const certainty = severity === 'warning' ? 'lead' : 'finding';
-    return {
-      id: derivedId,
-      severity,
-      codeArea: inferCodeArea(doc, finding),
-      title: finding.title ?? doc.document_type,
-      detail: finding.deviation ?? finding?.source?.text ?? '',
-      documentId: doc.file_id ?? doc.filename,
-      boxId: finding.id ?? derivedId,
-      certainty,
-      polarity,
-      isGoodPractice,
-      reviewStatus: 'unreviewed',
-      source: finding.source,
-      reference: finding.reference
-    };
-  });
+export const auditDocuments = rawDocuments.map((documentRow) => {
+  const filename = coerceText(documentRow.filename || documentRow.name || documentRow.id);
+  const classification = preferredClassification(documentRow.classification, documentRow.documentType);
+  return {
+    ...documentRow,
+    id: coerceText(documentRow.id || filename.replace(/\.[^.]+$/u, '')) || filename,
+    label: coerceText(documentRow.documentType) || classification || filename,
+    name: coerceText(documentRow.name) || filename,
+    filename,
+    classification,
+    documentType: coerceText(documentRow.documentType) || classification,
+    confidence: coerceText(documentRow.confidence) || 'medium',
+    severity: normaliseSeverity(documentRow.severity, 'warning'),
+    pdf: filename ? `assets/case-files/${filename}` : undefined,
+    overlay: {
+      boxes: Array.isArray(documentRow.overlayBoxes) ? documentRow.overlayBoxes : []
+    }
+  };
 });
 
-export const auditSummary = summaryDocument;
+export const auditFindings = rawFindings.map((finding) => {
+  const severity = normaliseSeverity(finding.severity, 'critical');
+  const isGoodPractice =
+    finding.isGoodPractice === true ||
+    finding.is_good_practice === true ||
+    severity === 'best_practice';
+  const evidencePassages = Array.isArray(finding.evidencePassages)
+    ? finding.evidencePassages
+    : Array.isArray(finding.evidence_passages)
+      ? finding.evidence_passages
+      : [];
+
+  return {
+    ...finding,
+    id: coerceText(finding.id),
+    severity,
+    codeArea: coerceText(finding.codeArea || finding.code_area) || 'aml',
+    title: coerceText(finding.title) || 'Finding',
+    detail: coerceText(finding.detail),
+    documentId: coerceText(finding.documentId || finding.document_id),
+    boxId: coerceText(finding.boxId || finding.box_id || finding.id),
+    certainty: coerceText(finding.certainty) || (severity === 'warning' ? 'lead' : 'finding'),
+    polarity: coerceText(finding.polarity) || (isGoodPractice ? 'compliant' : 'non_compliant'),
+    isGoodPractice,
+    is_good_practice: isGoodPractice,
+    reviewStatus: coerceText(finding.reviewStatus || finding.review_status) || 'unreviewed',
+    source: buildFindingSource(finding),
+    evidencePassages,
+    evidence_passages: evidencePassages
+  };
+});
+
+export const auditSummary = {
+  summary: {
+    critical: auditFindings.filter((finding) => finding.severity === 'critical').length,
+    warning: auditFindings.filter((finding) => finding.severity === 'warning').length,
+    pass: auditRequirements.filter((requirement) => requirement.status === 'compliant').length,
+    best_practice: auditFindings.filter((finding) => finding.severity === 'best_practice').length
+  }
+};
+
+export const auditCase = auditCaseDoc;
 
 export function buildSummaryCards() {
-  const summary = summaryDocument?.summary ?? {};
-  const cards = [
+  const summary = auditSummary.summary;
+  return [
     { id: 'critical', label: 'Critical', count: summary.critical ?? 0 },
     { id: 'warning', label: 'Warnings', count: summary.warning ?? 0 },
     { id: 'pass', label: 'Passed', count: summary.pass ?? 0 },
     { id: 'best_practice', label: 'Best Practice', count: summary.best_practice ?? 0 }
-  ];
-  return cards.filter((card) => typeof card.count === 'number');
+  ].filter((card) => typeof card.count === 'number');
 }

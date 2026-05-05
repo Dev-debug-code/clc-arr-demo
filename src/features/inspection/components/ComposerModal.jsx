@@ -30,24 +30,19 @@ export default function ComposerModal({
             <label className="modal-label" htmlFor="composer-text">
               {isManual ? 'Describe the finding' : 'What did you observe?'}
             </label>
-            <div className="composer-textarea-wrap">
-              <textarea
-                id="composer-text"
-                className="modal-textarea"
-                value={composerModal.text}
-                onChange={(event) =>
-                  setComposerModal((prev) => ({ ...prev, text: event.target.value }))
-                }
-                placeholder={
-                  composerModal.type === 'manual'
-                    ? 'Describe the finding...'
-                    : 'What did you observe?'
-                }
-              />
-              <button type="button" className="composer-voice-btn" title="Dictate (UI only)" aria-label="Dictate">
-                🎤
-              </button>
-            </div>
+            <textarea
+              id="composer-text"
+              className="modal-textarea"
+              value={composerModal.text}
+              onChange={(event) =>
+                setComposerModal((prev) => ({ ...prev, text: event.target.value }))
+              }
+              placeholder={
+                composerModal.type === 'manual'
+                  ? 'Describe the finding...'
+                  : 'What did you observe?'
+              }
+            />
             {isObservation ? (
               <>
                 <label className="modal-label" htmlFor="composer-source">

@@ -8,6 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "seed:db": "node scripts/seed-firestore.mjs",
+    "seed:db:cases": "node scripts/reset-cases-only.mjs",
+    "seed:db:inspect": "node scripts/inspect-cases.mjs",
     "seed:db:fresh": "node scripts/seed-firestore.mjs --reset",
     "seed:db:reset": "node scripts/seed-firestore.mjs --reset-only",
     "smoke:api": "node scripts/smoke-api-v6.mjs"

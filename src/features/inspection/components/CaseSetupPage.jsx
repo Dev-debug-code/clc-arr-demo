@@ -276,17 +276,12 @@ export default function CaseSetupPage({
 
         <label>
           Pre-inspection concerns
-          <div className="case-setup-textarea-wrap">
-            <textarea
-              rows={3}
-              value={caseSetupConcerns}
-              onChange={(event) => setCaseSetupConcerns(event.target.value)}
-              placeholder="e.g. MLRO changed 6 months ago, aged balances flagged in accountant's report..."
-            />
-            <button type="button" className="case-setup-voice-btn" title="Dictate (UI only)" aria-label="Dictate">
-              🎤
-            </button>
-          </div>
+          <textarea
+            rows={3}
+            value={caseSetupConcerns}
+            onChange={(event) => setCaseSetupConcerns(event.target.value)}
+            placeholder="e.g. MLRO changed 6 months ago, aged balances flagged in accountant's report..."
+          />
         </label>
 
         <div>

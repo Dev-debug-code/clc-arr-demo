@@ -1,0 +1,34 @@
+{
+  "parties": "Donor",
+  "confirmed": true,
+  "id": "07_Giftor_ID_Verification",
+  "summary": "Third-party identity verification for the donor, John Bloggs Senior.",
+  "confidence": "high",
+  "models_agree": true,
+  "filename": "07_Giftor_ID_Verification.pdf",
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/07_Giftor_ID_Verification.pdf",
+  "documentType": "Identity Verification",
+  "classification_confidence": 0.9,
+  "overlayBoxes": [],
+  "updatedAt": "2026-05-05T20:42:47.911928+00:00",
+  "processing_status": "complete",
+  "classification": "CDD Records",
+  "createdAt": "2026-05-05T20:42:47.911928+00:00",
+  "features_found": [
+    "passport_field",
+    "address_verification"
+  ],
+  "parties_found": [
+    "John Bloggs Senior"
+  ],
+  "extracted_fields": {
+    "subject_name": "John Bloggs Senior",
+    "verifier": "Sarah Example",
+    "address": "456 Example Lane, Guildford GU1 1AA",
+    "document_type": "UK Passport"
+  },
+  "status": "verified",
+  "severity": "warning",
+  "processing_path": "ocr_then_classify_then_extract",
+  "name": "07_Giftor_ID_Verification.pdf"
+}

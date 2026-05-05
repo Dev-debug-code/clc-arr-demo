@@ -28,6 +28,9 @@ import {
   persistGenerateFindingsEvent,
   persistGenerateReport,
   persistUploadItem,
+  persistUploadItemDelete,
+  runSimulatedClassification,
+  runSimulatedFindingsGeneration,
   prepareUploadDraft,
   prepareWorkspaceSnapshot
 } from '../../services/dataProvider.js';
@@ -50,7 +53,6 @@ import {
 } from '../../utils/accessControl.js';
 import { createInspectionReportPdf, exportStyledInspectionReportPdf } from '../../utils/reportPdf.js';
 import {
-  ANALYSIS_PROGRESS_INCREMENT,
   ANALYSIS_TICK_INTERVAL_MS,
   AI_PROCESSING_STEPS,
   AI_PROCESSING_MESSAGES,
@@ -114,7 +116,6 @@ import {
   isRequirementMet,
   safeSourceField,
   safeText,
-  suggestClassificationFromFilename,
   textOf,
   toDateInputValue,
   toIsoDate,
@@ -461,38 +462,73 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     }
   }, [hasTeamCaseAccess]);
 
-  useEffect(() => {
-    if (appMode !== 'dashboard') return;
-    if (isCurrentUserProfileLoading) return;
-    if (DATA_PROVIDER_MODE === 'firestore' && currentUser?.uid && !currentUserProfile) {
-      setDashboardCases([]);
-      setDashboardError('');
-      setIsDashboardLoading(false);
-      return;
-    }
-    let cancelled = false;
+  const refreshDashboardCases = useCallback(
+    async ({ showLoading = false } = {}) => {
+      if (isCurrentUserProfileLoading) return;
+      if (DATA_PROVIDER_MODE === 'firestore' && currentUser?.uid && !currentUserProfile) {
+        setDashboardCases([]);
+        setDashboardError('');
+        if (showLoading) {
+          setIsDashboardLoading(false);
+        }
+        return;
+      }
 
-    const loadCases = async () => {
-      setIsDashboardLoading(true);
+      if (showLoading) {
+        setIsDashboardLoading(true);
+      }
       setDashboardError('');
+
       try {
         const rows = await listCases({
           user: currentUser,
           role: currentUserRole
         });
-        if (!cancelled) {
-          setDashboardCases(rows);
-        }
+        setDashboardCases((prev) => {
+          const activeCaseId = coerceText(currentCaseMeta.caseId);
+          const liveDashboardRow = currentCaseDashboardRowRef.current;
+          if (!isActiveCasePersisted || !activeCaseId || !liveDashboardRow) {
+            return rows;
+          }
+
+          if (rows.some((entry) => entry.id === activeCaseId)) {
+            return rows.map((entry) => (entry.id === activeCaseId ? { ...entry, ...liveDashboardRow } : entry));
+          }
+
+          const existingRow = prev.find((entry) => entry.id === activeCaseId);
+          return [
+            existingRow ? { ...existingRow, ...liveDashboardRow } : liveDashboardRow,
+            ...rows.filter((entry) => entry.id !== activeCaseId)
+          ];
+        });
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Failed to load dashboard cases from data provider', error);
-        if (!cancelled) {
-          setDashboardError('Cannot read cases from the data provider. Check auth/rules/API connectivity.');
-        }
+        setDashboardError('Cannot read cases from the data provider. Check auth/rules/API connectivity.');
       } finally {
-        if (!cancelled) {
+        if (showLoading) {
           setIsDashboardLoading(false);
         }
+      }
+    },
+    [
+      currentCaseMeta.caseId,
+      currentUser,
+      currentUserProfile,
+      currentUserRole,
+      isActiveCasePersisted,
+      isCurrentUserProfileLoading
+    ]
+  );
+
+  useEffect(() => {
+    if (appMode !== 'dashboard') return;
+    let cancelled = false;
+
+    const loadCases = async () => {
+      await refreshDashboardCases({ showLoading: true });
+      if (cancelled) {
+        return;
       }
     };
 
@@ -500,17 +536,37 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     return () => {
       cancelled = true;
     };
-  }, [appMode, currentUser, currentUserProfile, currentUserRole, isCurrentUserProfileLoading]);
+  }, [appMode, refreshDashboardCases]);
 
   useEffect(() => {
     if (appMode !== 'inspection') return;
     const caseId = currentCaseMeta.caseId?.trim();
     if (!caseId) return;
 
+    if (skipNextWorkspaceLoadCaseIdRef.current === caseId) {
+      skipNextWorkspaceLoadCaseIdRef.current = '';
+      setIsWorkspaceLoading(false);
+      setIsActiveCasePersisted(true);
+      return;
+    }
+
     let cancelled = false;
 
     const loadWorkspace = async () => {
       setIsWorkspaceLoading(true);
+      setFirestoreDocuments([]);
+      setFirestoreFindings([]);
+      setFirestoreRequirementsByCodeArea({});
+      setFindingDecisions({});
+      setFindingNotes({});
+      setDocumentNotes({});
+      setCaseContextNotes([]);
+      setInspectorObservations([]);
+      setInspectorFindings([]);
+      setUploadItems([]);
+      setExpandedCodeAreaIds({});
+      setExpandedOverviewFindingIds({});
+      setOverviewRequirementFilter({ areaId: '', requirementId: '' });
       try {
         const snapshot = await loadCaseWorkspaceData(caseId);
         if (!snapshot || cancelled) return;
@@ -520,6 +576,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           practiceName: snapshot.caseMetaPatch.practiceName ?? prev.practiceName,
           caseId: snapshot.caseMetaPatch.caseId ?? prev.caseId,
           owner: snapshot.caseMetaPatch.owner ?? prev.owner,
+          status: snapshot.caseMetaPatch.status ?? prev.status,
+          outcome: snapshot.caseMetaPatch.outcome ?? prev.outcome,
           started: snapshot.caseMetaPatch.started ?? prev.started,
           riskLevel: snapshot.caseMetaPatch.riskLevel ?? prev.riskLevel,
           previousInspection: snapshot.caseMetaPatch.previousInspection ?? prev.previousInspection,
@@ -552,11 +610,48 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         setFirestoreDocuments(snapshot.documents);
         setFirestoreFindings(snapshot.findings);
         setFirestoreRequirementsByCodeArea(snapshot.requirementsByCodeArea ?? {});
-        setFindingDecisions(snapshot.findingDecisions);
+        {
+          const nextFindingDecisions = { ...(snapshot.findingDecisions ?? {}) };
+          (snapshot.findings ?? []).forEach((finding) => {
+            const findingId = coerceText(finding?.id);
+            if (!findingId || nextFindingDecisions[findingId]) return;
+            const normalizedReviewStatus = String(finding?.reviewStatus || finding?.review_status || '')
+              .trim()
+              .toLowerCase();
+            if (normalizedReviewStatus === 'accepted' || normalizedReviewStatus === 'confirmed') {
+              nextFindingDecisions[findingId] = 'accepted';
+            } else if (normalizedReviewStatus === 'rejected') {
+              nextFindingDecisions[findingId] = 'rejected';
+            } else if (normalizedReviewStatus === 'dismissed') {
+              nextFindingDecisions[findingId] = 'dismissed';
+            }
+          });
+          setFindingDecisions(nextFindingDecisions);
+        }
         setFindingNotes(snapshot.findingNotes);
         setDocumentNotes(snapshot.documentNotes);
         setCaseContextNotes(snapshot.caseContextNotes);
-        setExpandedCodeAreaIds({});
+        const isCompletedSnapshot =
+          String(snapshot.caseMetaPatch.status ?? '').trim().toLowerCase() === 'completed' ||
+          String(snapshot.caseMetaPatch.outcome ?? '').trim().toLowerCase() === 'compliant';
+        if (isCompletedSnapshot) {
+          const nextExpandedAreas = {};
+          Object.keys(snapshot.requirementsByCodeArea ?? {}).forEach((codeAreaId) => {
+            const cleanCodeAreaId = coerceText(codeAreaId);
+            if (cleanCodeAreaId) {
+              nextExpandedAreas[cleanCodeAreaId] = true;
+            }
+          });
+          (snapshot.findings ?? []).forEach((finding) => {
+            const cleanCodeAreaId = coerceText(finding?.codeArea ?? finding?.code_area);
+            if (cleanCodeAreaId) {
+              nextExpandedAreas[cleanCodeAreaId] = true;
+            }
+          });
+          setExpandedCodeAreaIds(nextExpandedAreas);
+        } else {
+          setExpandedCodeAreaIds({});
+        }
         setExpandedOverviewFindingIds({});
         setOverviewRequirementFilter({ areaId: '', requirementId: '' });
         const preparedUploads = (snapshot.uploadItems ?? []).map((item) => prepareUploadDraft(item));
@@ -746,64 +841,124 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   });
   const reportSectionPersistTimersRef = useRef({});
   const lastPersistedCaseSummaryRef = useRef({ caseId: '', key: '' });
+  const currentCaseDashboardRowRef = useRef(null);
+  const skipNextWorkspaceLoadCaseIdRef = useRef('');
 
-  const completeQueuedUploadClassification = useCallback(() => {
-    let changedUploads = [];
-
-    setUploadItems((previousItems) => {
-      const nextItems = previousItems.map((item) => {
-        if (item.status !== 'queued') return item;
-
-        const suggestedClassification = suggestClassificationFromFilename(item.name);
-        const nextItem = prepareUploadDraft({
-          ...item,
-          status: 'classified',
-          confirmed: false,
-          classification: suggestedClassification,
-          confidence: suggestedClassification === 'Other' ? 'low' : 'high',
-          classification_confidence: suggestedClassification === 'Other' ? null : 0.98,
-          classificationReason: buildClassificationReason(item.name, suggestedClassification),
-          summary:
-            item.summary ||
-            `AI classification suggests ${suggestedClassification}. Review and confirm before generating findings.`
-        });
-
-        changedUploads.push(nextItem);
-        return nextItem;
-      });
-
-      return changedUploads.length > 0 ? nextItems : previousItems;
+  const completeQueuedUploadClassification = useCallback(async () => {
+    const classificationResult = await runSimulatedClassification({
+      caseId: isActiveCasePersisted ? currentCaseMeta.caseId : '',
+      uploadItems,
+      user: currentUser
     });
+    const changedUploads = Array.isArray(classificationResult?.changedUploads)
+      ? classificationResult.changedUploads
+      : [];
 
-    if (changedUploads.length === 0) return;
+    const nextUploads = Array.isArray(classificationResult?.uploadItems) ? classificationResult.uploadItems : uploadItems;
+    const nextDocuments = Array.isArray(classificationResult?.documents) ? classificationResult.documents : [];
 
+    if (isActiveCasePersisted && currentCaseMeta.caseId) {
+      try {
+        const snapshot = await loadCaseWorkspaceData(currentCaseMeta.caseId);
+        if (snapshot) {
+          const preparedUploads = (snapshot.uploadItems ?? []).map((item) => prepareUploadDraft(item));
+          setIsActiveCasePersisted(Boolean(snapshot.caseExists));
+          setFirestoreDocuments(snapshot.documents ?? []);
+          setFirestoreFindings(snapshot.findings ?? []);
+          setFirestoreRequirementsByCodeArea(snapshot.requirementsByCodeArea ?? {});
+          setUploadItems(preparedUploads);
+          setDocumentsPhase(
+            preparedUploads.length === 0
+              ? 'intake'
+              : preparedUploads.every((item) => item.status === 'queued')
+                ? 'intake'
+                : 'review'
+          );
+        } else {
+          setUploadItems(nextUploads);
+          setFirestoreDocuments(nextDocuments);
+          setFirestoreFindings([]);
+          setFirestoreRequirementsByCodeArea({});
+          setDocumentsPhase(
+            nextUploads.length === 0
+              ? 'intake'
+              : nextUploads.every((item) => prepareUploadDraft(item).status === 'queued')
+                ? 'intake'
+                : 'review'
+          );
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to reload classified workspace snapshot', error);
+        setUploadItems(nextUploads);
+        setFirestoreDocuments(nextDocuments);
+        setFirestoreFindings([]);
+        setFirestoreRequirementsByCodeArea({});
+        setDocumentsPhase(
+          nextUploads.length === 0
+            ? 'intake'
+            : nextUploads.every((item) => prepareUploadDraft(item).status === 'queued')
+              ? 'intake'
+              : 'review'
+        );
+      }
+    } else {
+      setUploadItems(nextUploads);
+      setFirestoreDocuments(nextDocuments);
+      setFirestoreFindings([]);
+      setFirestoreRequirementsByCodeArea({});
+      setDocumentsPhase(
+        nextUploads.length === 0
+          ? 'intake'
+          : nextUploads.every((item) => prepareUploadDraft(item).status === 'queued')
+            ? 'intake'
+            : 'review'
+      );
+    }
+
+    setDeletedFindingIds({});
+    setFindingDecisions({});
+    setFindingNotes({});
+    setDocumentNotes({});
+    setExpandedCodeAreaIds({});
+    setExpandedOverviewFindingIds({});
+    setOverviewRequirementFilter({ areaId: '', requirementId: '' });
     setProcessingLog((previous) => [
       {
         id: `p${Date.now()}-classified`,
-        detail: `${changedUploads.length} document${
-          changedUploads.length === 1 ? '' : 's'
+        detail: `${(changedUploads.length || nextUploads.length)} document${
+          (changedUploads.length || nextUploads.length) === 1 ? '' : 's'
         } classified and ready for review`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       },
       ...previous
     ]);
     setReportNeedsRegeneration(true);
+  }, [currentCaseMeta.caseId, currentUser, isActiveCasePersisted, uploadItems]);
 
-    if (isActiveCasePersisted) {
-      Promise.all(
-        changedUploads.map((uploadItem) =>
-          persistUploadItem({
-            caseId: currentCaseMeta.caseId,
-            uploadItem,
-            user: currentUser
-          })
-        )
-      ).catch((error) => {
-        // eslint-disable-next-line no-console
-        console.error('Failed to persist classified uploads', error);
-      });
-    }
-  }, [currentCaseMeta.caseId, currentUser, isActiveCasePersisted]);
+  const completeGeneratedFindings = useCallback(async () => {
+    const generatedWorkspace = await runSimulatedFindingsGeneration({
+      caseId: isActiveCasePersisted ? currentCaseMeta.caseId : '',
+      uploadItems,
+      user: currentUser
+    });
+    const generatedFindingIds = new Set(generatedWorkspace.findings.map((finding) => finding.id));
+    const generatedDocumentIds = new Set(generatedWorkspace.documents.map((documentRow) => documentRow.id));
+
+    setFirestoreDocuments(generatedWorkspace.documents);
+    setFirestoreFindings(generatedWorkspace.findings);
+    setFirestoreRequirementsByCodeArea(generatedWorkspace.requirementsByCodeArea);
+    setDeletedFindingIds({});
+    setFindingDecisions((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([findingId]) => !generatedFindingIds.has(findingId)))
+    );
+    setFindingNotes((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([findingId]) => !generatedFindingIds.has(findingId)))
+    );
+    setDocumentNotes((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([documentId]) => !generatedDocumentIds.has(documentId)))
+    );
+  }, [currentCaseMeta.caseId, currentUser, isActiveCasePersisted, uploadItems]);
 
   const startProcessingRun = useCallback((mode) => {
     setAnalysisMode(mode);
@@ -819,32 +974,68 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     }
 
     if (analysisProgress >= 100) {
+      let cancelled = false;
       const timeout = setTimeout(() => {
-        setAnalysisRunning(false);
-        setAnalysisProgress(0);
-        if (analysisMode === PROCESSING_MODE_CLASSIFICATION) {
-          completeQueuedUploadClassification();
-          setDocumentsPhase('review');
-          setCurrentStep(STEP_DOCUMENTS);
-          return;
-        }
+        const finishProcessing = async () => {
+          if (cancelled) return;
+          try {
+            if (analysisMode === PROCESSING_MODE_CLASSIFICATION) {
+              await completeQueuedUploadClassification();
+              if (cancelled) return;
+              setDocumentsPhase('review');
+              setCurrentStep(STEP_DOCUMENTS);
+              return;
+            }
 
-        setDocumentsPhase('review');
-        setMaxStepUnlocked((prev) => Math.max(prev, STEP_OVERVIEW));
-        setCurrentStep(STEP_OVERVIEW);
+            await completeGeneratedFindings();
+            if (cancelled) return;
+            setDocumentsPhase('review');
+            setMaxStepUnlocked((prev) => Math.max(prev, STEP_OVERVIEW));
+            setCurrentStep(STEP_OVERVIEW);
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error('Processing run failed', error);
+            if (cancelled) return;
+            if (analysisMode === PROCESSING_MODE_CLASSIFICATION) {
+              setCurrentStep(STEP_DOCUMENTS);
+            } else {
+              setCurrentStep(STEP_OVERVIEW);
+            }
+          } finally {
+            if (!cancelled) {
+              setAnalysisRunning(false);
+              setAnalysisProgress(0);
+            }
+          }
+        };
+
+        void finishProcessing();
       }, 500);
-      return () => clearTimeout(timeout);
+      return () => {
+        cancelled = true;
+        clearTimeout(timeout);
+      };
     }
 
     const timer = setTimeout(() => {
-      const jitter = 0.9 + Math.random() * 0.2;
-      setAnalysisProgress((prev) =>
-        Math.min(100, prev + ANALYSIS_PROGRESS_INCREMENT * jitter)
-      );
-    }, ANALYSIS_TICK_INTERVAL_MS);
+      const jitter = 0.96 + Math.random() * 0.08;
+      setAnalysisProgress((prev) => {
+        const remaining = 100 - prev;
+        if (remaining <= 0) return 100;
+        const increment = Math.max(0.8, remaining * 0.08) * jitter;
+        return Math.min(100, prev + increment);
+      });
+    }, Math.max(140, Math.floor(ANALYSIS_TICK_INTERVAL_MS / 8)));
 
     return () => clearTimeout(timer);
-  }, [analysisMode, analysisRunning, analysisProgress, completeQueuedUploadClassification, currentStep]);
+  }, [
+    analysisMode,
+    analysisRunning,
+    analysisProgress,
+    completeGeneratedFindings,
+    completeQueuedUploadClassification,
+    currentStep
+  ]);
 
   useEffect(() => {
     const previousStep = previousStepRef.current;
@@ -1023,6 +1214,24 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, [caseDocuments]);
 
   const allFindings = useMemo(() => [...baseFindings, ...inspectorFindings], [baseFindings, inspectorFindings]);
+  const resolvedFindingDecisions = useMemo(() => {
+    const next = { ...findingDecisions };
+    allFindings.forEach((finding) => {
+      const findingId = coerceText(finding?.id);
+      if (!findingId || next[findingId]) return;
+      const normalizedReviewStatus = String(finding?.reviewStatus || finding?.review_status || '')
+        .trim()
+        .toLowerCase();
+      if (normalizedReviewStatus === 'accepted' || normalizedReviewStatus === 'confirmed') {
+        next[findingId] = 'accepted';
+      } else if (normalizedReviewStatus === 'rejected') {
+        next[findingId] = 'rejected';
+      } else if (normalizedReviewStatus === 'dismissed') {
+        next[findingId] = 'dismissed';
+      }
+    });
+    return next;
+  }, [allFindings, findingDecisions]);
 
   const replaceFindingState = useCallback((findingId, nextFindingState) => {
     if (!findingId || !nextFindingState) return;
@@ -1271,7 +1480,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
     return [
       { id: 'critical', label: 'Non-compliant', count: counts.critical },
-      { id: 'warning', label: 'Guidance', count: counts.warning },
+      { id: 'warning', label: 'Requires review', count: counts.warning },
       { id: 'pass', label: 'Compliant', count: counts.pass },
       { id: 'best_practice', label: 'Good Practice', count: counts.best_practice }
     ];
@@ -1301,7 +1510,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     .filter((finding) => {
       if (findingViewFilters.length === 0) return true;
 
-      const state = findingDecisions[finding.id] ?? 'unreviewed';
+      const state = resolvedFindingDecisions[finding.id] ?? 'unreviewed';
       const bucket = getFindingBucketId(finding);
       const evidenceStrengthKey = FINDING_EVIDENCE_STRENGTH_MAP[bucket]?.key ?? 'supported';
 
@@ -1320,11 +1529,11 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       });
     });
 
-  const reviewedCount = availableFindings.filter((finding) => Boolean(findingDecisions[finding.id])).length;
+  const reviewedCount = availableFindings.filter((finding) => Boolean(resolvedFindingDecisions[finding.id])).length;
   const pendingReviewCount = Math.max(availableFindings.length - reviewedCount, 0);
   const rejectedCount = useMemo(
-    () => availableFindings.filter((finding) => findingDecisions[finding.id] === 'rejected').length,
-    [availableFindings, findingDecisions]
+    () => availableFindings.filter((finding) => resolvedFindingDecisions[finding.id] === 'rejected').length,
+    [availableFindings, resolvedFindingDecisions]
   );
   const metRequirementsCount = useMemo(
     () =>
@@ -1350,6 +1559,104 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const criticalCount = severityCounts.find((entry) => entry.id === 'critical')?.count ?? 0;
   const leadCount = severityCounts.find((entry) => entry.id === 'warning')?.count ?? 0;
   const goodPracticeCount = severityCounts.find((entry) => entry.id === 'best_practice')?.count ?? 0;
+  const derivedCaseLifecycle = useMemo(() => {
+    const criticalCount = severityCounts.find((entry) => entry.id === 'critical')?.count ?? 0;
+    const warningCount = severityCounts.find((entry) => entry.id === 'warning')?.count ?? 0;
+    const wasCompleted = currentCaseMeta.status === 'completed';
+    const canRemainCompleted = hasGeneratedReport && !reportNeedsRegeneration && pendingReviewCount === 0;
+    const shouldBeCompleted =
+      (currentStep === STEP_REPORT && canRemainCompleted) || (wasCompleted && canRemainCompleted);
+    const status = shouldBeCompleted ? 'completed' : 'active';
+    const outcome = shouldBeCompleted
+      ? criticalCount > 0
+        ? 'non_compliant'
+        : warningCount > 0
+          ? 'generally_compliant'
+          : 'compliant'
+      : 'in_progress';
+    return { status, outcome };
+  }, [
+    currentCaseMeta.status,
+    currentStep,
+    hasGeneratedReport,
+    pendingReviewCount,
+    reportNeedsRegeneration,
+    severityCounts
+  ]);
+  const currentCaseDashboardRow = useMemo(() => {
+    const activeCaseId = coerceText(currentCaseMeta.caseId);
+    if (!isActiveCasePersisted || !activeCaseId) return null;
+
+    const flattenedRequirements = Object.values(requirementsByCodeArea).flatMap((rows) => (Array.isArray(rows) ? rows : []));
+    const findingsByRequirement = new Map();
+
+    availableFindings.forEach((finding) => {
+      const requirementId = coerceText(finding?.requirementId || finding?.requirement_id);
+      if (!requirementId) return;
+      const rows = findingsByRequirement.get(requirementId) ?? [];
+      rows.push(finding);
+      findingsByRequirement.set(requirementId, rows);
+    });
+
+    const reviewedRequirements = flattenedRequirements.reduce((count, requirement) => {
+      const relatedFindings = findingsByRequirement.get(coerceText(requirement?.id)) ?? [];
+      if (relatedFindings.length === 0) return count;
+      return relatedFindings.every((finding) => Boolean(resolvedFindingDecisions[finding.id])) ? count + 1 : count;
+    }, 0);
+
+    const totalRequirements = flattenedRequirements.length;
+    const progress = totalRequirements > 0 ? Math.round((reviewedRequirements / totalRequirements) * 100) : 100;
+    const progressLabel =
+      totalRequirements > 0 ? `${reviewedRequirements}/${totalRequirements} requirements reviewed` : 'No requirements generated';
+
+    return {
+      id: activeCaseId,
+      practice: currentCaseMeta.practiceName || 'Unknown practice',
+      started: currentCaseMeta.started || new Date().toLocaleDateString(),
+      startedAt: Date.now(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      lastActivityAt: Date.now(),
+      progress,
+      progressLabel,
+      unreviewed: pendingReviewCount,
+      leads: leadCount,
+      goodPractice: goodPracticeCount,
+      risk: currentCaseMeta.riskLevel || 'Not assessed',
+      lastActivity: 'Just now',
+      inspector: currentCaseMeta.owner || currentUserEmail || 'Inspector',
+      inspectorId: currentUser?.uid ?? '',
+      inspectorEmail: currentUserEmail,
+      owner: currentCaseMeta.owner || currentUserEmail || 'Inspector',
+      ownerEmail: currentUserEmail,
+      assignedInspectorUserId: currentUser?.uid ?? '',
+      assignedInspectorEmail: currentUserEmail,
+      createdByUserId: currentUser?.uid ?? '',
+      status: derivedCaseLifecycle.status,
+      outcome: derivedCaseLifecycle.outcome
+    };
+  }, [
+    availableFindings,
+    currentCaseMeta.caseId,
+    currentCaseMeta.owner,
+    currentCaseMeta.practiceName,
+    currentCaseMeta.riskLevel,
+    currentCaseMeta.status,
+    currentCaseMeta.started,
+    currentUser?.uid,
+    currentUserEmail,
+    derivedCaseLifecycle.outcome,
+    derivedCaseLifecycle.status,
+    goodPracticeCount,
+    isActiveCasePersisted,
+    leadCount,
+    pendingReviewCount,
+    requirementsByCodeArea,
+    resolvedFindingDecisions
+  ]);
+  useEffect(() => {
+    currentCaseDashboardRowRef.current = currentCaseDashboardRow;
+  }, [currentCaseDashboardRow]);
   const allRequirementsMet =
     caseDocuments.length > 0 &&
     availableFindings.length > 0 &&
@@ -1434,8 +1741,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     return {
       critical:
         criticalCount > 0 || leadCount > 0
-          ? `${criticalCount} critical, ${leadCount} guidance`
-          : '0 critical, 0 guidance',
+          ? `${criticalCount} non-compliant, ${leadCount} requires review`
+          : '0 non-compliant, 0 requires review',
       warning: pendingReviewCount > 0 ? `${pendingReviewCount} awaiting judgment` : 'awaiting judgment',
       pass: metRequirementsCount > 0 ? `${metRequirementsCount} requirements confirmed` : 'none confirmed yet',
       best_practice:
@@ -1449,7 +1756,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     const goodPracticeAreas = new Set();
     const unresolvedLeadCount = availableFindings.filter((finding) => {
       if (!isLeadFindingByTaxonomy(finding)) return false;
-      return (findingDecisions[finding.id] ?? 'unreviewed') === 'unreviewed';
+      return (resolvedFindingDecisions[finding.id] ?? 'unreviewed') === 'unreviewed';
     }).length;
 
     availableFindings.forEach((finding) => {
@@ -1465,14 +1772,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         id: 'attention',
         label: 'Non-compliant',
         value: criticalCount + leadCount,
-        detail: `${criticalCount} critical, ${leadCount} guidance`,
+        detail: `${criticalCount} non-compliant, ${leadCount} requires review`,
         tone: 'attention',
         active: findingViewFilters.includes('non_compliant'),
         onClick: () => setSingleFindingViewFilter('non_compliant')
       },
       {
         id: 'review',
-        label: 'Guidance',
+        label: 'Requires review',
         value: unresolvedLeadCount,
         detail: 'awaiting judgment',
         tone: 'review',
@@ -1498,7 +1805,17 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         onClick: () => setSingleFindingViewFilter('good_practice')
       }
     ];
-  }, [availableFindings, criticalCount, findingDecisions, findingViewFilters, goodPracticeCount, leadCount, metRequirementsCount, normalizeCodeAreaId, setSingleFindingViewFilter]);
+  }, [
+    availableFindings,
+    criticalCount,
+    findingViewFilters,
+    goodPracticeCount,
+    leadCount,
+    metRequirementsCount,
+    normalizeCodeAreaId,
+    resolvedFindingDecisions,
+    setSingleFindingViewFilter
+  ]);
   const activeSeverityLabels = filterSeverity.map((key) => SEVERITY_LABEL_MAP[key] ?? key);
 
   const complianceCodeAreas = useMemo(() => {
@@ -1535,8 +1852,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, [availableFindings, formatCodeAreaLabel, normalizeCodeAreaId, requirementsByCodeArea]);
 
   const reportIncludedFindings = useMemo(
-    () => availableFindings.filter((finding) => findingDecisions[finding.id] === 'accepted'),
-    [availableFindings, findingDecisions]
+    () => availableFindings.filter((finding) => resolvedFindingDecisions[finding.id] === 'accepted'),
+    [availableFindings, resolvedFindingDecisions]
   );
 
   const reportGoodPracticeFindings = useMemo(
@@ -1763,29 +2080,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, [reportActionItems.length, reportActionDefaults]);
 
   useEffect(() => {
-    if (appMode !== 'inspection' || !isActiveCasePersisted) return;
+    if (appMode !== 'inspection' || !isActiveCasePersisted || isWorkspaceLoading) return;
 
     const cleanCaseId = currentCaseMeta.caseId?.trim();
     if (!cleanCaseId) return;
 
-    const criticalCount = severityCounts.find((entry) => entry.id === 'critical')?.count ?? 0;
-    const leadCount = severityCounts.find((entry) => entry.id === 'warning')?.count ?? 0;
-    const isCompleted =
-      currentStep === STEP_REPORT &&
-      hasGeneratedReport &&
-      !reportNeedsRegeneration &&
-      pendingReviewCount === 0;
-    const nextOutcome = isCompleted
-      ? criticalCount > 0
-        ? 'non_compliant'
-        : leadCount > 0
-          ? 'generally_compliant'
-          : 'compliant'
-      : 'in_progress';
-
     const patch = {
-      status: isCompleted ? 'completed' : 'active',
-      outcome: nextOutcome
+      status: derivedCaseLifecycle.status,
+      outcome: derivedCaseLifecycle.outcome
     };
     const patchKey = `${patch.status}|${patch.outcome}`;
     const lastPatch = lastPersistedCaseSummaryRef.current;
@@ -1798,6 +2100,11 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       if (currentLastPatch.caseId === cleanCaseId && currentLastPatch.key === patchKey) {
         return;
       }
+      setCurrentCaseMeta((prev) =>
+        prev.status === patch.status && prev.outcome === patch.outcome
+          ? prev
+          : { ...prev, status: patch.status, outcome: patch.outcome }
+      );
       lastPersistedCaseSummaryRef.current = { caseId: cleanCaseId, key: patchKey };
       persistCasePatch({
         caseId: cleanCaseId,
@@ -1813,13 +2120,11 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     return () => clearTimeout(timer);
   }, [
     appMode,
+    derivedCaseLifecycle.outcome,
+    derivedCaseLifecycle.status,
     isActiveCasePersisted,
-    hasGeneratedReport,
+    isWorkspaceLoading,
     currentCaseMeta.caseId,
-    currentStep,
-    reportNeedsRegeneration,
-    pendingReviewCount,
-    severityCounts,
     currentUser
   ]);
 
@@ -1854,7 +2159,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const historyFindingsRows = useMemo(
     () =>
       reportAttentionFindings.slice(0, 6).map((finding) => {
-        const decision = findingDecisions[finding.id] ?? 'unreviewed';
+        const decision = resolvedFindingDecisions[finding.id] ?? 'unreviewed';
         return {
           id: finding.id,
           title: textOf(finding.title, 'Finding'),
@@ -1871,7 +2176,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           recurring: RECURRING_FINDING_IDS.has(finding.id)
         };
       }),
-    [reportAttentionFindings, findingDecisions, formatCodeAreaLabel]
+    [formatCodeAreaLabel, reportAttentionFindings, resolvedFindingDecisions]
   );
 
   const hasInspectionHistory = useMemo(
@@ -1918,7 +2223,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     });
     return caseDocuments.map((doc) => {
       const findingsForDoc = allFindings.filter((finding) => finding.documentId === doc.id);
-      const unresolvedForDoc = findingsForDoc.filter((finding) => !findingDecisions[finding.id]).length;
+      const unresolvedForDoc = findingsForDoc.filter((finding) => !resolvedFindingDecisions[finding.id]).length;
       const uploadMatch = [...buildDocumentLookupKeys(doc)]
         .map((key) => uploadByFilenameKey.get(key))
         .find(Boolean);
@@ -1949,7 +2254,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         limitedAnalysis: isUploadLimitedAnalysis(uploadMatch)
       };
     });
-  }, [allFindings, caseDocuments, findingDecisions, uploadItems]);
+  }, [allFindings, caseDocuments, resolvedFindingDecisions, uploadItems]);
 
   const localFilteredCrossDocResults = useMemo(() => {
     const query = docSearchQuery.trim().toLowerCase();
@@ -2065,7 +2370,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       const haystack = `${item.practice} ${item.id}`.toLowerCase();
       return haystack.includes(search);
     })
-      .filter((item) => (showCompletedCases ? true : item.progress < 100))
+      .filter((item) => item.status !== 'completed')
       .filter((item) =>
         dashboardOutcomeFilter === 'All'
           ? true
@@ -2088,7 +2393,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, [
     dashboardScopeCases,
     dashboardSearch,
-    showCompletedCases,
     dashboardOutcomeFilter,
     hasTeamCaseAccess,
     teamView,
@@ -2331,6 +2635,12 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const totalSteps = INSPECTION_LINEAR_FINAL_STEP;
 
   const handleGoHome = useCallback(() => {
+    if (currentCaseDashboardRow) {
+      setDashboardCases((prev) => [
+        currentCaseDashboardRow,
+        ...prev.filter((entry) => entry.id !== currentCaseDashboardRow.id)
+      ]);
+    }
     setAppMode('dashboard');
     setFeedbackOpen(false);
     setContextNoteOpen(false);
@@ -2338,7 +2648,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setReportPendingGateOpen(false);
     setReportRegenerateConfirmOpen(false);
     setReggieOpen(false);
-  }, []);
+    refreshDashboardCases();
+  }, [currentCaseDashboardRow, refreshDashboardCases]);
 
   const handleCaseTabNavigate = (targetStep) => {
     if (targetStep === STEP_REPORT && pendingReviewCount > 0) {
@@ -2358,8 +2669,19 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
   const handleOpenCase = (caseItem) => {
     const targetStep = STEP_OVERVIEW;
+    setIsWorkspaceLoading(true);
     setAppMode('inspection');
     setIsActiveCasePersisted(false);
+    setFirestoreDocuments([]);
+    setFirestoreFindings([]);
+    setFirestoreRequirementsByCodeArea({});
+    setFindingDecisions({});
+    setFindingNotes({});
+    setDocumentNotes({});
+    setCaseContextNotes([]);
+    setInspectorFindings([]);
+    setInspectorObservations([]);
+    setUploadItems([]);
     setCurrentStep(targetStep);
     setMaxStepUnlocked((prev) => Math.max(prev, totalSteps));
     setDocSearchQuery('');
@@ -2395,15 +2717,28 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         practiceName: caseItem.practice ?? prev.practiceName,
         caseId: caseItem.id ?? prev.caseId,
         owner: caseItem.inspector ?? prev.owner,
-        riskLevel: caseItem.risk ?? prev.riskLevel
+        riskLevel: caseItem.risk ?? prev.riskLevel,
+        status: caseItem.status ?? prev.status,
+        outcome: caseItem.outcome ?? prev.outcome
       }));
     }
   };
 
   const handleOpenCompletedCase = (caseItem) => {
-    const targetStep = STEP_REPORT;
+    const targetStep = STEP_OVERVIEW;
+    setIsWorkspaceLoading(true);
     setAppMode('inspection');
     setIsActiveCasePersisted(false);
+    setFirestoreDocuments([]);
+    setFirestoreFindings([]);
+    setFirestoreRequirementsByCodeArea({});
+    setFindingDecisions({});
+    setFindingNotes({});
+    setDocumentNotes({});
+    setCaseContextNotes([]);
+    setInspectorFindings([]);
+    setInspectorObservations([]);
+    setUploadItems([]);
     setCurrentStep(targetStep);
     setMaxStepUnlocked((prev) => Math.max(prev, totalSteps));
     setDocSearchQuery('');
@@ -2429,7 +2764,9 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         practiceName: caseItem.practice ?? prev.practiceName,
         caseId: caseItem.id ?? prev.caseId,
         owner: caseItem.inspector ?? prev.owner,
-        riskLevel: caseItem.risk ?? prev.riskLevel
+        riskLevel: caseItem.risk ?? prev.riskLevel,
+        status: caseItem.status ?? prev.status,
+        outcome: caseItem.outcome ?? prev.outcome
       }));
     }
   };
@@ -2578,7 +2915,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         updatedAt: Date.now(),
         lastActivityAt: Date.now(),
         progress: 0,
-        progressLabel: '0/0 requirements met',
+        progressLabel: '0/0 requirements reviewed',
         unreviewed: 0,
         leads: 0,
         goodPractice: 0,
@@ -2594,6 +2931,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       ...prev.filter((entry) => entry.id !== nextCaseId && entry.id !== persistedCaseId)
     ]);
     setIsActiveCasePersisted(true);
+    clearDashboardFilters();
     setCaseSetupPracticeName('');
     setCaseSetupLicenceNumber('');
     setCaseSetupHolp('');
@@ -2638,6 +2976,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setPendingScopeChangeCount(0);
     setReportDraftVersion((prev) => prev + 1);
     setAppMode('inspection');
+    skipNextWorkspaceLoadCaseIdRef.current = persistedCaseId;
     setCurrentStep(STEP_DOCUMENTS);
     setMaxStepUnlocked(STEP_DOCUMENTS);
     setIsCreatingCase(false);
@@ -2688,7 +3027,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         nextDecision === 'rejected'
           ? 'Rejected'
           : nextDecision === 'dismissed'
-            ? 'Dismissed as guidance'
+            ? 'Dismissed after review'
             : nextDecision === null
               ? 'Cleared decision'
               : targetFinding?.certainty === 'lead'
@@ -2715,10 +3054,12 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         previousDecision,
         finding: findingForPersistence,
         user: currentUser
-      }).catch((error) => {
-        // eslint-disable-next-line no-console
-        console.error('Failed to persist finding decision', error);
-      });
+      })
+        .then(() => refreshDashboardCases())
+        .catch((error) => {
+          // eslint-disable-next-line no-console
+          console.error('Failed to persist finding decision', error);
+        });
     }
   };
 
@@ -2957,6 +3298,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         name: resolvedName,
         filename: resolvedName,
         file: isFileObject ? fileOrName : null,
+        isLocalDraft: true,
         status: 'queued',
         classification: 'Unknown',
         parties: 'Firm',
@@ -2981,63 +3323,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       setUploadItems((prev) => [...newItems, ...prev]);
       setReportNeedsRegeneration(true);
 
-      if (isActiveCasePersisted) {
-        Promise.all(
-          newItems.map(async (uploadItem) => {
-            const persisted = await persistUploadItem({
-              caseId: currentCaseMeta.caseId,
-              uploadItem,
-              user: currentUser
-            });
-            return { tempId: uploadItem.id, persisted };
-          })
-        )
-          .then((results) => {
-            const replacementMap = new Map();
-            results.forEach(({ tempId, persisted }) => {
-              if (!persisted || typeof persisted !== 'object') return;
-              const serverId = coerceText(persisted.id).trim();
-              if (!serverId || serverId === tempId) return;
-              replacementMap.set(tempId, {
-                id: serverId,
-                name: persisted.filename || persisted.name || undefined,
-                filename: persisted.filename || undefined,
-                classification: persisted.classification || undefined,
-                status:
-                  persisted.confirmed === true
-                    ? 'verified'
-                    : persisted.processing_status || persisted.status || undefined,
-                confidence: persisted.confidence || undefined
-              });
-            });
-
-            if (replacementMap.size === 0) return;
-
-            setUploadItems((prev) =>
-              prev.map((entry) => {
-                const replacement = replacementMap.get(entry.id);
-                if (!replacement) return entry;
-                return {
-                  ...entry,
-                  id: replacement.id,
-                  name: replacement.name || entry.name,
-                  filename: replacement.filename || entry.filename,
-                  classification: replacement.classification ?? entry.classification,
-                  status: replacement.status || entry.status,
-                  confidence: replacement.confidence || entry.confidence,
-                  file: null
-                };
-              })
-              .map((entry) => prepareUploadDraft(entry))
-            );
-          })
-          .catch((error) => {
-            // eslint-disable-next-line no-console
-            console.error('Failed to persist new upload item(s)', error);
-          });
-      }
     },
-    [buildUploadItem, currentCaseMeta.caseId, currentUser, isActiveCasePersisted]
+    [buildUploadItem]
   );
 
   const handleUploadFileSelection = useCallback(
@@ -3079,6 +3366,32 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       });
     },
     [currentCaseMeta.caseId, currentUser, isActiveCasePersisted]
+  );
+
+  const handleRemoveUploadItem = useCallback(
+    (uploadId) => {
+      const cleanUploadId = String(uploadId || '').trim();
+      if (!cleanUploadId) return;
+
+      const target = uploadItems.find((item) => item.id === cleanUploadId);
+      if (!target || target.status !== 'queued') return;
+
+      setUploadItems((prev) => prev.filter((item) => item.id !== cleanUploadId));
+      setActiveClassificationMenu((prev) => (prev === cleanUploadId ? null : prev));
+      setReportNeedsRegeneration(true);
+
+      if (!isActiveCasePersisted || target.isLocalDraft) return;
+
+      persistUploadItemDelete({
+        caseId: currentCaseMeta.caseId,
+        uploadId: cleanUploadId,
+        user: currentUser
+      }).catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error('Failed to delete upload item', error);
+      });
+    },
+    [currentCaseMeta.caseId, currentUser, isActiveCasePersisted, uploadItems]
   );
 
   const handleUploadClassificationSelect = (uploadId, groupLabel, optionLabel) => {
@@ -3673,7 +3986,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       summaryLines: [
         `Total findings: ${totalFindings}`,
         `Non-compliant: ${criticalCount}`,
-        `Guidance: ${leadCount}`,
+        `Requires review: ${leadCount}`,
         `Compliant: ${compliantCount}`,
         `Good practice: ${goodPracticeCount}`
       ],
@@ -4584,10 +4897,12 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         previousDecision: undoDecision.nextDecision,
         finding: undoDecision.previousFindingState,
         user: currentUser
-      }).catch((error) => {
-        // eslint-disable-next-line no-console
-        console.error('Failed to persist undo decision', error);
-      });
+      })
+        .then(() => refreshDashboardCases())
+        .catch((error) => {
+          // eslint-disable-next-line no-console
+          console.error('Failed to persist undo decision', error);
+        });
     }
 
     setUndoDecision(null);
@@ -5054,10 +5369,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     if (explicitCodeArea && explicitCodeArea === normalizedArea) {
       return true;
     }
-    if (explicitCodeArea && normalizedArea) {
-      if (explicitCodeArea.includes(normalizedArea) || normalizedArea.includes(explicitCodeArea)) {
-        return true;
-      }
+    if (explicitCodeArea) {
+      return false;
     }
     const keywords = CODE_AREA_KEYWORDS[normalizedArea] ?? [];
     if (keywords.length === 0) return false;
@@ -5191,7 +5504,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       findingFilterLabelMap={FINDING_FILTER_LABEL_MAP}
       toggleFindingViewFilter={toggleFindingViewFilter}
       clearFindingViewFilters={clearFindingViewFilters}
-      findingDecisions={findingDecisions}
+      findingDecisions={resolvedFindingDecisions}
       expandedOverviewFindingIds={expandedOverviewFindingIds}
       setExpandedOverviewFindingIds={setExpandedOverviewFindingIds}
       findingSeverityBadgeMap={FINDING_SEVERITY_BADGE_MAP}
@@ -5313,7 +5626,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       setActiveFindingId={setActiveFindingId}
       expandedViewerFindingIds={expandedViewerFindingIds}
       setExpandedViewerFindingIds={setExpandedViewerFindingIds}
-      findingDecisions={findingDecisions}
+      findingDecisions={resolvedFindingDecisions}
       isLeadFindingByTaxonomy={isLeadFindingByTaxonomy}
       isInspectorAddedFinding={isInspectorAddedFinding}
       findingSeverityBadgeMap={FINDING_SEVERITY_BADGE_MAP}
@@ -5359,6 +5672,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       openDocumentsFilePicker={openDocumentsFilePicker}
       handleUploadDrop={handleUploadDrop}
       uploadItems={uploadItems}
+      handleRemoveUploadItem={handleRemoveUploadItem}
       prepareUploadDraft={prepareUploadDraft}
       formatUploadClassificationLabel={formatUploadClassificationLabel}
       isUploadClassificationResolved={isUploadClassificationResolved}
@@ -5439,7 +5753,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     if (currentStep === STEP_VIEWER) {
       return null;
     }
-    const openFindings = allFindings.filter((finding) => !findingDecisions[finding.id]).length;
+    const openFindings = allFindings.filter((finding) => !resolvedFindingDecisions[finding.id]).length;
     const dataSourceLabel = isActiveCasePersisted ? 'Firestore' : 'Draft';
     const caseTabCounts = {
       overview: pendingReviewCount,

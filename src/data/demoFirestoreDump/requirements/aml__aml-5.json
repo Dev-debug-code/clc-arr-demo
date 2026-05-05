@@ -1,0 +1,8 @@
+{
+  "createdAt": "2026-05-05T20:43:42.045457+00:00",
+  "updatedAt": "2026-05-05T20:43:42.045457+00:00",
+  "label": "Firm AML policy aligns with CLC guidance",
+  "status": "non_compliant",
+  "codeArea": "aml",
+  "requirementId": "aml-5"
+}

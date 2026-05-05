@@ -16,10 +16,11 @@ const REQUIREMENT_SCOPE_OPTIONS = [
 const getRequirementStatusMeta = (status) => {
   const normalized = String(status || '').trim().toLowerCase();
 
-  if (normalized === 'non_compliant') return { tone: 'critical', label: 'Critical' };
-  if (normalized === 'lead') return { tone: 'guidance', label: 'Guidance' };
+  if (normalized === 'reviewed') return { tone: 'reviewed', label: 'Reviewed' };
+  if (normalized === 'non_compliant') return { tone: 'critical', label: 'Non-compliant' };
+  if (normalized === 'lead') return { tone: 'guidance', label: 'Requires review' };
   if (normalized === 'good_practice') return { tone: 'good-practice', label: 'Good practice' };
-  if (normalized === 'compliant' || normalized === 'pass') return { tone: 'compliant', label: 'Pass' };
+  if (normalized === 'compliant' || normalized === 'pass') return { tone: 'compliant', label: 'Compliant' };
   if (normalized === 'not_assessed') return { tone: 'not-reviewed', label: 'Not reviewed' };
   if (normalized === 'not_applicable') return { tone: 'not-applicable', label: 'Not applicable' };
 
@@ -28,6 +29,7 @@ const getRequirementStatusMeta = (status) => {
 
 const getRequirementStatusIcon = (status) => {
   if (isRequirementMet(status)) return '✓';
+  if (status === 'reviewed') return '✓';
   if (status === 'non_compliant') return '✕';
   if (status === 'not_applicable') return '–';
   if (status === 'not_assessed') return '○';
@@ -120,14 +122,12 @@ export default function ComplianceCodeAreaSection({
   const reviewRequiredCount = mappedAreaFindings.filter(
     (finding) => (findingDecisions[finding.id] ?? 'unreviewed') === 'unreviewed'
   ).length;
-  const metRequirements = assessableRequirementRows.filter((entry) => isRequirementMet(entry.status)).length;
   const totalRequirements = assessableRequirementRows.length;
-  const metLabel = totalRequirements === 0 ? 'N/A' : `${metRequirements}/${totalRequirements}`;
   const isFullyCompliant =
     reviewRequiredCount === 0 &&
     attentionCount === 0 &&
     guidanceCount === 0 &&
-    (totalRequirements === 0 || metRequirements === totalRequirements);
+    (totalRequirements === 0 || assessableRequirementRows.filter((entry) => isRequirementMet(entry.status)).length === totalRequirements);
   const countParts = [];
 
   if (attentionCount > 0) {
@@ -137,11 +137,10 @@ export default function ComplianceCodeAreaSection({
     countParts.push({ key: 'good-practice', label: `${goodPracticeCount} good practice`, cls: 'count-gp' });
   }
   if (guidanceCount > 0) {
-    countParts.push({ key: 'lead', label: `${guidanceCount} guidance`, cls: 'count-lead' });
+    countParts.push({ key: 'lead', label: `${guidanceCount} requires review`, cls: 'count-lead' });
   }
 
   const activeRequirementId = overviewRequirementFilter.areaId === area.id ? overviewRequirementFilter.requirementId : '';
-  const activeRequirementLabel = requirementRows.find((entry) => entry.id === activeRequirementId)?.label ?? activeRequirementId;
 
   const requirementCards = useMemo(() => {
     const findingMatchesRequirement = (finding, requirement) => {
@@ -180,12 +179,23 @@ export default function ComplianceCodeAreaSection({
         const reviewState = findingDecisions[finding.id] ?? 'unreviewed';
         return reviewState !== 'rejected' && reviewState !== 'dismissed';
       });
+      const pendingReviewCount = findings.filter(
+        (finding) => (findingDecisions[finding.id] ?? 'unreviewed') === 'unreviewed'
+      ).length;
       const rawStatus = normalizeRequirementStatusForDisplay(requirement.status);
       let displayStatus = requirement.status;
-      if (activeFindings.some((finding) => getFindingBucketId(finding) === 'critical')) {
+      if (pendingReviewCount > 0 && activeFindings.some((finding) => getFindingBucketId(finding) === 'critical')) {
         displayStatus = 'non_compliant';
-      } else if (activeFindings.some((finding) => getFindingBucketId(finding) === 'warning')) {
+      } else if (pendingReviewCount > 0 && activeFindings.some((finding) => getFindingBucketId(finding) === 'warning')) {
         displayStatus = 'lead';
+      } else if (
+        pendingReviewCount === 0 &&
+        activeFindings.some((finding) => {
+          const bucket = getFindingBucketId(finding);
+          return bucket === 'critical' || bucket === 'warning';
+        })
+      ) {
+        displayStatus = 'reviewed';
       } else if (activeFindings.some((finding) => getFindingBucketId(finding) === 'best_practice')) {
         displayStatus = 'good_practice';
       } else if (activeFindings.some((finding) => getFindingBucketId(finding) === 'pass')) {
@@ -205,15 +215,7 @@ export default function ComplianceCodeAreaSection({
         },
         { critical: 0, guidance: 0, goodPractice: 0, compliant: 0 }
       );
-      const pendingReviewCount = findings.filter(
-        (finding) => (findingDecisions[finding.id] ?? 'unreviewed') === 'unreviewed'
-      ).length;
-      const requiresAttention =
-        pendingReviewCount > 0 ||
-        activeFindings.some((finding) => {
-          const bucket = getFindingBucketId(finding);
-          return bucket === 'critical' || bucket === 'warning';
-        });
+      const requiresAttention = pendingReviewCount > 0;
 
       return {
         ...requirement,
@@ -252,6 +254,12 @@ export default function ComplianceCodeAreaSection({
       return left.label.localeCompare(right.label);
     });
   }, [requirementCards, requirementScope]);
+
+  const reviewedRequirements = requirementCards.filter((card) => card.pendingReviewCount === 0).length;
+  const requirementProgressWidth =
+    totalRequirements === 0 ? 100 : Math.min(100, Math.max(0, (reviewedRequirements / totalRequirements) * 100));
+  const requirementProgressLabel =
+    totalRequirements === 0 ? 'Complete' : `${reviewedRequirements}/${totalRequirements} reviewed`;
 
   const toggleRequirementCard = (requirementId) => {
     const currentlyExpanded = expandedRequirementIds[requirementId] ?? activeRequirementId === requirementId;
@@ -541,7 +549,7 @@ export default function ComplianceCodeAreaSection({
                 <p>
                   <strong>Evidence Highlighting Flow (Screen 8)</strong>
                 </p>
-                <p>Confirming this guidance item will open the Evidence Highlighting view where you:</p>
+                <p>Confirming this review item will open the Evidence Highlighting view where you:</p>
                 <ul>
                   <li>Select the severity level for the finding</li>
                   <li>Link evidence to specific document passage(s)</li>
@@ -708,19 +716,26 @@ export default function ComplianceCodeAreaSection({
       >
         <div className="code-area-chevron">▶</div>
         <div className="code-area-info">
-          <div className="code-area-name">{area.name}</div>
+          <div className="code-area-name">
+            <span>{area.name}</span>
+            {reviewRequiredCount > 0 ? (
+              <span className="code-area-attention-badge" aria-label={`${reviewRequiredCount} items to review`}>
+                {reviewRequiredCount}
+              </span>
+            ) : null}
+          </div>
           <div className="code-area-meta">
             <div className="code-area-progress" style={{ flex: 1 }}>
               <div className="progress-track">
                 <div
                   className="progress-bar"
                   style={{
-                    width: `${Math.min(100, Math.max(0, totalRequirements === 0 ? 0 : (metRequirements / totalRequirements) * 100))}%`
+                    width: `${requirementProgressWidth}%`
                   }}
                 />
               </div>
             </div>
-            <div className="code-area-met">{metLabel} met</div>
+            <div className="code-area-met">{requirementProgressLabel}</div>
             <div className="code-area-counts">
               {countParts.map((part, index) => (
                 <span key={`${area.id}-${part.key}`} className={part.cls}>
@@ -795,15 +810,12 @@ export default function ComplianceCodeAreaSection({
 
             {activeRequirementId ? (
               <div className="filter-clear visible">
-                <span>
-                  Highlighting requirement: <strong>{activeRequirementLabel}</strong>
-                </span>
                 <button
                   type="button"
                   className="btn btn-xs ghost"
                   onClick={() => setOverviewRequirementFilter({ areaId: '', requirementId: '' })}
                 >
-                  ✕ Clear
+                  Show all requirements
                 </button>
               </div>
             ) : null}
@@ -850,7 +862,17 @@ export default function ComplianceCodeAreaSection({
                             {getRequirementStatusIcon(requirement.displayStatus)}
                           </span>
                           <div>
-                            <div className="overview-requirement-card__title">{requirement.label}</div>
+                            <div className="overview-requirement-card__title">
+                              <span>{requirement.label}</span>
+                              {requirement.pendingReviewCount > 0 ? (
+                                <span
+                                  className="overview-tab-attention-badge"
+                                  aria-label={`${requirement.pendingReviewCount} findings to review`}
+                                >
+                                  {requirement.pendingReviewCount}
+                                </span>
+                              ) : null}
+                            </div>
                             <div className="overview-requirement-card__detail">
                               {requirement.findings.length > 0 ? linkedFindingsLabel : 'No linked findings yet'}
                             </div>
@@ -863,11 +885,11 @@ export default function ComplianceCodeAreaSection({
                             </span>
                           ) : null}
                           <span className={`overview-requirement-tag ${requirement.statusMeta.tone}`}>{requirement.statusMeta.label}</span>
-                          {requirement.bucketCounts.critical > 0 ? (
+                          {requirement.pendingReviewCount > 0 && requirement.bucketCounts.critical > 0 ? (
                             <span className="overview-requirement-badge critical">{requirement.bucketCounts.critical} critical</span>
                           ) : null}
-                          {requirement.bucketCounts.guidance > 0 ? (
-                            <span className="overview-requirement-badge guidance">{requirement.bucketCounts.guidance} guidance</span>
+                          {requirement.pendingReviewCount > 0 && requirement.bucketCounts.guidance > 0 ? (
+                            <span className="overview-requirement-badge guidance">{requirement.bucketCounts.guidance} requires review</span>
                           ) : null}
                           <span className="finding-expand-chev">{isRequirementExpanded ? '▾' : '▸'}</span>
                         </div>

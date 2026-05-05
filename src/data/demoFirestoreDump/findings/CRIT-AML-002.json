@@ -1,0 +1,36 @@
+{
+  "isGoodPractice": false,
+  "id": "CRIT-AML-002",
+  "reviewStatus": "unreviewed",
+  "evidencePassages": [
+    {
+      "document_id": "08_Giftor_Source_of_Funds",
+      "page": 1,
+      "id": "CRIT-AML-002-p1",
+      "section": "Supporting Evidence Checklist",
+      "text": "Note: Self-declaration accepted. Giftor is father of client, UK resident, retired. No documentary evidence obtained.",
+      "box_id": "CRIT-AML-002",
+      "file": "08_Giftor_Source_of_Funds.pdf"
+    }
+  ],
+  "detail": "A \u00a3200,000 gift from the donor (the client's father) was accepted on self-declaration alone. The firm's own policy \u00a74.3.1 requires documentary evidence for any gift exceeding \u00a310,000. All six evidence items on the donor's source of funds form are marked 'Not obtained'.",
+  "codeArea": "aml",
+  "reference": "CLC AML Guidance, Procedure \u00a720 (Source of Funds)",
+  "evidence_strength": "strong",
+  "documentId": "08_Giftor_Source_of_Funds",
+  "updatedAt": "2026-05-05T20:44:03.529203+00:00",
+  "source": {
+    "page": 1,
+    "file": "08_Giftor_Source_of_Funds.pdf",
+    "section": "Supporting Evidence Checklist",
+    "text": "Note: Self-declaration accepted. Giftor is father of client, UK resident, retired. No documentary evidence obtained."
+  },
+  "createdAt": "2026-05-05T20:44:03.529203+00:00",
+  "boxId": "CRIT-AML-002",
+  "requirementId": "aml-2",
+  "polarity": "non_compliant",
+  "title": "Insufficient Source of Funds Evidence for Gift",
+  "severity": "critical",
+  "certainty": "finding",
+  "is_good_practice": false
+}

@@ -230,6 +230,9 @@ export const suggestClassificationFromFilename = (filename) => {
   const name = String(filename ?? '').toLowerCase();
   if (!name) return 'Other';
   if (name.includes('interview') || name.includes('mlro')) return 'Interview Transcript';
+  if ((name.includes('client') && name.includes('care')) || (name.includes('terms') && name.includes('engagement'))) {
+    return 'Client Care Letter';
+  }
   if (name.includes('pep')) return 'PEP Screening';
   if (name.includes('sanction')) return 'Sanctions Screening';
   if (name.includes('risk') && name.includes('assessment')) return 'Client Risk Assessment';

@@ -1,0 +1,51 @@
+{
+  "parties": "Firm",
+  "confirmed": true,
+  "id": "00_Firm_AML_Policy",
+  "summary": "Firm's written AML policy and procedures (v3.2, January 2024).",
+  "confidence": "high",
+  "models_agree": true,
+  "filename": "00_Firm_AML_Policy.pdf",
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/00_Firm_AML_Policy.pdf",
+  "documentType": "AML Policy",
+  "classification_confidence": 0.94,
+  "overlayBoxes": [
+    {
+      "page": 1,
+      "pageno": 0,
+      "id": "CRIT-AML-006",
+      "bbox": [
+        56,
+        354,
+        540,
+        379
+      ],
+      "category": "Section 2.3.2",
+      "details": "The firm's AML policy \u00a72.3.2 permits utility bills dated within the last 6 months for address verification. CLC AML Guidance specifies utility bills must be less than 3 months old. The firm's written policy sets a lower standard than the regulatory guidance \u2014 any address verification relying on a utility bill between 3 and 6 months old would be non-compliant with CLC guidance even if compliant with the firm's own policy.",
+      "title": "Firm Policy Allows Older Address Evidence Than CLC Guidance Permits",
+      "severity": "critical"
+    }
+  ],
+  "updatedAt": "2026-05-05T20:42:47.911928+00:00",
+  "processing_status": "complete",
+  "classification": "AML Policy",
+  "createdAt": "2026-05-05T20:42:47.911928+00:00",
+  "features_found": [
+    "aml_policy_header",
+    "review_cycle",
+    "mlro_named"
+  ],
+  "parties_found": [
+    "Example Conveyancing Co Ltd"
+  ],
+  "extracted_fields": {
+    "effective_date": "1 January 2024",
+    "policy_owner": "Jane Smith (MLRO)",
+    "review_cycle_months": 12,
+    "version": "3.2"
+  },
+  "status": "verified",
+  "severity": "warning",
+  "processing_path": "ocr_then_classify_then_extract",
+  "name": "00_Firm_AML_Policy.pdf"
+}

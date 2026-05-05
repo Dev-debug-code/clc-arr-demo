@@ -1,0 +1,36 @@
+{
+  "isGoodPractice": true,
+  "id": "GP-AML-001",
+  "reviewStatus": "unreviewed",
+  "evidencePassages": [
+    {
+      "document_id": "04_Source_of_Funds_Declaration",
+      "page": 1,
+      "id": "GP-AML-001-p1",
+      "section": "Itemised Source of Funds",
+      "text": "Personal savings (employment income)",
+      "box_id": "GP-AML-001",
+      "file": "04_Source_of_Funds_Declaration.pdf"
+    }
+  ],
+  "detail": "The source of funds declaration itemises each funding source individually \u2014 personal savings of \u00a3675,000 and gift from father of \u00a3200,000 \u2014 rather than providing a single total. This exceeds the minimum requirement and creates a clear audit trail, allowing each source to be verified independently.",
+  "codeArea": "aml",
+  "reference": "CLC AML Guidance, Procedure \u00a720",
+  "evidence_strength": "strong",
+  "documentId": "04_Source_of_Funds_Declaration",
+  "updatedAt": "2026-05-05T20:44:03.529203+00:00",
+  "source": {
+    "page": 1,
+    "file": "04_Source_of_Funds_Declaration.pdf",
+    "section": "Itemised Source of Funds",
+    "text": "Personal savings (employment income)"
+  },
+  "createdAt": "2026-05-05T20:44:03.529203+00:00",
+  "boxId": "GP-AML-001",
+  "requirementId": "aml-7",
+  "polarity": "compliant",
+  "title": "Strong Practice: Source of Funds Itemised by Stream",
+  "severity": "best_practice",
+  "certainty": "finding",
+  "is_good_practice": true
+}

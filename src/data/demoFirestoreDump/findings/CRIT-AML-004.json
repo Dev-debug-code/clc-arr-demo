@@ -1,0 +1,36 @@
+{
+  "isGoodPractice": false,
+  "id": "CRIT-AML-004",
+  "reviewStatus": "unreviewed",
+  "evidencePassages": [
+    {
+      "document_id": "03_Client_Risk_Assessment",
+      "page": 1,
+      "id": "CRIT-AML-004-p1",
+      "section": "Risk Factor Assessment / Overall Classification",
+      "text": "STANDARD RISK - Standard CDD",
+      "box_id": "CRIT-AML-004",
+      "file": "03_Client_Risk_Assessment.pdf"
+    }
+  ],
+  "detail": "The client is resident in Dubai, UAE (8 years) but was classified as STANDARD RISK with only Standard customer due diligence (CDD) applied. The firm's own policy \u00a73.2.1 explicitly states that clients resident outside the UK shall be classified as HIGH RISK and subject to Enhanced Due Diligence (deeper checks) regardless of nationality.",
+  "codeArea": "aml",
+  "reference": "Firm AML Policy \u00a73.2.1",
+  "evidence_strength": "strong",
+  "documentId": "03_Client_Risk_Assessment",
+  "updatedAt": "2026-05-05T20:44:03.529203+00:00",
+  "source": {
+    "page": 1,
+    "file": "03_Client_Risk_Assessment.pdf",
+    "section": "Risk Factor Assessment / Overall Classification",
+    "text": "STANDARD RISK - Standard CDD"
+  },
+  "createdAt": "2026-05-05T20:44:03.529203+00:00",
+  "boxId": "CRIT-AML-004",
+  "requirementId": "aml-3",
+  "polarity": "non_compliant",
+  "title": "Incorrect Risk Classification \u2014 Overseas Client",
+  "severity": "critical",
+  "certainty": "finding",
+  "is_good_practice": false
+}

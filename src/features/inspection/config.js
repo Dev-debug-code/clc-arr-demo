@@ -15,9 +15,11 @@ export const ANALYSIS_PROGRESS_INCREMENT = computeProgressIncrement(
 
 export const ANALYSIS_TICK_INTERVAL = ANALYSIS_TICK_INTERVAL_MS;
 export const CASE_META = {
-  practiceName: 'Hartley & Partners Solicitors',
+  practiceName: 'Example Conveyancing Co Ltd',
   caseId: 'CLC-12458',
   owner: 'Alex Carter',
+  status: 'active',
+  outcome: 'in_progress',
   started: '12 Feb 2026',
   riskLevel: 'Medium',
   previousInspection: 'March 2023',
@@ -63,7 +65,7 @@ export const AI_PROCESSING_MESSAGES = [
   'Classifying documents and validating metadata...',
   'Extracting policy clauses, dates and parties...',
   'Running compliance checks across assessed code areas...',
-  'Linking evidence highlights to findings and guidance...',
+  'Linking evidence highlights to findings and review items...',
   'Preparing overview and reviewer actions...'
 ];
 
@@ -236,8 +238,8 @@ export const FINDING_FILTER_LABEL_MAP = {
   all: 'All',
   unreviewed: 'Unreviewed',
   reviewed: 'Reviewed',
-  leads: 'Guidance',
-  non_compliant: 'Attention',
+  leads: 'Requires review',
+  non_compliant: 'Non-compliant',
   compliant: 'Compliant',
   good_practice: 'Good Practice',
   inspector_added: 'Inspector-added',
@@ -247,22 +249,22 @@ export const FINDING_FILTER_LABEL_MAP = {
 };
 
 export const FINDING_SEVERITY_BADGE_MAP = {
-  critical: 'Finding',
-  warning: 'Guidance',
+  critical: 'Non-compliant',
+  warning: 'Requires review',
   best_practice: 'Good practice',
   pass: 'Compliant'
 };
 
 export const SEVERITY_LABEL_MAP = {
-  critical: 'Critical',
-  warning: 'Guidance',
+  critical: 'Non-compliant',
+  warning: 'Requires review',
   pass: 'Compliant',
   best_practice: 'Good Practice'
 };
 
 export const REPORT_SEVERITY_LABEL_MAP = {
-  critical: 'Critical',
-  warning: 'Guidance',
+  critical: 'Non-compliant',
+  warning: 'Requires review',
   pass: 'Compliant',
   best_practice: 'Good Practice'
 };

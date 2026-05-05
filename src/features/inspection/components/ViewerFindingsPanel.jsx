@@ -82,7 +82,7 @@ export default function ViewerFindingsPanel({
         non_compliant: 'Non-compliant',
         compliant: 'Compliant',
         good_practice: 'Good Practice',
-        leads: 'Guidance',
+        leads: 'Requires review',
         inspector_added: 'Inspector-added',
         reviewed: 'Reviewed',
         unreviewed: 'Unreviewed'
@@ -90,8 +90,8 @@ export default function ViewerFindingsPanel({
     );
   });
   const viewerSeverityLabels = filterSeverity.map((key) => {
-    if (key === 'critical') return 'Critical';
-    if (key === 'warning') return 'Guidance';
+    if (key === 'critical') return 'Non-compliant';
+    if (key === 'warning') return 'Requires review';
     return severityLabelMap[key] ?? key;
   });
   const activeViewerFilterLabels = [...activeTypeLabels, ...viewerSeverityLabels];
@@ -108,7 +108,7 @@ export default function ViewerFindingsPanel({
         <div>
           <h3>Findings for this document</h3>
           <p className="panel-subtitle">
-            Findings and guidance · {findingsForActiveDocument.length} shown / {totalFindingsForActiveDocument} total
+            Findings and items requiring review · {findingsForActiveDocument.length} shown / {totalFindingsForActiveDocument} total
           </p>
           <p className="panel-subtitle">
             Decisions made here update the same finding review state shown in Overview.
@@ -144,7 +144,7 @@ export default function ViewerFindingsPanel({
                 ['non_compliant', 'Non-compliant'],
                 ['compliant', 'Compliant'],
                 ['good_practice', 'Good Practice'],
-                ['leads', 'Guidance'],
+                ['leads', 'Requires review'],
                 ['inspector_added', 'Inspector-added'],
                 ['reviewed', 'Reviewed'],
                 ['unreviewed', 'Unreviewed']
@@ -169,7 +169,7 @@ export default function ViewerFindingsPanel({
                       checked={filterSeverity.includes(item.id)}
                       onChange={() => handleToggleFilter(item.id)}
                     />
-                    <span>{item.id === 'warning' ? 'Guidance' : 'Critical'}</span>
+                    <span>{item.id === 'warning' ? 'Requires review' : 'Non-compliant'}</span>
                   </label>
                 ))}
             </div>
@@ -539,9 +539,6 @@ export default function ViewerFindingsPanel({
                         onChange={(event) => setInlineRejectNote(event.target.value)}
                         placeholder="Add context..."
                       />
-                      <button type="button" className="btn btn-icon btn-sm" title="Dictate" aria-label="Dictate">
-                        🎤
-                      </button>
                       <div className="modal-actions">
                         <button
                           type="button"
@@ -596,9 +593,6 @@ export default function ViewerFindingsPanel({
                         onChange={(event) => setInlineDismissNote(event.target.value)}
                         placeholder="Add context..."
                       />
-                      <button type="button" className="btn btn-icon btn-sm" title="Dictate" aria-label="Dictate">
-                        🎤
-                      </button>
                       <div className="modal-actions">
                         <button
                           type="button"

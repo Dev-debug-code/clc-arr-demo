@@ -34,7 +34,7 @@ export default function ProcessingStage({
           return (
             <div key={label} className={`progress-step ${status}`}>
               <span className="progress-step-icon">
-                {status === 'completed' ? '✓' : status === 'active' ? '⟳' : '○'}
+                {status === 'completed' ? '✓' : status === 'active' ? <span className="spinner-sumplexity spinner-sm" /> : '○'}
               </span>
               {label}
             </div>

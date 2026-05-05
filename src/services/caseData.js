@@ -9,17 +9,26 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  writeBatch,
   where
 } from 'firebase/firestore';
 import { getFirebaseApp } from '../config/firebase.js';
 import { FIRESTORE_DATABASE_ID, ORGANIZATION_ID } from '../config/runtime.js';
 import { canAccessTeamCases, normalizeUserRole } from '../utils/accessControl.js';
 import {
+  toPersistedDocumentShape,
+  toPersistedFindingShape
+} from './generatedWorkspacePersistence.js';
+import {
   getUploadClassificationPersistenceValue,
   getUploadProcessingStatusPersistenceValue,
   normalizeUploadDraft
 } from '../utils/documentUploads.js';
 import { createInspectionReportPdf } from '../utils/reportPdf.js';
+import {
+  buildSimulatedClassifiedUploads,
+  buildSimulatedFindingsWorkspace
+} from './simulatedAnalysis.js';
 
 const database = getFirestore(getFirebaseApp(), FIRESTORE_DATABASE_ID);
 
@@ -69,10 +78,11 @@ function formatDateLabel(value) {
 }
 
 function statusToDecision(reviewStatus) {
-  if (reviewStatus === 'accepted') return 'accepted';
-  if (reviewStatus === 'confirmed') return 'accepted';
-  if (reviewStatus === 'rejected') return 'rejected';
-  if (reviewStatus === 'dismissed') return 'dismissed';
+  const normalized = String(reviewStatus || '').trim().toLowerCase();
+  if (normalized === 'accepted') return 'accepted';
+  if (normalized === 'confirmed') return 'accepted';
+  if (normalized === 'rejected') return 'rejected';
+  if (normalized === 'dismissed') return 'dismissed';
   return null;
 }
 
@@ -136,11 +146,17 @@ function mapDocument(docSnap) {
   const processingStatus = String(data.processing_status ?? data.processingStatus ?? '').trim().toLowerCase();
   const confirmed = data.confirmed === true;
   const classificationConfidence = data.classification_confidence ?? data.classificationConfidence ?? data.confidence ?? null;
+  const rawClassification = String(data.classification ?? '').trim();
+  const documentType = String(data.documentType ?? data.document_type ?? '').trim();
+  const resolvedClassification =
+    rawClassification && rawClassification.toLowerCase() !== 'other'
+      ? rawClassification
+      : documentType || rawClassification || 'Unknown';
   return {
     id: docSnap.id,
-    label: data.label ?? data.classification ?? data.documentType ?? data.name ?? docSnap.id,
+    label: data.label ?? resolvedClassification ?? data.name ?? docSnap.id,
     filename: data.filename ?? data.name ?? docSnap.id,
-    classification: data.classification ?? data.documentType ?? 'Unknown',
+    classification: resolvedClassification,
     parties: data.parties ?? 'Firm',
     confidence: classificationConfidence ?? 'medium',
     classificationConfidence,
@@ -266,6 +282,93 @@ function mapRequirement(docSnap) {
   };
 }
 
+function hasFindingBeenReviewed(finding) {
+  return statusToDecision(finding?.reviewStatus) !== null;
+}
+
+function buildCaseDashboardSummary({ findings = [], requirements = [] }) {
+  const requirementsList =
+    requirements.length > 0
+      ? requirements
+      : Array.from(
+          new Map(
+            findings
+              .map((finding) => {
+                const requirementId = coerceText(finding?.requirementId);
+                if (!requirementId) return null;
+                return [
+                  requirementId,
+                  {
+                    id: requirementId,
+                    codeAreaId: coerceText(finding?.codeArea) || 'aml',
+                    label: requirementId,
+                    status: 'not_assessed'
+                  }
+                ];
+              })
+              .filter(Boolean)
+          ).values()
+        );
+
+  const findingsByRequirement = new Map();
+  findings.forEach((finding) => {
+    const requirementId = coerceText(finding?.requirementId);
+    if (!requirementId) return;
+    const rows = findingsByRequirement.get(requirementId) ?? [];
+    rows.push(finding);
+    findingsByRequirement.set(requirementId, rows);
+  });
+
+  const reviewedRequirements = requirementsList.reduce((count, requirement) => {
+    const relatedFindings = findingsByRequirement.get(coerceText(requirement?.id)) ?? [];
+    if (relatedFindings.length === 0) {
+      return count;
+    }
+    return relatedFindings.every(hasFindingBeenReviewed) ? count + 1 : count;
+  }, 0);
+
+  const totalRequirements = requirementsList.length;
+  const unreviewed = findings.filter((finding) => !hasFindingBeenReviewed(finding)).length;
+  const leads = findings.filter((finding) => deriveLegacyFindingSeverity(finding) === 'warning').length;
+  const goodPractice = findings.filter((finding) => deriveLegacyFindingSeverity(finding) === 'best_practice').length;
+  const progress = totalRequirements > 0 ? Math.round((reviewedRequirements / totalRequirements) * 100) : 100;
+  const progressLabel =
+    totalRequirements > 0
+      ? `${reviewedRequirements}/${totalRequirements} requirements reviewed`
+      : 'No requirements generated';
+
+  return {
+    progress,
+    progressLabel,
+    unreviewed,
+    leads,
+    goodPractice
+  };
+}
+
+async function syncCaseDashboardSummary(caseRef) {
+  const [findingsSnap, requirementsSnap] = await Promise.all([
+    getDocs(collection(caseRef, 'findings')),
+    getDocs(collection(caseRef, 'requirements'))
+  ]);
+
+  const findings = findingsSnap.docs.map(mapFinding);
+  const requirements = requirementsSnap.docs.map(mapRequirement);
+  const summary = buildCaseDashboardSummary({ findings, requirements });
+
+  await setDoc(
+    caseRef,
+    {
+      ...summary,
+      updatedAt: serverTimestamp(),
+      lastActivityAt: serverTimestamp()
+    },
+    { merge: true }
+  );
+
+  return summary;
+}
+
 function includesQuery(haystackParts, query) {
   const needle = String(query || '').trim().toLowerCase();
   if (!needle) return false;
@@ -316,11 +419,11 @@ export async function loadCaseWorkspaceData(caseId) {
   ]);
 
   const documents = documentsSnap.docs.map(mapDocument);
-  const findings = findingsSnap.docs.map(mapFinding);
+  const allFindings = findingsSnap.docs.map(mapFinding);
 
   const findingDecisions = {};
   findingsSnap.docs.forEach((entry) => {
-    const reviewStatus = entry.data()?.reviewStatus;
+    const reviewStatus = entry.data()?.reviewStatus ?? entry.data()?.review_status;
     const mapped = statusToDecision(reviewStatus);
     if (mapped) {
       findingDecisions[entry.id] = mapped;
@@ -427,6 +530,7 @@ export async function loadCaseWorkspaceData(caseId) {
       return 0;
     });
 
+  const findings = allFindings;
   const requirementsByCodeArea = {};
   requirementsSnap.docs.forEach((entry) => {
     const mapped = mapRequirement(entry);
@@ -532,6 +636,8 @@ export async function loadCaseWorkspaceData(caseId) {
       started: caseData.started,
       riskLevel: caseData.riskLevel,
       previousInspection: caseData.previousInspection,
+      status: caseData.status ?? 'active',
+      outcome: caseData.outcome ?? 'in_progress',
       holp: caseData.holp,
       hofa: caseData.hofa,
       focusAreas: Array.isArray(caseData.focusAreas) ? caseData.focusAreas : [],
@@ -583,7 +689,7 @@ function mapCase(docSnap) {
     createdAt: data.createdAt ?? null,
     updatedAt: data.updatedAt ?? null,
     progress: typeof data.progress === 'number' ? data.progress : 0,
-    progressLabel: data.progressLabel ?? '0/0 requirements met',
+    progressLabel: data.progressLabel ?? '0/0 requirements reviewed',
     unreviewed: typeof data.unreviewed === 'number' ? data.unreviewed : 0,
     leads: typeof data.leads === 'number' ? data.leads : 0,
     goodPractice: typeof data.goodPractice === 'number' ? data.goodPractice : 0,
@@ -871,7 +977,7 @@ export async function lookupPracticeByLicenceNumber(licenceNumber) {
   const buildPracticeResult = (data = {}, fallbackLicenceNumber = cleanLicenceNumber) => ({
     match: true,
     practice: {
-      name: data.practiceName || 'Hartley & Partners Solicitors',
+      name: data.practiceName || 'Example Conveyancing Co Ltd',
       licence_number: data.caseId || data.licenceNumber || fallbackLicenceNumber,
       holp: data.holp || 'Sarah Chen',
       hofa: data.hofa || 'James Wright',
@@ -885,7 +991,7 @@ export async function lookupPracticeByLicenceNumber(licenceNumber) {
 
   if (cleanLicenceNumber.toUpperCase() === 'CLC-12458') {
     return buildPracticeResult({
-      practiceName: 'Hartley & Partners Solicitors',
+      practiceName: 'Example Conveyancing Co Ltd',
       caseId: 'CLC-12458',
       holp: 'Sarah Chen',
       hofa: 'James Wright',
@@ -994,7 +1100,7 @@ export async function createCaseRecord({
       knownParties: mappedKnownParties,
       questionnaireFilename: questionnaireFileName || null,
       progress: 0,
-      progressLabel: '0/0 requirements met',
+      progressLabel: '0/0 requirements reviewed',
       unreviewed: 0,
       leads: 0,
       goodPractice: 0,
@@ -1088,6 +1194,8 @@ export async function persistFindingDecision({ caseId, findingId, decision, user
     },
     createdAt: now
   });
+
+  await syncCaseDashboardSummary(caseRef);
 }
 
 export async function persistFindingNote({ caseId, findingId, text, user }) {
@@ -1179,6 +1287,8 @@ export async function persistInspectorFinding({ caseId, finding, user }) {
     createdAt: now
   });
 
+  await syncCaseDashboardSummary(caseRef);
+
   return {
     id: createdRef.id
   };
@@ -1204,6 +1314,8 @@ export async function persistInspectorFindingDelete({ caseId, findingId, user })
     },
     createdAt: now
   });
+
+  await syncCaseDashboardSummary(caseRef);
 
   return {
     supported: true
@@ -1827,6 +1939,250 @@ export async function persistGenerateFindingsEvent({ caseId, user }) {
     payload: {},
     createdAt: now
   });
+}
+
+export async function persistUploadItemDelete({ caseId, uploadId, user }) {
+  const cleanCaseId = caseId?.trim();
+  const cleanUploadId = String(uploadId || '').trim();
+  if (!cleanCaseId || !cleanUploadId) return;
+
+  const caseRef = doc(database, 'organizations', ORGANIZATION_ID, 'cases', cleanCaseId);
+  const uploadRef = doc(caseRef, 'uploads', cleanUploadId);
+  const uploadSnap = await getDoc(uploadRef);
+  const uploadData = uploadSnap.exists() ? uploadSnap.data() ?? {} : {};
+  const uploadName = uploadData.filename ?? uploadData.name ?? cleanUploadId;
+  const now = serverTimestamp();
+  const actorName = user?.email ?? 'Inspector';
+  const timestampLabel = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  await deleteDoc(uploadRef);
+
+  await addDoc(collection(caseRef, 'history'), {
+    timestampLabel,
+    detail: `Document removed: ${uploadName}`,
+    actor: actorName,
+    actorUserId: user?.uid ?? null,
+    createdAt: now
+  });
+
+  await addDoc(collection(caseRef, 'events'), {
+    eventType: 'upload_deleted',
+    actorUserId: user?.uid ?? null,
+    actorName,
+    targetType: 'upload',
+    targetId: cleanUploadId,
+    payload: { filename: uploadName },
+    createdAt: now
+  });
+}
+
+async function deleteCollectionContents(caseRef, collectionName) {
+  const snapshot = await getDocs(collection(caseRef, collectionName));
+  if (snapshot.empty) return 0;
+
+  const batch = writeBatch(database);
+  snapshot.docs.forEach((docSnap) => {
+    batch.delete(docSnap.ref);
+  });
+  await batch.commit();
+  return snapshot.size;
+}
+
+async function replaceCollectionContents(caseRef, collectionName, items, getDocumentId, toFirestoreData) {
+  const snapshot = await getDocs(collection(caseRef, collectionName));
+  if (snapshot.empty && items.length === 0) {
+    return;
+  }
+  const batch = writeBatch(database);
+
+  snapshot.docs.forEach((docSnap) => {
+    batch.delete(docSnap.ref);
+  });
+
+  const now = serverTimestamp();
+  items.forEach((item) => {
+    const itemId = String(getDocumentId(item) || '').trim();
+    if (!itemId) return;
+    batch.set(
+      doc(caseRef, collectionName, itemId),
+      {
+        ...toFirestoreData(item),
+        createdAt: now,
+        updatedAt: now
+      },
+      { merge: false }
+    );
+  });
+
+  await batch.commit();
+}
+
+export async function persistGeneratedWorkspace({ caseId, workspace, user }) {
+  const cleanCaseId = caseId?.trim();
+  if (!cleanCaseId) return { persisted: false };
+
+  const caseRef = doc(database, 'organizations', ORGANIZATION_ID, 'cases', cleanCaseId);
+  const findings = Array.isArray(workspace?.findings) ? workspace.findings : [];
+  const documents = Array.isArray(workspace?.documents) ? workspace.documents : [];
+  const requirements = Array.isArray(workspace?.requirements) ? workspace.requirements : [];
+
+  await replaceCollectionContents(caseRef, 'documents', documents, (item) => item.id, toPersistedDocumentShape);
+  await replaceCollectionContents(caseRef, 'findings', findings, (item) => item.id, toPersistedFindingShape);
+  await replaceCollectionContents(
+    caseRef,
+    'requirements',
+    requirements,
+    (item) => `${item.codeArea}__${item.id}`,
+    (item) => ({
+      requirementId: item.id,
+      codeArea: item.codeArea,
+      label: item.label,
+      status: item.status
+    })
+  );
+
+  const now = serverTimestamp();
+  const actorName = user?.email ?? 'Inspector';
+  const timestampLabel = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  await addDoc(collection(caseRef, 'history'), {
+    timestampLabel,
+    detail: `Generated ${findings.length} findings from ${documents.length} documents`,
+    actor: actorName,
+    actorUserId: user?.uid ?? null,
+    createdAt: now
+  });
+
+  await addDoc(collection(caseRef, 'events'), {
+    eventType: 'demo_workspace_generated',
+    actorUserId: user?.uid ?? null,
+    actorName,
+    targetType: 'case',
+    targetId: cleanCaseId,
+    payload: {
+      documentCount: documents.length,
+      findingCount: findings.length,
+      requirementCount: requirements.length
+    },
+    createdAt: now
+  });
+
+  const summary = buildCaseDashboardSummary({ findings, requirements });
+  await setDoc(
+    caseRef,
+    {
+      ...summary,
+      updatedAt: now,
+      lastActivityAt: now
+    },
+    { merge: true }
+  );
+
+  return {
+    persisted: true,
+    documentCount: documents.length,
+    findingCount: findings.length,
+    requirementCount: requirements.length
+  };
+}
+
+export async function runSimulatedClassification({ caseId, uploadItems = [], user }) {
+  const result = buildSimulatedClassifiedUploads(uploadItems);
+  const cleanCaseId = String(caseId || '').trim();
+
+  if (!cleanCaseId || result.changedUploads.length === 0) {
+    return result;
+  }
+
+  const caseRef = doc(database, 'organizations', ORGANIZATION_ID, 'cases', cleanCaseId);
+  await Promise.all(
+    result.uploadItems.map((uploadItem) =>
+      persistUploadItem({
+        caseId: cleanCaseId,
+        uploadItem,
+        user
+      })
+    )
+  );
+  await replaceCollectionContents(caseRef, 'documents', result.documents, (item) => item.id, toPersistedDocumentShape);
+  await replaceCollectionContents(caseRef, 'findings', [], (item) => item.id, toPersistedFindingShape);
+  await replaceCollectionContents(
+    caseRef,
+    'requirements',
+    [],
+    (item) => `${item.codeArea}__${item.id}`,
+    (item) => ({
+      requirementId: item.id,
+      codeArea: item.codeArea,
+      label: item.label,
+      status: item.status
+    })
+  );
+  await deleteCollectionContents(caseRef, 'reportActions');
+  await deleteCollectionContents(caseRef, 'reportSections');
+  await deleteDoc(doc(caseRef, 'report', 'current')).catch(() => null);
+
+  const now = serverTimestamp();
+  await setDoc(
+    caseRef,
+    {
+      progress: 100,
+      progressLabel: 'No requirements generated',
+      unreviewed: 0,
+      leads: 0,
+      goodPractice: 0,
+      updatedAt: now,
+      lastActivityAt: now
+    },
+    { merge: true }
+  );
+
+  return result;
+}
+
+export async function runSimulatedFindingsGeneration({ caseId, uploadItems = [], user }) {
+  const workspace = buildSimulatedFindingsWorkspace(uploadItems);
+  const cleanCaseId = String(caseId || '').trim();
+
+  if (cleanCaseId) {
+    await persistGeneratedWorkspace({
+      caseId: cleanCaseId,
+      workspace,
+      user
+    });
+  }
+
+  return workspace;
+}
+
+export async function deleteCaseRecord({ caseId }) {
+  const cleanCaseId = String(caseId || '').trim();
+  if (!cleanCaseId) return { deleted: false };
+
+  const caseRef = doc(database, 'organizations', ORGANIZATION_ID, 'cases', cleanCaseId);
+  const subcollections = [
+    'documents',
+    'findings',
+    'history',
+    'contextNotes',
+    'uploads',
+    'findingNotes',
+    'documentNotes',
+    'requirements',
+    'observations',
+    'reportActions',
+    'reportSections',
+    'events',
+    'report'
+  ];
+
+  for (const collectionName of subcollections) {
+    await deleteCollectionContents(caseRef, collectionName);
+  }
+
+  await deleteDoc(caseRef);
+
+  return { deleted: true, id: cleanCaseId };
 }
 
 export async function persistGenerateReport({ caseId, user }) {

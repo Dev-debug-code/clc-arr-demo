@@ -12,6 +12,7 @@ export default function DocumentsStage({
   openDocumentsFilePicker,
   handleUploadDrop,
   uploadItems,
+  handleRemoveUploadItem,
   prepareUploadDraft,
   formatUploadClassificationLabel,
   isUploadClassificationResolved,
@@ -131,6 +132,7 @@ export default function DocumentsStage({
             openDocumentsFilePicker={openDocumentsFilePicker}
             handleUploadDrop={handleUploadDrop}
             uploadItems={uploadItems}
+            handleRemoveUploadItem={handleRemoveUploadItem}
             formatShortDisplayDate={formatShortDisplayDate}
             currentCaseMeta={currentCaseMeta}
             toIsoDate={toIsoDate}

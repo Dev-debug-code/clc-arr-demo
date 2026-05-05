@@ -1,0 +1,50 @@
+{
+  "parties": "Firm personnel",
+  "confirmed": true,
+  "id": "11_MLRO_Interview_Transcript",
+  "summary": "Interview transcript with the firm's MLRO (Jane Smith), 22 October 2024.",
+  "confidence": "high",
+  "models_agree": true,
+  "filename": "11_MLRO_Interview_Transcript.json",
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/11_MLRO_Interview_Transcript.json",
+  "documentType": "Interview Transcript",
+  "classification_confidence": 0.99,
+  "overlayBoxes": [
+    {
+      "page": 1,
+      "pageno": 0,
+      "id": "CRIT-AML-005",
+      "bbox": [
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "category": "Interview transcript at 00:02:41",
+      "details": "In interview, the firm's Money Laundering Reporting Officer (MLRO) described source-of-funds verification as 'mainly just checking that the numbers broadly stack up... if it looks consistent, we tick the box on the file checklist'. This informal practice contradicts the firm's written AML procedure, which requires reasonable enquiries with copies of all relevant documentation retained for 5 years, and would not produce the audit trail required by CLC AML Guidance.",
+      "title": "MLRO Source-of-Funds Process Below Firm Standard",
+      "severity": "critical"
+    }
+  ],
+  "updatedAt": "2026-05-05T20:42:47.911928+00:00",
+  "processing_status": "complete",
+  "classification": "Other",
+  "createdAt": "2026-05-05T20:42:47.911928+00:00",
+  "features_found": [
+    "interview_transcript"
+  ],
+  "parties_found": [
+    "Jane Smith"
+  ],
+  "extracted_fields": {
+    "duration_minutes": 47,
+    "interviewee": "Jane Smith",
+    "interview_date": "2024-10-22",
+    "interviewee_role": "MLRO / Compliance Officer",
+    "interviewer": "R. Henderson (RSM, CLC)"
+  },
+  "status": "verified",
+  "severity": "warning",
+  "processing_path": "classify_only",
+  "name": "11_MLRO_Interview_Transcript.json"
+}

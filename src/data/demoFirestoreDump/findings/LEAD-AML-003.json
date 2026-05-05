@@ -1,0 +1,36 @@
+{
+  "isGoodPractice": false,
+  "id": "LEAD-AML-003",
+  "reviewStatus": "unreviewed",
+  "evidencePassages": [
+    {
+      "document_id": "10_PEP_Screening",
+      "page": 1,
+      "id": "LEAD-AML-003-p1",
+      "section": "Client Details",
+      "text": "Client Name: James Whitfield",
+      "box_id": "LEAD-AML-003",
+      "file": "10_PEP_Screening.pdf"
+    }
+  ],
+  "detail": "The Politically Exposed Person (PEP) and sanctions screening report on file is in the name 'James Whitfield', which doesn't appear to match any party in this case (client: Joe Bloggs; donor: John Bloggs Senior). Worth confirming whether the document was misfiled from another matter and whether screening was completed for the actual case parties.",
+  "codeArea": "aml",
+  "reference": "Firm AML Policy \u00a75.1 (PEP and sanctions screening)",
+  "evidence_strength": "supported",
+  "documentId": "10_PEP_Screening",
+  "updatedAt": "2026-05-05T20:44:03.529203+00:00",
+  "source": {
+    "page": 1,
+    "file": "10_PEP_Screening.pdf",
+    "section": "Client Details",
+    "text": "Client Name: James Whitfield"
+  },
+  "createdAt": "2026-05-05T20:44:03.529203+00:00",
+  "boxId": "LEAD-AML-003",
+  "requirementId": "aml-3",
+  "polarity": "non_compliant",
+  "title": "Politically Exposed Person Check Appears to Be for the Wrong Individual",
+  "severity": "warning",
+  "certainty": "lead",
+  "is_good_practice": false
+}

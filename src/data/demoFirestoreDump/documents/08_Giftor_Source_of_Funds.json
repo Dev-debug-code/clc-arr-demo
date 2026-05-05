@@ -1,0 +1,50 @@
+{
+  "parties": "Donor",
+  "confirmed": true,
+  "id": "08_Giftor_Source_of_Funds",
+  "summary": "Donor source-of-funds verification form \u2014 all six evidence items marked 'Not obtained'; gift accepted on self-declaration alone.",
+  "confidence": "medium",
+  "models_agree": true,
+  "filename": "08_Giftor_Source_of_Funds.pdf",
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/08_Giftor_Source_of_Funds.pdf",
+  "documentType": "Donor Source of Funds",
+  "classification_confidence": 0.81,
+  "overlayBoxes": [
+    {
+      "page": 1,
+      "pageno": 0,
+      "id": "CRIT-AML-002",
+      "bbox": [
+        12,
+        475,
+        452,
+        617
+      ],
+      "category": "Supporting Evidence Checklist",
+      "details": "A \u00a3200,000 gift from the donor (the client's father) was accepted on self-declaration alone. The firm's own policy \u00a74.3.1 requires documentary evidence for any gift exceeding \u00a310,000. All six evidence items on the donor's source of funds form are marked 'Not obtained'.",
+      "title": "Insufficient Source of Funds Evidence for Gift",
+      "severity": "critical"
+    }
+  ],
+  "updatedAt": "2026-05-05T20:42:47.911928+00:00",
+  "processing_status": "complete",
+  "classification": "Source of Funds Declaration",
+  "createdAt": "2026-05-05T20:42:47.911928+00:00",
+  "features_found": [
+    "sof_checklist",
+    "verification_decision"
+  ],
+  "parties_found": [
+    "John Bloggs Senior"
+  ],
+  "extracted_fields": {
+    "donor": "John Bloggs Senior",
+    "gift_amount": "200000",
+    "stated_source": "Pension savings and proceeds from sale of second property",
+    "evidence_obtained": "none"
+  },
+  "status": "verified",
+  "severity": "critical",
+  "processing_path": "ocr_then_classify_then_extract",
+  "name": "08_Giftor_Source_of_Funds.pdf"
+}
