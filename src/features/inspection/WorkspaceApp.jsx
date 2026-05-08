@@ -61,7 +61,6 @@ import {
   CODE_AREA_ALIASES,
   CODE_AREA_KEYWORDS,
   CODE_AREA_REQUIREMENT_SAMPLES,
-  COMPLIANCE_CODE_AREAS,
   DOCUMENT_PHASE_OPTIONS,
   FINDING_EVIDENCE_STRENGTH_MAP,
   FINDING_FILTER_LABEL_MAP,
@@ -244,6 +243,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const forcedUserRole =
     DATA_PROVIDER_MODE === 'firestore' ? '' : coerceText(import.meta.env.VITE_FORCE_USER_ROLE).trim();
   const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(false);
+  const [caseOpenTransitionCaseId, setCaseOpenTransitionCaseId] = useState('');
   const [firestoreDocuments, setFirestoreDocuments] = useState([]);
   const [firestoreFindings, setFirestoreFindings] = useState([]);
   const [firestoreRequirementsByCodeArea, setFirestoreRequirementsByCodeArea] = useState({});
@@ -348,6 +348,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [expandedUploadSummaryId, setExpandedUploadSummaryId] = useState('');
   const [expandedCodeAreaIds, setExpandedCodeAreaIds] = useState({});
   const [expandedOverviewFindingIds, setExpandedOverviewFindingIds] = useState({});
+  const acceptedOverviewCollapseTimersRef = useRef({});
   const [expandedViewerFindingIds, setExpandedViewerFindingIds] = useState({});
   const [overviewRequirementFilter, setOverviewRequirementFilter] = useState({ areaId: '', requirementId: '' });
   const [notAssessedExpanded, setNotAssessedExpanded] = useState(false);
@@ -393,6 +394,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     goodPractice: false
   });
   const [reportActionItems, setReportActionItems] = useState([]);
+  const [reportActionOriginalItems, setReportActionOriginalItems] = useState([]);
   const [caseSetupPracticeName, setCaseSetupPracticeName] = useState('');
   const [caseSetupLicenceNumber, setCaseSetupLicenceNumber] = useState('');
   const [caseSetupHolp, setCaseSetupHolp] = useState('');
@@ -546,6 +548,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     if (skipNextWorkspaceLoadCaseIdRef.current === caseId) {
       skipNextWorkspaceLoadCaseIdRef.current = '';
       setIsWorkspaceLoading(false);
+      setCaseOpenTransitionCaseId('');
       setIsActiveCasePersisted(true);
       return;
     }
@@ -597,12 +600,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         if (Array.isArray(snapshot.caseMetaPatch.focusAreas)) {
           const selectedAreaSet = new Set(snapshot.caseMetaPatch.focusAreas.map((entry) => String(entry || '').trim()));
           setSelectedFocusAreaIds(selectedAreaSet);
-          setNotAssessedAreas(
-            FOCUS_AREA_OPTIONS.filter((area) => !selectedAreaSet.has(area.id)).map((area) => area.label)
-          );
+          setNotAssessedAreas(snapshot.caseExists ? [] : FOCUS_AREA_OPTIONS.filter((area) => !selectedAreaSet.has(area.id)).map((area) => area.label));
         } else {
           setSelectedFocusAreaIds(new Set());
-          setNotAssessedAreas(NOT_ASSESSED_AREAS);
+          setNotAssessedAreas([]);
         }
 
         setIsActiveCasePersisted(Boolean(snapshot.caseExists));
@@ -670,6 +671,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         setReportSectionNarrativesByCodeArea(snapshot.reportSectionNarrativesByCodeArea ?? {});
         setReportOriginalExecutiveSummary(snapshot.reportExecutiveSummary ?? '');
         setReportExecutiveSummaryOverride(snapshot.reportExecutiveSummary ?? '');
+        setReportActionOriginalItems(snapshot.reportActionItems ?? []);
         setReportActionItems(snapshot.reportActionItems ?? []);
         {
           const hasPersistedReport =
@@ -686,6 +688,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           setIsActiveCasePersisted(false);
           setFirestoreRequirementsByCodeArea({});
           setReportSectionIdsByCodeArea({});
+          setReportActionOriginalItems([]);
+          setReportActionItems([]);
           setReportOriginalSectionNarrativesByCodeArea({});
           setReportSectionNarrativesByCodeArea({});
           setReportOriginalExecutiveSummary('');
@@ -693,7 +697,11 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         }
       } finally {
         if (!cancelled) {
-          setIsWorkspaceLoading(false);
+          requestAnimationFrame(() => {
+            if (cancelled) return;
+            setIsWorkspaceLoading(false);
+            setCaseOpenTransitionCaseId((prev) => (prev === caseId ? '' : prev));
+          });
         }
       }
     };
@@ -1448,7 +1456,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       ? 'AI classification in progress'
       : 'AI findings generation in progress';
   const analysisCompletionLabel =
-    analysisMode === PROCESSING_MODE_CLASSIFICATION ? 'Classification Review' : 'Overview';
+    analysisMode === PROCESSING_MODE_CLASSIFICATION ? 'Classification Review' : 'Findings';
   const analysisStageIndex = Math.min(
     activeProcessingSteps.length - 1,
     Math.floor((analysisProgress / 100) * activeProcessingSteps.length)
@@ -1502,7 +1510,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, []);
 
   const setSingleFindingViewFilter = useCallback((filterKey) => {
-    setFindingViewFilters(filterKey === 'all' ? [] : [filterKey]);
+    setFindingViewFilters((prev) => {
+      if (filterKey === 'all') return [];
+      return prev.length === 1 && prev[0] === filterKey ? [] : [filterKey];
+    });
   }, []);
 
   const filteredFindings = availableFindings
@@ -1663,6 +1674,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     pendingReviewCount === 0 &&
     criticalCount === 0 &&
     leadCount === 0;
+  const isDemoSeedCase = currentCaseMeta.caseId === 'DEMO-12345';
   const allRequirementsMetDetail = `${goodPracticeCount} good practice area${
     goodPracticeCount === 1 ? '' : 's'
   } identified across ${Math.max(goodPracticeAreaCount, 1)} code area${
@@ -1682,15 +1694,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, [rejectedCount, reviewedCount]);
 
   useEffect(() => {
-    if (pendingReviewCount === 0 && availableFindings.length > 0) {
+    if (availableFindings.length > 0) {
       setReportAccessNotice('');
     }
-  }, [availableFindings.length, pendingReviewCount]);
+  }, [availableFindings.length]);
 
   const codeAreaDisplayMap = useMemo(() => {
     const base = new Map();
     FOCUS_AREA_OPTIONS.forEach((area) => base.set(area.id, area.label));
-    COMPLIANCE_CODE_AREAS.forEach((area) => base.set(area.id, area.name));
     return base;
   }, []);
 
@@ -1736,23 +1747,21 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         .filter(Boolean),
     [formatCodeAreaLabel, requirementsByCodeArea]
   );
-  const reportStale = hasGeneratedReport && reportNeedsRegeneration;
-  const summaryCardDetailMap = useMemo(() => {
-    return {
-      critical:
-        criticalCount > 0 || leadCount > 0
-          ? `${criticalCount} non-compliant, ${leadCount} requires review`
-          : '0 non-compliant, 0 requires review',
-      warning: pendingReviewCount > 0 ? `${pendingReviewCount} awaiting judgment` : 'awaiting judgment',
-      pass: metRequirementsCount > 0 ? `${metRequirementsCount} requirements confirmed` : 'none confirmed yet',
-      best_practice:
-        goodPracticeCount > 0
-          ? `across ${Math.max(goodPracticeAreaCount, 1)} code area${goodPracticeAreaCount === 1 ? '' : 's'}`
-          : 'none highlighted'
-    };
-  }, [criticalCount, goodPracticeAreaCount, goodPracticeCount, leadCount, metRequirementsCount, pendingReviewCount]);
+  const persistedNotAssessedAreas = useMemo(
+    () =>
+      Object.entries(requirementsByCodeArea)
+        .flatMap(([codeAreaId, rows]) =>
+          (Array.isArray(rows) ? rows : [])
+            .filter((entry) => String(entry?.status || '').trim().toLowerCase() === 'not_assessed')
+            .map((entry) => `${formatCodeAreaLabel(codeAreaId)}: ${safeText(entry.label, entry.id)}`)
+        )
+        .filter(Boolean),
+    [formatCodeAreaLabel, requirementsByCodeArea, safeText]
+  );
+  const effectiveNotAssessedAreas = isActiveCasePersisted ? persistedNotAssessedAreas : notAssessedAreas;
+  const reportStale = hasGeneratedReport && reportNeedsRegeneration && !isDemoSeedCase;
   const overviewSummaryCards = useMemo(() => {
-    const compliantCount = metRequirementsCount;
+    const compliantCount = availableFindings.filter((finding) => getFindingBucketId(finding) === 'pass').length;
     const goodPracticeAreas = new Set();
     const unresolvedLeadCount = availableFindings.filter((finding) => {
       if (!isLeadFindingByTaxonomy(finding)) return false;
@@ -1771,8 +1780,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       {
         id: 'attention',
         label: 'Non-compliant',
-        value: criticalCount + leadCount,
-        detail: `${criticalCount} non-compliant, ${leadCount} requires review`,
+        value: criticalCount,
+        detail: criticalCount > 0 ? `${criticalCount} confirmed non-compliant finding${criticalCount === 1 ? '' : 's'}` : 'none confirmed',
         tone: 'attention',
         active: findingViewFilters.includes('non_compliant'),
         onClick: () => setSingleFindingViewFilter('non_compliant')
@@ -1781,7 +1790,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         id: 'review',
         label: 'Requires review',
         value: unresolvedLeadCount,
-        detail: 'awaiting judgment',
+        detail:
+          unresolvedLeadCount > 0
+            ? `${unresolvedLeadCount} awaiting judgment`
+            : 'none awaiting judgment',
         tone: 'review',
         active: findingViewFilters.includes('leads'),
         onClick: () => setSingleFindingViewFilter('leads')
@@ -1790,7 +1802,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         id: 'compliant',
         label: 'Compliant',
         value: compliantCount,
-        detail: compliantCount > 0 ? 'requirements confirmed' : 'none confirmed yet',
+        detail: compliantCount > 0 ? `${compliantCount} compliant finding${compliantCount === 1 ? '' : 's'}` : 'none identified',
         tone: 'good',
         active: findingViewFilters.includes('compliant'),
         onClick: () => setSingleFindingViewFilter('compliant')
@@ -1799,7 +1811,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         id: 'good',
         label: 'Good Practice',
         value: goodPracticeCount,
-        detail: `across ${goodPracticeAreas.size} code area${goodPracticeAreas.size === 1 ? '' : 's'}`,
+        detail:
+          goodPracticeCount > 0
+            ? `across ${goodPracticeAreas.size} code area${goodPracticeAreas.size === 1 ? '' : 's'}`
+            : 'none highlighted',
         tone: 'good',
         active: findingViewFilters.includes('good_practice'),
         onClick: () => setSingleFindingViewFilter('good_practice')
@@ -1810,8 +1825,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     criticalCount,
     findingViewFilters,
     goodPracticeCount,
-    leadCount,
-    metRequirementsCount,
     normalizeCodeAreaId,
     resolvedFindingDecisions,
     setSingleFindingViewFilter
@@ -1820,24 +1833,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
   const complianceCodeAreas = useMemo(() => {
     const map = new Map();
-
-    COMPLIANCE_CODE_AREAS.forEach((area) => {
-      map.set(area.id, { ...area });
-    });
-
-    Object.keys(requirementsByCodeArea).forEach((rawAreaId) => {
-      const normalized = normalizeCodeAreaId(rawAreaId) || rawAreaId;
-      if (!map.has(normalized)) {
-        map.set(normalized, {
-          id: normalized,
-          name: formatCodeAreaLabel(rawAreaId),
-          met: '0/0'
-        });
-      }
-    });
-
-    availableFindings.forEach((finding) => {
-      const normalized = normalizeCodeAreaId(textOf(finding.codeArea || finding.code_area, ''));
+    const registerAreaId = (rawAreaId) => {
+      const normalized = normalizeCodeAreaId(rawAreaId);
       if (!normalized) return;
       if (!map.has(normalized)) {
         map.set(normalized, {
@@ -1846,15 +1843,37 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           met: '0/0'
         });
       }
+    };
+
+    availableFindings.forEach((finding) => {
+      registerAreaId(textOf(finding.codeArea || finding.code_area, ''));
     });
 
-    return Array.from(map.values());
+    Object.entries(requirementsByCodeArea).forEach(([areaId, rows]) => {
+      if (!Array.isArray(rows) || rows.length === 0) return;
+      registerAreaId(areaId);
+    });
+
+    const knownOrder = new Map(FOCUS_AREA_OPTIONS.map((area, index) => [area.id, index]));
+
+    return Array.from(map.values()).sort((left, right) => {
+      const leftIndex = knownOrder.get(left.id);
+      const rightIndex = knownOrder.get(right.id);
+      if (leftIndex !== undefined && rightIndex !== undefined && leftIndex !== rightIndex) {
+        return leftIndex - rightIndex;
+      }
+      if (leftIndex !== undefined && rightIndex === undefined) return -1;
+      if (leftIndex === undefined && rightIndex !== undefined) return 1;
+      return left.name.localeCompare(right.name);
+    });
   }, [availableFindings, formatCodeAreaLabel, normalizeCodeAreaId, requirementsByCodeArea]);
 
-  const reportIncludedFindings = useMemo(
-    () => availableFindings.filter((finding) => resolvedFindingDecisions[finding.id] === 'accepted'),
-    [availableFindings, resolvedFindingDecisions]
-  );
+  const reportIncludedFindings = useMemo(() => {
+    return availableFindings.filter((finding) => {
+      const decision = resolvedFindingDecisions[finding.id] ?? 'unreviewed';
+      return decision !== 'rejected' && decision !== 'dismissed';
+    });
+  }, [availableFindings, resolvedFindingDecisions]);
 
   const reportGoodPracticeFindings = useMemo(
     () => reportIncludedFindings.filter((finding) => getFindingBucketId(finding) === 'best_practice'),
@@ -1906,10 +1925,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     return Array.from(grouped.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [formatCodeAreaLabel, normalizeCodeAreaId, reportIncludedFindings]);
 
-  const reportCanGenerate = availableFindings.length > 0 && pendingReviewCount === 0;
+  const reportCanGenerate = reportIncludedFindings.length > 0;
   const reportReviewBlockedReason =
-    pendingReviewCount > 0
-      ? `Review all findings before generating the report (${pendingReviewCount} awaiting judgment).`
+    reportIncludedFindings.length === 0
+      ? 'No findings are currently in scope for the report.'
       : '';
 
   const reportInterviewLines = useMemo(() => {
@@ -2057,16 +2076,21 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   );
 
   const reportActionDefaults = useMemo(() => {
-    const generated = reportAttentionFindings.slice(0, 6).map((finding, index) => ({
+    const generated = reportAttentionFindings.map((finding) => ({
       id: `ra-auto-${finding.id}`,
       action: safeText(finding.title, 'Review and resolve finding'),
       codeRef: safeText(finding.reference, ''),
       codeArea: formatCodeAreaLabel(safeText(finding.codeArea || finding.code_area, 'General')),
-      deadline: 'TBD',
-      person: index === 0 ? (currentCaseMeta.owner || '') : ''
+      deadline: '',
+      person: ''
     }));
     return generated.length > 0 ? generated : REPORT_ACTION_DEFAULTS.map((item) => ({ ...item }));
-  }, [reportAttentionFindings, formatCodeAreaLabel, currentCaseMeta.owner]);
+  }, [reportAttentionFindings, formatCodeAreaLabel]);
+
+  const reportActionBaselineItems = useMemo(() => {
+    const sourceItems = reportActionOriginalItems.length > 0 ? reportActionOriginalItems : reportActionDefaults;
+    return sourceItems.map((item) => ({ ...item }));
+  }, [reportActionDefaults, reportActionOriginalItems]);
 
   const reportInspectionType = useMemo(() => {
     if (uploadItems.length > 0) return 'Desk-based review';
@@ -2074,10 +2098,26 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, [uploadItems.length]);
 
   useEffect(() => {
-    if (reportActionItems.length === 0) {
-      setReportActionItems(reportActionDefaults.map((item) => ({ ...item })));
+    if (reportActionItems.length === 0 && reportActionBaselineItems.length > 0) {
+      setReportActionItems(reportActionBaselineItems.map((item) => ({ ...item })));
     }
-  }, [reportActionItems.length, reportActionDefaults]);
+  }, [reportActionBaselineItems, reportActionItems.length]);
+
+  useEffect(() => {
+    if (!isDemoSeedCase || reportActionItems.length === 0 || reportActionDefaults.length === 0) return;
+
+    const allActionsAutoGenerated = reportActionItems.every((item) => String(item?.id || '').trim().startsWith('ra-auto-'));
+    const hasLegacyOwnerAssignment = reportActionItems.some(
+      (item, index) => index === 0 && String(item?.person || '').trim() === String(currentCaseMeta.owner || '').trim()
+    );
+    const hasCountMismatch = reportActionItems.length !== reportActionDefaults.length;
+
+    if (!allActionsAutoGenerated || (!hasLegacyOwnerAssignment && !hasCountMismatch)) return;
+
+    const normalizedDefaults = reportActionDefaults.map((item) => ({ ...item }));
+    setReportActionOriginalItems(normalizedDefaults);
+    setReportActionItems(normalizedDefaults);
+  }, [currentCaseMeta.owner, isDemoSeedCase, reportActionDefaults, reportActionItems]);
 
   useEffect(() => {
     if (appMode !== 'inspection' || !isActiveCasePersisted || isWorkspaceLoading) return;
@@ -2595,7 +2635,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, [documentWorkspaceTab]);
 
   useEffect(() => {
-    const assistantAllowed = appMode === 'inspection' && (currentStep === STEP_OVERVIEW || currentStep === STEP_VIEWER);
+    const assistantAllowed = appMode === 'inspection';
     if (!assistantAllowed && reggieOpen) {
       setReggieOpen(false);
     }
@@ -2641,6 +2681,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         ...prev.filter((entry) => entry.id !== currentCaseDashboardRow.id)
       ]);
     }
+    setCaseOpenTransitionCaseId('');
     setAppMode('dashboard');
     setFeedbackOpen(false);
     setContextNoteOpen(false);
@@ -2652,23 +2693,28 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, [currentCaseDashboardRow, refreshDashboardCases]);
 
   const handleCaseTabNavigate = (targetStep) => {
-    if (targetStep === STEP_REPORT && pendingReviewCount > 0) {
-      setReportAccessNotice(
-        reportReviewBlockedReason || 'Review all findings before generating the report.'
-      );
-      setCurrentStep(STEP_OVERVIEW);
-      return;
-    }
     if (targetStep <= maxStepUnlocked) {
       if (targetStep === STEP_REPORT) {
         setReportAccessNotice('');
+        requestAnimationFrame(scrollWorkspaceToTop);
       }
       setCurrentStep(targetStep);
+      if (
+        targetStep === STEP_REPORT &&
+        reportCanGenerate &&
+        availableFindings.length > 0 &&
+        !reportGenerationInProgress &&
+        (reportNeedsRegeneration || !hasGeneratedReport)
+      ) {
+        void runReportGeneration(hasGeneratedReport ? 'regenerate' : 'generate');
+      }
     }
   };
 
   const handleOpenCase = (caseItem) => {
     const targetStep = STEP_OVERVIEW;
+    const nextCaseId = coerceText(caseItem?.id).trim();
+    setCaseOpenTransitionCaseId(nextCaseId);
     setIsWorkspaceLoading(true);
     setAppMode('inspection');
     setIsActiveCasePersisted(false);
@@ -2726,6 +2772,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
   const handleOpenCompletedCase = (caseItem) => {
     const targetStep = STEP_OVERVIEW;
+    const nextCaseId = coerceText(caseItem?.id).trim();
+    setCaseOpenTransitionCaseId(nextCaseId);
     setIsWorkspaceLoading(true);
     setAppMode('inspection');
     setIsActiveCasePersisted(false);
@@ -2875,7 +2923,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setReportPendingChanges(false);
     setReportNeedsRegeneration(true);
     setEditedReportSections({ interviews: false, summary: false, attention: false, goodPractice: false });
-    setReportActionItems(reportActionDefaults.map((item) => ({ ...item })));
+    setReportActionOriginalItems([]);
+    setReportActionItems([]);
     setReportOriginalSectionNarrativesByCodeArea({});
     setReportSectionNarrativesByCodeArea({});
     setReportOriginalExecutiveSummary('');
@@ -3064,11 +3113,32 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   };
 
   const handleRequestFindingDecision = (findingId, nextDecision) => {
+    const clearAcceptedCollapseTimer = () => {
+      const timerId = acceptedOverviewCollapseTimersRef.current[findingId];
+      if (!timerId) return;
+      clearTimeout(timerId);
+      delete acceptedOverviewCollapseTimersRef.current[findingId];
+    };
+
     if (nextDecision === 'accepted' || nextDecision === null) {
+      clearAcceptedCollapseTimer();
       handleFindingDecision(findingId, nextDecision);
+      if (nextDecision === 'accepted') {
+        acceptedOverviewCollapseTimersRef.current[findingId] = window.setTimeout(() => {
+          setExpandedOverviewFindingIds((prev) => {
+            if (!prev?.[findingId]) return prev;
+            return {
+              ...prev,
+              [findingId]: false
+            };
+          });
+          delete acceptedOverviewCollapseTimersRef.current[findingId];
+        }, 900);
+      }
       return;
     }
     if (nextDecision === 'rejected') {
+      clearAcceptedCollapseTimer();
       setNoteTargetFindingId(null);
       setInlineDismissFindingId(null);
       setInlineRejectFindingId(findingId);
@@ -3078,6 +3148,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       return;
     }
     if (nextDecision === 'dismissed') {
+      clearAcceptedCollapseTimer();
       setNoteTargetFindingId(null);
       setInlineRejectFindingId(null);
       setInlineDismissFindingId(findingId);
@@ -3086,6 +3157,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       setActiveMenuFindingId(null);
       return;
     }
+    clearAcceptedCollapseTimer();
     setActiveMenuFindingId(null);
   };
 
@@ -3687,7 +3759,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   };
 
   const applyGeneratedReport = (mode = 'generate') => {
-    const nextReportActions = reportActionDefaults.map((item) => ({ ...item }));
+    const nextGeneratedSections = buildReportSectionLines({}, '');
+    const nextReportActions = reportActionBaselineItems.map((item) => ({ ...item }));
     const nextActionIds = new Set(nextReportActions.map((item) => item.id));
     const removedActionIds = reportActionItems
       .map((item) => item.id)
@@ -3696,9 +3769,11 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setReportPendingAction('generate');
     setHasGeneratedReport(true);
     setEditedReportSections({ interviews: false, summary: false, attention: false, goodPractice: false });
-    handleRevertReportSection('summary');
-    handleRevertReportSection('goodPractice');
-    handleRevertReportSection('attention');
+    setReportOriginalSectionNarrativesByCodeArea({});
+    setReportSectionNarrativesByCodeArea({});
+    setReportOriginalExecutiveSummary(nextGeneratedSections.summary?.[0] ?? '');
+    setReportExecutiveSummaryOverride(nextGeneratedSections.summary?.[0] ?? '');
+    setReportActionOriginalItems(nextReportActions.map((item) => ({ ...item })));
     setReportActionItems(nextReportActions);
     setDocsMarkedForReprocess({});
     setPendingScopeChangeCount(0);
@@ -3784,7 +3859,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const handleGenerateReport = () => {
     if (availableFindings.length === 0) return;
     if (reportGenerationInProgress) return;
-    if (pendingReviewCount > 0) return;
+    if (reportIncludedFindings.length === 0) return;
     if (reportPendingChanges) {
       setReportPendingAction('generate');
       setReportPendingGateOpen(true);
@@ -3793,30 +3868,32 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     void runReportGeneration('generate');
   };
 
+  const scrollWorkspaceToTop = useCallback(() => {
+    const workspaceMain = document.querySelector('.workspace-main');
+    if (workspaceMain instanceof HTMLElement) {
+      workspaceMain.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   const handleAttemptOverviewReport = () => {
     if (availableFindings.length === 0) {
       setReportAccessNotice('Generate findings from the reviewed documents before creating the report.');
-      return;
-    }
-    if (pendingReviewCount > 0) {
-      setReportAccessNotice(
-        reportReviewBlockedReason || 'Review all findings before generating the report.'
-      );
       return;
     }
 
     setReportAccessNotice('');
     setMaxStepUnlocked((prev) => Math.max(prev, STEP_REPORT));
     setCurrentStep(STEP_REPORT);
+    requestAnimationFrame(scrollWorkspaceToTop);
 
-    if (!hasGeneratedReport && !reportGenerationInProgress) {
-      void runReportGeneration('generate');
+    if (reportCanGenerate && (reportNeedsRegeneration || !hasGeneratedReport) && !reportGenerationInProgress) {
+      void runReportGeneration(hasGeneratedReport ? 'regenerate' : 'generate');
     }
   };
 
   const handleConfirmReportRegenerate = () => {
     if (reportGenerationInProgress) return;
-    if (pendingReviewCount > 0) return;
     void runReportGeneration('regenerate');
   };
 
@@ -5545,7 +5622,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       setNotAssessedExpanded={setNotAssessedExpanded}
       notApplicableExpanded={notApplicableExpanded}
       setNotApplicableExpanded={setNotApplicableExpanded}
-      notAssessedAreas={notAssessedAreas}
+      notAssessedAreas={effectiveNotAssessedAreas}
       notApplicableAreas={notApplicableAreas}
       handleRestoreNotAssessedArea={handleRestoreNotAssessedArea}
     />
@@ -5791,7 +5868,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         setCurrentStep(STEP_DOCUMENTS);
       }}
       onGoToReport={handleAttemptOverviewReport}
-      canGoToReport={caseDocuments.length > 0}
+      onClearFindingFilters={clearFindingViewFilters}
       reportBlockedMessage={reportAccessNotice}
       overviewSummaryCards={overviewSummaryCards}
       allRequirementsMet={allRequirementsMet}
@@ -5828,6 +5905,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       reportCanGenerate={reportCanGenerate}
       reportReviewBlockedReason={reportReviewBlockedReason}
       reportPendingChanges={reportPendingChanges}
+      onBackToFindings={() => {
+        setCurrentStep(STEP_OVERVIEW);
+        requestAnimationFrame(scrollWorkspaceToTop);
+      }}
       onGenerateReport={handleGenerateReport}
       onOpenPendingChangesGate={() => {
         setReportPendingAction('regenerate');
@@ -5835,7 +5916,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       }}
       reportStale={reportStale}
       onOpenRegenerateConfirm={() => {
-        if (pendingReviewCount > 0) return;
         setReportPendingAction('regenerate');
         setReportRegenerateConfirmOpen(true);
       }}
@@ -5857,7 +5937,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       reportAttentionFindings={reportAttentionFindings}
       buildEvidencePassages={buildEvidencePassages}
       handleJumpToEvidencePassage={handleJumpToEvidencePassage}
-      reportActionDefaults={reportActionDefaults}
+      reportActionBaselineItems={reportActionBaselineItems}
       reportActionItems={reportActionItems}
       setReportActionItems={setReportActionItems}
       upsertReportActionItem={upsertReportActionItem}
@@ -5867,7 +5947,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       inspectorObservations={inspectorObservations}
       handleUpdateObservation={handleUpdateObservation}
       handleDeleteObservation={handleDeleteObservation}
-      notAssessedAreas={notAssessedAreas}
+      notAssessedAreas={effectiveNotAssessedAreas}
       reportAppendixRows={reportAppendixRows}
       reportExportRef={reportExportRef}
     />
@@ -5918,8 +5998,12 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         : 'Dashboard';
   const shellShowHeaderContextChevron = false;
   const shellCompactHeader = appMode === 'inspection' && currentStep === STEP_VIEWER;
-  const shellShowAssistant =
-    appMode === 'inspection' && (currentStep === STEP_OVERVIEW || currentStep === STEP_VIEWER);
+  const shellShowAssistant = appMode === 'inspection';
+  const showWorkspaceOpenLoader =
+    appMode === 'inspection' &&
+    (isWorkspaceLoading ||
+      (Boolean(caseOpenTransitionCaseId) &&
+        caseOpenTransitionCaseId === coerceText(currentCaseMeta.caseId).trim()));
   const shellPageHelpText =
     appMode === 'dashboard'
       ? 'Use the dashboard to open an existing inspection case or start a new one.'
@@ -6169,16 +6253,25 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         </>
       }
     >
-        {isWorkspaceLoading ? (
-          <div className="alert alert-warning small">Syncing case data from data provider...</div>
-        ) : null}
-        {!isWorkspaceLoading && appMode === 'inspection' && !isActiveCasePersisted ? (
-          <div className="alert alert-warning small">
-            Read-only demo mode: this case is not persisted in Firestore yet.
+        {showWorkspaceOpenLoader ? (
+          <div className="stage-card workspace-loading-stage">
+            <div className="edge-empty-card workspace-loading-card">
+              <div className="spinner-sumplexity spinner-lg" aria-hidden="true" />
+              <h3>Opening case</h3>
+              <p>Loading documents, findings and report state from the data provider.</p>
+            </div>
           </div>
-        ) : null}
-        {renderCaseHeader()}
-        {renderStepContent()}
+        ) : (
+          <>
+            {appMode === 'inspection' && !isActiveCasePersisted ? (
+              <div className="alert alert-warning small">
+                Read-only demo mode: this case is not persisted in Firestore yet.
+              </div>
+            ) : null}
+            {renderCaseHeader()}
+            {renderStepContent()}
+          </>
+        )}
       </WorkspaceShell>
       <ContextNoteModal
         isOpen={contextNoteOpen}

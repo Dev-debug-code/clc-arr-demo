@@ -9,6 +9,7 @@ export default function ReportStage({
   reportCanGenerate,
   reportReviewBlockedReason,
   reportPendingChanges,
+  onBackToFindings,
   onGenerateReport,
   onOpenPendingChangesGate,
   reportStale,
@@ -31,7 +32,7 @@ export default function ReportStage({
   reportAttentionFindings,
   buildEvidencePassages,
   handleJumpToEvidencePassage,
-  reportActionDefaults,
+  reportActionBaselineItems,
   reportActionItems,
   setReportActionItems,
   upsertReportActionItem,
@@ -47,6 +48,11 @@ export default function ReportStage({
 }) {
   return (
     <div className="stage-card report-stage">
+      <div className="report-stage__toolbar">
+        <button type="button" className="btn btn-secondary btn-sm" onClick={onBackToFindings}>
+          ← Back to Findings
+        </button>
+      </div>
       {reportGenerationInProgress ? (
         <div className="edge-empty-card report-generation-card">
           <div className="spinner-sumplexity spinner-lg" aria-hidden="true" />
@@ -121,7 +127,7 @@ export default function ReportStage({
           reportAttentionFindings={reportAttentionFindings}
           buildEvidencePassages={buildEvidencePassages}
           handleJumpToEvidencePassage={handleJumpToEvidencePassage}
-          reportActionDefaults={reportActionDefaults}
+          reportActionBaselineItems={reportActionBaselineItems}
           reportActionItems={reportActionItems}
           setReportActionItems={setReportActionItems}
           upsertReportActionItem={upsertReportActionItem}

@@ -111,7 +111,7 @@ export default function ViewerFindingsPanel({
             Findings and items requiring review · {findingsForActiveDocument.length} shown / {totalFindingsForActiveDocument} total
           </p>
           <p className="panel-subtitle">
-            Decisions made here update the same finding review state shown in Overview.
+            Decisions made here update the same finding review state shown in Findings.
           </p>
         </div>
       </div>
@@ -220,7 +220,7 @@ export default function ViewerFindingsPanel({
             </h4>
             <p>
               {!hasActiveTypeFilters && filterSeverity.length === 0
-                ? 'As processing evolves, this panel will populate with linked findings.'
+                ? 'As processing evolves, this panel will populate with findings from the assessed evidence.'
                 : 'Change finding or code-area filters, or clear severity filters to restore the full list.'}
             </p>
           </div>

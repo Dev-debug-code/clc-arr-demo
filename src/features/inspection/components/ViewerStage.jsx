@@ -126,7 +126,7 @@ export default function ViewerStage({
   }
 
   const viewerBackStep = viewerOriginStep === STEP_DOCUMENTS ? STEP_DOCUMENTS : STEP_OVERVIEW;
-  const viewerBackLabel = viewerOriginStep === STEP_DOCUMENTS ? 'Documents' : 'Overview';
+  const viewerBackLabel = viewerOriginStep === STEP_DOCUMENTS ? 'Documents' : 'Findings';
   const viewerHasFindingFocus = Boolean(activeViewerFinding && activeViewerFindingDocumentIds.length > 0);
   const viewerDocumentCount = Math.max(viewerDocumentSequence.length, 1);
   const viewerDocumentPosition = viewerDocumentIndex >= 0 ? viewerDocumentIndex + 1 : 1;

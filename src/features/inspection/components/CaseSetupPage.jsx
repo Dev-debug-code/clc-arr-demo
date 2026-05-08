@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   CASE_ACTING_FOR_LENDER_OPTIONS,
   CASE_AML_TIER_OPTIONS,
@@ -48,6 +49,7 @@ export default function CaseSetupPage({
   isCreatingCase,
   handleCreateCase
 }) {
+  const [showLookupLoading, setShowLookupLoading] = useState(false);
   const matchedPractice = caseSetupPracticeLookup;
   const matchedInspectionDate = matchedPractice?.last_inspection?.date || null;
   const matchedInspectionDateLabel = matchedInspectionDate
@@ -57,6 +59,19 @@ export default function CaseSetupPage({
     caseSetupPracticeName.trim().length > 0 &&
     caseSetupLicenceNumber.trim().length > 0 &&
     selectedFocusAreaIds.size > 0;
+
+  useEffect(() => {
+    if (!isCaseSetupPracticeLookupLoading) {
+      setShowLookupLoading(false);
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      setShowLookupLoading(true);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [isCaseSetupPracticeLookupLoading]);
 
   return (
     <div className="case-setup-shell">
@@ -97,7 +112,7 @@ export default function CaseSetupPage({
             />
           </label>
         </div>
-        {isCaseSetupPracticeLookupLoading ? (
+        {showLookupLoading ? (
           <div className="case-setup-match">
             <strong>Checking previous inspection history...</strong>
           </div>

@@ -10,6 +10,10 @@ export default function DocumentsIntakePhase({
   toIsoDate,
   handleRunClassification
 }) {
+  void formatShortDisplayDate;
+  void currentCaseMeta;
+  void toIsoDate;
+
   return (
     <div className="docs-wireframe-phase">
       <div className="section-heading">
@@ -69,17 +73,17 @@ export default function DocumentsIntakePhase({
           <p>Add the case files first, then run AI classification.</p>
         </div>
       ) : (
-        <table className="table docs-wire-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th style={{ width: '180px' }}>Stage</th>
-              <th style={{ width: '110px' }}>Added</th>
-              <th style={{ width: '110px' }}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {uploadItems.map((item) => {
+        <div className="docs-wire-table-wrap">
+          <table className="table docs-wire-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th style={{ width: '180px' }}>Stage</th>
+                <th style={{ width: '110px' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {uploadItems.map((item) => {
               const stageLabel =
                 item.status === 'verified'
                   ? 'Confirmed'
@@ -87,29 +91,29 @@ export default function DocumentsIntakePhase({
                     ? 'Ready for review'
                     : 'Queued for classification';
 
-              return (
-                <tr key={`intake-row-${item.id}`}>
-                  <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{item.name}</td>
-                  <td>{stageLabel}</td>
-                  <td>{formatShortDisplayDate(item.addedOn ?? currentCaseMeta.started ?? toIsoDate(new Date()))}</td>
-                  <td>
-                    {item.status === 'queued' ? (
-                      <button
-                        type="button"
-                        className="btn btn-xs ghost docs-remove-btn"
-                        onClick={() => handleRemoveUploadItem(item.id)}
-                      >
-                        Remove
-                      </button>
-                    ) : (
-                      <span className="docs-locked-label">Locked</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                return (
+                  <tr key={`intake-row-${item.id}`}>
+                    <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{item.name}</td>
+                    <td>{stageLabel}</td>
+                    <td>
+                      {item.status === 'queued' ? (
+                        <button
+                          type="button"
+                          className="btn btn-xs ghost docs-remove-btn"
+                          onClick={() => handleRemoveUploadItem(item.id)}
+                        >
+                          Remove
+                        </button>
+                      ) : (
+                        <span className="docs-locked-label">Locked</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <div className="warning-messages">

@@ -2,7 +2,7 @@ export default function OverviewStage({
   caseDocumentsLength,
   onGoToDocuments,
   onGoToReport,
-  canGoToReport,
+  onClearFindingFilters,
   reportBlockedMessage,
   overviewSummaryCards,
   complianceContent,
@@ -12,6 +12,8 @@ export default function OverviewStage({
   onOpenContextNote,
   onDismissHighRejectionPrompt
 }) {
+  const hasActiveFindingFilter = overviewSummaryCards.some((item) => item.active);
+
   return (
     <div className="stage-card">
       {caseDocumentsLength === 0 ? (
@@ -24,19 +26,19 @@ export default function OverviewStage({
           </button>
         </div>
       ) : null}
-      {caseDocumentsLength > 0 && allRequirementsMet ? (
-        <div className="edge-empty-card">
-          <div className="edge-empty-card__icon overview-all-met-icon">✓</div>
-          <h3>All assessed requirements met</h3>
-          <p>{allRequirementsMetDetail}</p>
-          <button type="button" className="btn primary" onClick={onGoToReport}>
-            Generate report
-          </button>
-          {reportBlockedMessage ? <p className="empty-state-helper">{reportBlockedMessage}</p> : null}
-        </div>
-      ) : null}
-      {caseDocumentsLength > 0 && !allRequirementsMet ? (
+      {caseDocumentsLength > 0 ? (
         <>
+          {allRequirementsMet ? (
+            <div className="alert-banner success findings-summary-banner">
+              <div className="findings-summary-banner__copy">
+                <strong>All assessed requirements met</strong>
+                <span>{allRequirementsMetDetail}</span>
+              </div>
+              <button type="button" className="btn primary btn-sm" onClick={onGoToReport}>
+                Generate report
+              </button>
+            </div>
+          ) : null}
           {showHighRejectionPrompt ? (
             <div className="alert-banner info">
               <span>
@@ -55,16 +57,24 @@ export default function OverviewStage({
           ) : null}
           <div className="summary-grid overview-summary-grid">
             {overviewSummaryCards.map((item) => (
-              <div
+              <button
+                type="button"
                 key={`overview-${item.id}`}
-                className={`overview-stat-card ${item.tone}`}
+                className={`overview-stat-card ${item.tone}${item.active ? ' active' : ''}`}
+                onClick={item.onClick}
+                aria-pressed={item.active}
               >
                 <strong className="overview-stat-card__value">{item.value}</strong>
                 <span className="overview-stat-card__label">{item.label}</span>
                 <span className="overview-stat-card__detail">{item.detail}</span>
-              </div>
+              </button>
             ))}
           </div>
+          {hasActiveFindingFilter ? (
+            <button type="button" className="btn btn-xs ghost overview-filter-clear-btn" onClick={onClearFindingFilters}>
+              Show all findings
+            </button>
+          ) : null}
           {complianceContent}
           <div className="bottom-actions">
             <button type="button" className="btn primary" onClick={onGoToReport}>

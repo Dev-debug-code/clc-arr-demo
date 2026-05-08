@@ -570,12 +570,13 @@ export async function loadCaseWorkspaceData(caseId) {
   const reportActionItems = reportActionsSnap.docs
     .map((entry) => {
       const data = entry.data() ?? {};
+      const rawDeadline = String(data.deadline ?? '').trim();
       return {
         id: entry.id,
         action: data.action ?? 'Action item',
         codeRef: data.codeRef ?? data.code_ref ?? null,
         codeArea: data.codeArea ?? 'General',
-        deadline: data.deadline ?? 'TBD',
+        deadline: /^\d{4}-\d{2}-\d{2}$/.test(rawDeadline) ? rawDeadline : '',
         person: data.person ?? ''
       };
     })

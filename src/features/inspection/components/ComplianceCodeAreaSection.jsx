@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   DISMISS_REASON_OPTIONS,
   RECURRING_FINDING_IDS,
@@ -9,7 +9,7 @@ import {
 import { isRequirementExcluded, isRequirementMet } from '../helpers.js';
 
 const REQUIREMENT_SCOPE_OPTIONS = [
-  { id: 'all', label: 'All requirements' },
+  { id: 'all', label: 'All findings' },
   { id: 'needs_attention', label: 'Needs attention' }
 ];
 
@@ -96,7 +96,7 @@ export default function ComplianceCodeAreaSection({
   openComposerModal
 }) {
   const [requirementScope, setRequirementScope] = useState('all');
-  const [expandedRequirementIds, setExpandedRequirementIds] = useState({});
+  const codeAreaRowRef = useRef(null);
 
   const hasActiveFindingFilters = findingViewFilters.length > 0;
   const activeFindingFilterLabels = findingViewFilters
@@ -145,8 +145,8 @@ export default function ComplianceCodeAreaSection({
   const requirementCards = useMemo(() => {
     const findingMatchesRequirement = (finding, requirement) => {
       const explicitRequirementId = safeText(finding?.requirementId || finding?.requirement_id, '');
-      if (explicitRequirementId && explicitRequirementId === requirement.id) {
-        return true;
+      if (explicitRequirementId) {
+        return explicitRequirementId === requirement.id;
       }
 
       const keywords = [
@@ -244,40 +244,14 @@ export default function ComplianceCodeAreaSection({
         ? requirementCards.filter((card) => card.requiresAttention)
         : requirementCards;
 
-    return [...scopedCards].sort((left, right) => {
-      if (left.requiresAttention !== right.requiresAttention) {
-        return left.requiresAttention ? -1 : 1;
-      }
-      if (left.pendingReviewCount !== right.pendingReviewCount) {
-        return right.pendingReviewCount - left.pendingReviewCount;
-      }
-      return left.label.localeCompare(right.label);
-    });
-  }, [requirementCards, requirementScope]);
+    return scopedCards.filter((card) => card.findings.length > 0 || card.id === activeRequirementId);
+  }, [activeRequirementId, requirementCards, requirementScope]);
 
   const reviewedRequirements = requirementCards.filter((card) => card.pendingReviewCount === 0).length;
   const requirementProgressWidth =
     totalRequirements === 0 ? 100 : Math.min(100, Math.max(0, (reviewedRequirements / totalRequirements) * 100));
   const requirementProgressLabel =
     totalRequirements === 0 ? 'Complete' : `${reviewedRequirements}/${totalRequirements} reviewed`;
-
-  const toggleRequirementCard = (requirementId) => {
-    const currentlyExpanded = expandedRequirementIds[requirementId] ?? activeRequirementId === requirementId;
-    const nextExpanded = !currentlyExpanded;
-
-    setExpandedRequirementIds((prev) => ({
-      ...prev,
-      [requirementId]: nextExpanded
-    }));
-
-    setOverviewRequirementFilter((prev) => {
-      const isActive = prev.areaId === area.id && prev.requirementId === requirementId;
-      if (isActive && !nextExpanded) {
-        return { areaId: '', requirementId: '' };
-      }
-      return { areaId: area.id, requirementId };
-    });
-  };
 
   const renderFindingCard = (finding) => {
     const findingBucket = getFindingBucketId(finding);
@@ -297,8 +271,8 @@ export default function ComplianceCodeAreaSection({
         : reviewState === 'rejected'
           ? '✕'
           : reviewState === 'dismissed'
-            ? '◌'
-            : '○';
+            ? '–'
+            : '!';
     const severityLabel = findingSeverityBadgeMap[findingBucket] ?? 'Finding';
     const evidenceStrength = findingEvidenceStrengthMap[findingBucket] ?? {
       key: 'supported',
@@ -345,22 +319,24 @@ export default function ComplianceCodeAreaSection({
               <span className={`finding-severity-label severity-${findingBucket}`}>{severityLabel}</span>
               <span className="finding-title-text">{safeText(finding.title, 'Finding')}</span>
               <span className="finding-title-meta">
-                <span className={`evidence-badge ${evidenceStrength.key}`}>{evidenceStrength.label}</span>
+              <span className={`evidence-badge ${evidenceStrength.key}`}>{evidenceStrength.label}</span>
                 <span className={`source-tag ${isInspectorAdded ? 'inspector' : 'system'}`}>
                   {finding.reference ? '⚙ System' : '👤 Inspector-added'}
                 </span>
               </span>
               {reviewState === 'unreviewed' ? <span className="new-badge">New</span> : null}
               {RECURRING_FINDING_IDS.has(finding.id) ? <span className="recurring-badge">Previously flagged</span> : null}
-              <span className="finding-expand-chev">{isFindingExpanded ? '▾' : '▸'}</span>
-            </div>
-            <div className="review-status-wrap">
-              <span className={`review-status ${reviewState}`}>
-                {reviewStatusSymbol} {reviewStatusLabel}
-              </span>
+              <span className={`finding-expand-chev${isFindingExpanded ? ' is-expanded' : ''}`}>▾</span>
             </div>
           </div>
           <div className="finding-header-actions">
+            <span
+              className={`finding-review-indicator ${reviewState}`}
+              aria-label={reviewStatusLabel}
+              title={reviewStatusLabel}
+            >
+              {reviewStatusSymbol}
+            </span>
             {showInlineReset ? (
               <button
                 type="button"
@@ -418,7 +394,7 @@ export default function ComplianceCodeAreaSection({
             ) : null}
           </div>
         </div>
-        {isFindingExpanded ? (
+        <div className={`finding-card-body-wrap${isFindingExpanded ? ' is-expanded' : ''}`} aria-hidden={!isFindingExpanded}>
           <div className="finding-card-body">
             {finding.reference ? (
               <div className="finding-section">
@@ -698,7 +674,7 @@ export default function ComplianceCodeAreaSection({
               </div>
             ) : null}
           </div>
-        ) : null}
+        </div>
       </article>
     );
   };
@@ -706,23 +682,42 @@ export default function ComplianceCodeAreaSection({
   return (
     <div key={area.id}>
       <div
-        className={`code-area-row ${isExpanded ? 'expanded' : ''}${reviewRequiredCount > 0 ? ' has-pending-review' : ''}`}
-        onClick={() =>
+        ref={codeAreaRowRef}
+        className={`code-area-row ${isExpanded ? 'expanded' : ''}${reviewRequiredCount > 0 ? ' has-pending-review' : ''}${
+          reviewRequiredCount === 0 && isFullyCompliant ? ' is-complete' : ''
+        }`}
+        onClick={() => {
+          const previousTop = codeAreaRowRef.current?.getBoundingClientRect().top ?? null;
+          const nextExpanded = !isExpanded;
           setExpandedCodeAreaIds((prev) => ({
             ...prev,
-            [area.id]: !prev?.[area.id]
-          }))
-        }
+            [area.id]: nextExpanded
+          }));
+          if (!nextExpanded) {
+            const areaFindingIds = new Set(areaFindings.map((finding) => finding.id));
+            setExpandedOverviewFindingIds((prev) => {
+              const next = { ...prev };
+              areaFindingIds.forEach((findingId) => {
+                delete next[findingId];
+              });
+              return next;
+            });
+          }
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              const nextTop = codeAreaRowRef.current?.getBoundingClientRect().top ?? null;
+              if (previousTop === null || nextTop === null) return;
+              const delta = nextTop - previousTop;
+              if (Math.abs(delta) < 1) return;
+              window.scrollBy({ top: delta, behavior: 'auto' });
+            });
+          });
+        }}
       >
         <div className="code-area-chevron">▶</div>
         <div className="code-area-info">
           <div className="code-area-name">
             <span>{area.name}</span>
-            {reviewRequiredCount > 0 ? (
-              <span className="code-area-attention-badge" aria-label={`${reviewRequiredCount} items to review`}>
-                {reviewRequiredCount}
-              </span>
-            ) : null}
           </div>
           <div className="code-area-meta">
             <div className="code-area-progress" style={{ flex: 1 }}>
@@ -747,11 +742,20 @@ export default function ComplianceCodeAreaSection({
             {reviewRequiredCount > 0 ? <span className="code-area-review-pill">{reviewRequiredCount} to review</span> : null}
           </div>
         </div>
-        {isFullyCompliant ? <span className="fully-compliant">✓</span> : null}
+        <div className="code-area-status-indicator">
+          {reviewRequiredCount > 0 ? (
+            <span className="code-area-attention-badge" aria-label={`${reviewRequiredCount} items to review`}>
+              {reviewRequiredCount}
+            </span>
+          ) : null}
+          {reviewRequiredCount === 0 && isFullyCompliant ? <span className="fully-compliant">✓</span> : null}
+        </div>
       </div>
 
-      {isExpanded ? (
-        <div className="expanded-area overview-requirements-area">
+      <div
+        className={`expanded-area overview-requirements-area${isExpanded ? ' is-expanded' : ''}`}
+        aria-hidden={!isExpanded}
+      >
           <div className="overview-requirements-area__content">
             <div className="overview-requirement-toolbar">
               <div className="requirement-scope-toggle" role="tablist" aria-label="Requirement scope">
@@ -783,7 +787,7 @@ export default function ComplianceCodeAreaSection({
                     <span>{findingFilterLabelMap.all}</span>
                   </label>
                   <div className="filter-dropdown-divider" />
-                  {['unreviewed', 'leads', 'non_compliant', 'good_practice', 'inspector_added'].map((filterKey) => (
+                  {['unreviewed', 'leads', 'non_compliant', 'compliant', 'good_practice', 'inspector_added'].map((filterKey) => (
                     <label key={`overview-filter-option-${filterKey}`} className="filter-checkbox">
                       <input
                         type="checkbox"
@@ -808,77 +812,50 @@ export default function ComplianceCodeAreaSection({
               </div>
             </div>
 
-            {activeRequirementId ? (
-              <div className="filter-clear visible">
-                <button
-                  type="button"
-                  className="btn btn-xs ghost"
-                  onClick={() => setOverviewRequirementFilter({ areaId: '', requirementId: '' })}
-                >
-                  Show all requirements
-                </button>
-              </div>
-            ) : null}
-
             {visibleRequirementCards.length === 0 && unmappedFindings.length === 0 ? (
               <div className="empty-state-inline">
                 <h4>
                   {requirementScope === 'needs_attention'
-                    ? 'No requirements currently need attention'
+                    ? 'No findings currently need attention'
                     : !hasActiveFindingFilters
-                      ? 'No requirements currently mapped'
-                      : 'No requirements match the selected filter'}
+                      ? 'No findings are currently mapped in this code area'
+                      : 'No findings match the selected filter'}
                 </h4>
                 <p>
                   {requirementScope === 'needs_attention'
                     ? 'This code area is currently passing or excluded from review.'
                     : !hasActiveFindingFilters
-                      ? 'As processing evolves, this panel will populate with linked findings.'
+                      ? 'As processing evolves, this panel will populate with findings from the assessed evidence.'
                       : 'Try switching the finding filter back to All to restore the full view.'}
                 </p>
               </div>
             ) : (
               <div className="overview-requirement-list">
                 {visibleRequirementCards.map((requirement) => {
-                  const isRequirementExpanded = expandedRequirementIds[requirement.id] ?? activeRequirementId === requirement.id;
-                  const linkedFindingsLabel =
-                    requirement.findings.length === 1 ? '1 linked finding' : `${requirement.findings.length} linked findings`;
+                  const findingsLabel =
+                    requirement.findings.length === 1 ? '1 finding' : `${requirement.findings.length} findings`;
 
                   return (
                     <article
                       key={`${area.id}-${requirement.id}`}
-                      className={`overview-requirement-card ${requirement.statusMeta.tone}${
+                      className={`overview-requirement-card${
                         activeRequirementId === requirement.id ? ' active-filter' : ''
-                      }${requirement.requiresAttention ? ' needs-attention' : ''}`}
+                      }`}
                     >
-                      <button
-                        type="button"
-                        className="overview-requirement-card__header"
-                        onClick={() => toggleRequirementCard(requirement.id)}
-                        aria-expanded={isRequirementExpanded}
-                      >
+                      <div className="overview-requirement-card__header overview-requirement-card__header--static">
                         <div className="overview-requirement-card__summary">
                           <span className={`req-icon ${requirement.displayStatus}`}>
                             {getRequirementStatusIcon(requirement.displayStatus)}
                           </span>
                           <div>
+                            <span className="overview-requirement-card__eyebrow">Requirement</span>
                             <div className="overview-requirement-card__title">
                               <span>{requirement.label}</span>
-                              {requirement.pendingReviewCount > 0 ? (
-                                <span
-                                  className="overview-tab-attention-badge"
-                                  aria-label={`${requirement.pendingReviewCount} findings to review`}
-                                >
-                                  {requirement.pendingReviewCount}
-                                </span>
-                              ) : null}
                             </div>
-                            <div className="overview-requirement-card__detail">
-                              {requirement.findings.length > 0 ? linkedFindingsLabel : 'No linked findings yet'}
-                            </div>
+                            <div className="overview-requirement-card__detail">{findingsLabel}</div>
                           </div>
                         </div>
-                        <div className="overview-requirement-card__meta">
+                        <div className="overview-requirement-card__pills">
                           {requirement.pendingReviewCount > 0 ? (
                             <span className="overview-requirement-badge review">
                               {requirement.pendingReviewCount} to review
@@ -891,23 +868,19 @@ export default function ComplianceCodeAreaSection({
                           {requirement.pendingReviewCount > 0 && requirement.bucketCounts.guidance > 0 ? (
                             <span className="overview-requirement-badge guidance">{requirement.bucketCounts.guidance} requires review</span>
                           ) : null}
-                          <span className="finding-expand-chev">{isRequirementExpanded ? '▾' : '▸'}</span>
                         </div>
-                      </button>
-
-                      {isRequirementExpanded ? (
-                        <div className="overview-requirement-card__body">
-                          {requirement.findings.length === 0 ? (
-                            <div className="overview-requirement-empty">
-                              <p>No finding is currently linked to this requirement.</p>
-                            </div>
-                          ) : (
-                            <div className="overview-findings-column">
-                              {requirement.findings.map((finding) => renderFindingCard(finding))}
-                            </div>
-                          )}
-                        </div>
-                      ) : null}
+                      </div>
+                      <div className="overview-requirement-card__body overview-requirement-card__body--flat">
+                        {requirement.findings.length === 0 ? (
+                          <div className="overview-requirement-empty">
+                            <p>No finding is currently mapped to this requirement.</p>
+                          </div>
+                        ) : (
+                          <div className="overview-findings-column">
+                            {requirement.findings.map((finding) => renderFindingCard(finding))}
+                          </div>
+                        )}
+                      </div>
                     </article>
                   );
                 })}
@@ -933,7 +906,6 @@ export default function ComplianceCodeAreaSection({
             </div>
           </div>
         </div>
-      ) : null}
     </div>
   );
 }

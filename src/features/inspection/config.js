@@ -1,5 +1,3 @@
-import { normalizeUploadDraft } from '../../utils/documentUploads.js';
-
 const STAGE_TARGET_DURATION_MS = 5000;
 export const ANALYSIS_TICK_INTERVAL_MS = 1500;
 
@@ -15,19 +13,19 @@ export const ANALYSIS_PROGRESS_INCREMENT = computeProgressIncrement(
 
 export const ANALYSIS_TICK_INTERVAL = ANALYSIS_TICK_INTERVAL_MS;
 export const CASE_META = {
-  practiceName: 'Example Conveyancing Co Ltd',
-  caseId: 'CLC-12458',
-  owner: 'Alex Carter',
+  practiceName: '',
+  caseId: '',
+  owner: '',
   status: 'active',
   outcome: 'in_progress',
-  started: '12 Feb 2026',
-  riskLevel: 'Medium',
-  previousInspection: 'March 2023',
-  holp: 'Sarah Chen',
-  hofa: 'James Wright',
-  transactionType: 'purchase',
-  actingForLender: true,
-  amlTier: 'enhanced',
+  started: '',
+  riskLevel: 'Not assessed',
+  previousInspection: '',
+  holp: '',
+  hofa: '',
+  transactionType: '',
+  actingForLender: false,
+  amlTier: '',
   knownParties: []
 };
 
@@ -43,13 +41,13 @@ export const WORKFLOW_STEP_CONFIG = [
   { id: 1, title: 'Dashboard', subtitle: 'Choose or resume a case' },
   { id: 2, title: 'Case Setup', subtitle: 'Create the inspection case' },
   { id: 3, title: 'Documents', subtitle: 'Select and classify evidence' },
-  { id: 4, title: 'Review', subtitle: 'Overview and viewer' },
+  { id: 4, title: 'Findings', subtitle: 'Review findings and linked evidence' },
   { id: 5, title: 'Report', subtitle: 'Generate and export output' }
 ];
 
 export const CASE_TABS = [
   { id: 'documents', label: 'Documents', step: STEP_DOCUMENTS },
-  { id: 'overview', label: 'Overview', step: STEP_OVERVIEW },
+  { id: 'overview', label: 'Findings', step: STEP_OVERVIEW },
   { id: 'report', label: 'Report', step: STEP_REPORT }
 ];
 
@@ -58,7 +56,7 @@ export const AI_PROCESSING_STEPS = [
   'Extracting structured evidence',
   'Running compliance checks',
   'Linking findings to source passages',
-  'Building overview workspace'
+  'Building findings workspace'
 ];
 
 export const AI_PROCESSING_MESSAGES = [
@@ -66,7 +64,7 @@ export const AI_PROCESSING_MESSAGES = [
   'Extracting policy clauses, dates and parties...',
   'Running compliance checks across assessed code areas...',
   'Linking evidence highlights to findings and review items...',
-  'Preparing overview and reviewer actions...'
+  'Preparing findings and reviewer actions...'
 ];
 
 export const INITIAL_HISTORY_ITEMS = [];
@@ -76,37 +74,7 @@ export const DOCUMENT_PHASE_OPTIONS = [
   { id: 'review', label: '2. Review Classifications' }
 ];
 
-export const INITIAL_UPLOAD_ITEMS = [
-  normalizeUploadDraft({
-    id: 'up1',
-    name: 'Updated sanctions evidence.pdf',
-    status: 'queued',
-    classification: 'Unknown',
-    parties: 'Firm',
-    confidence: 'low',
-    summary:
-      'Potential mismatch between sanctions declaration timing and supporting document chronology.'
-  }),
-  normalizeUploadDraft({
-    id: 'up2',
-    name: 'AML refresher training record.pdf',
-    status: 'verified',
-    classification: 'Interview Transcript',
-    parties: 'J. Smith (MLRO)',
-    interviewees: [
-      {
-        id: 'interviewee-up2-1',
-        name: 'John Smith',
-        role: 'MLRO',
-        date: '2026-02-12',
-        contextNote: 'Present for AML supervision discussion.'
-      }
-    ],
-    confidence: 'high',
-    summary:
-      'Interview transcript indicates strong supervision controls and periodic compliance refresh activity.'
-  })
-];
+export const INITIAL_UPLOAD_ITEMS = [];
 
 export const REVIEW_REASON_OPTIONS = [
   { value: 'evidence_exists_elsewhere', label: 'Evidence exists elsewhere' },
@@ -198,25 +166,17 @@ export const CASE_AML_TIER_OPTIONS = [
 export const RISK_REGISTER_PRESET = ['aml', 'cyber'];
 
 export const REGGIE_SUGGESTIONS = [
-  'Source of funds documentation',
-  'What did the MLRO say about training?',
-  'Cross-reference bank statements',
-  'Overseas transactions'
+  'Show the most serious findings',
+  'Summarise the AML issues',
+  'What evidence supports this finding?',
+  'Draft a short case summary'
 ];
 
-export const RECURRING_FINDING_IDS = new Set(['CRIT-003', 'WARN-002']);
+export const RECURRING_FINDING_IDS = new Set();
 
-export const COMPLIANCE_CODE_AREAS = [
-  { id: 'aml', name: 'Anti-Money Laundering & CTF', met: '6/9', attention: 3, goodPractice: 1, lead: 1 },
-  { id: 'cyber', name: 'Cyber Security & Cyber Essentials', met: '0/0' },
-  { id: 'client-care', name: 'Client Care & Terms of Engagement', met: '3/6', attention: 3 },
-  { id: 'accounts', name: 'Accounts Code', met: '5/6', attention: 1 },
-  { id: 'management', name: 'Management & Supervision', met: '4/5', attention: 1 },
-  { id: 'undertakings', name: 'Undertakings', met: '4/4', goodPractice: 1, complete: true },
-  { id: 'complaints', name: 'Complaints Code', met: '2/2', complete: true }
-];
+export const COMPLIANCE_CODE_AREAS = [];
 
-export const NOT_ASSESSED_AREAS = ['Insurance Distribution', 'Acting for Lenders', 'Consumer Duty'];
+export const NOT_ASSESSED_AREAS = [];
 export const VIEWER_CODE_AREA_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'aml', label: 'AML & CTF' },

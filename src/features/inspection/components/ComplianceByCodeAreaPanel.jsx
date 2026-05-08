@@ -69,7 +69,7 @@ export default function ComplianceByCodeAreaPanel({
   return (
     <section className="panel compliance-code-area-panel">
       <div className="section-heading">
-        <h2>Compliance by Code Area</h2>
+        <h2>Findings by Code Area</h2>
         <button type="button" className="btn btn-xs secondary" onClick={() => openComposerModal('observation')}>
           + Add observation
         </button>

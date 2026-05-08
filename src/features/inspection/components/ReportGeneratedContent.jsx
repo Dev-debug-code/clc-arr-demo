@@ -25,8 +25,8 @@ export default function ReportGeneratedContent({
   reportAttentionFindings,
   buildEvidencePassages,
   handleJumpToEvidencePassage,
-  reportActionDefaults,
-  reportActionItems,
+  reportActionBaselineItems = [],
+  reportActionItems = [],
   setReportActionItems,
   upsertReportActionItem,
   deleteReportActionItem,
@@ -69,6 +69,15 @@ export default function ReportGeneratedContent({
     }
     return groups;
   }, []);
+  const isSameReportActionItem = (left, right) =>
+    String(left?.id || '').trim() === String(right?.id || '').trim()
+    && String(left?.action || '').trim() === String(right?.action || '').trim()
+    && String(left?.codeRef || '').trim() === String(right?.codeRef || '').trim()
+    && String(left?.codeArea || '').trim() === String(right?.codeArea || '').trim()
+    && String(left?.deadline || '').trim() === String(right?.deadline || '').trim()
+    && String(left?.person || '').trim() === String(right?.person || '').trim();
+  const reportActionPlanDirty = reportActionItems.length !== reportActionBaselineItems.length
+    || reportActionItems.some((item, index) => !isSameReportActionItem(item, reportActionBaselineItems[index]));
 
   return (
     <>
@@ -141,7 +150,12 @@ export default function ReportGeneratedContent({
           <div className={`report-section report-section-block ${editedReportSections.interviews ? 'edited' : ''}`}>
             <div className={`report-section-heading ${editedReportSections.interviews ? 'edited' : ''}`}>
               <h3>2. Interviews Conducted</h3>
-              <button type="button" className="btn-revert" onClick={() => handleRevertReportSection('interviews')}>
+              <button
+                type="button"
+                className="btn-revert"
+                onClick={() => handleRevertReportSection('interviews')}
+                disabled={!editedReportSections.interviews}
+              >
                 ↻ Revert section
               </button>
             </div>
@@ -164,7 +178,12 @@ export default function ReportGeneratedContent({
           <div className={`report-section report-section-block ${editedReportSections.summary ? 'edited' : ''}`}>
             <div className={`report-section-heading ${editedReportSections.summary ? 'edited' : ''}`}>
               <h3>3. Compliance Summary</h3>
-              <button type="button" className="btn-revert" onClick={() => handleRevertReportSection('summary')}>
+              <button
+                type="button"
+                className="btn-revert"
+                onClick={() => handleRevertReportSection('summary')}
+                disabled={!editedReportSections.summary}
+              >
                 ↻ Revert section
               </button>
             </div>
@@ -187,6 +206,7 @@ export default function ReportGeneratedContent({
                 type="button"
                 className="btn-revert"
                 onClick={() => handleRevertReportSection('goodPractice')}
+                disabled={!editedReportSections.goodPractice}
               >
                 ↻ Revert section
               </button>
@@ -239,7 +259,12 @@ export default function ReportGeneratedContent({
           <div className={`report-section report-section-block ${editedReportSections.attention ? 'edited' : ''}`}>
             <div className={`report-section-heading ${editedReportSections.attention ? 'edited' : ''}`}>
               <h3>5. Areas Requiring Attention</h3>
-              <button type="button" className="btn-revert" onClick={() => handleRevertReportSection('attention')}>
+              <button
+                type="button"
+                className="btn-revert"
+                onClick={() => handleRevertReportSection('attention')}
+                disabled={!editedReportSections.attention}
+              >
                 ↻ Revert section
               </button>
             </div>
@@ -328,10 +353,11 @@ export default function ReportGeneratedContent({
             <button
               type="button"
               className="btn-revert"
+              disabled={!reportActionPlanDirty}
               onClick={() => {
-                const nextIds = new Set(reportActionDefaults.map((entry) => entry.id));
+                const nextIds = new Set(reportActionBaselineItems.map((entry) => entry.id));
                 const removedIds = reportActionItems.map((entry) => entry.id).filter((entryId) => !nextIds.has(entryId));
-                const nextItems = reportActionDefaults.map((entry) => ({ ...entry }));
+                const nextItems = reportActionBaselineItems.map((entry) => ({ ...entry }));
                 setReportActionItems(nextItems);
                 nextItems.forEach((entry) => {
                   void upsertReportActionItem(entry, entry.id);
@@ -345,6 +371,7 @@ export default function ReportGeneratedContent({
             </button>
           </div>
           <div id="section6-content">
+            <div className="action-plan-table-wrap">
             <table className="action-plan-table" id="actionPlanTable">
               <thead>
                 <tr>
@@ -420,6 +447,7 @@ export default function ReportGeneratedContent({
                 ))}
               </tbody>
             </table>
+            </div>
             <div className="add-action-row">
               <button
                 type="button"
@@ -454,6 +482,7 @@ export default function ReportGeneratedContent({
               Full finding details with evidence references are available in the digital case file. This appendix
               provides a summary of all {reportAppendixRows.length} findings generated during this inspection.
             </p>
+            <div className="action-plan-table-wrap">
             <table className="action-plan-table report-appendix-table">
               <thead>
                 <tr>
@@ -474,6 +503,7 @@ export default function ReportGeneratedContent({
                 ))}
               </tbody>
             </table>
+            </div>
             <p className="report-appendix-link" contentEditable suppressContentEditableWarning>
               <a className="evidence-ref" href="#">
                 See digital case file for complete evidence chain.

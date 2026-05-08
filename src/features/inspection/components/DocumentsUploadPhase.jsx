@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const SOURCE_CLASSIFICATION_ENTRIES = [
   { groupLabel: 'Policy Document', optionLabel: 'AML Policy' },
@@ -126,19 +127,62 @@ export default function DocumentsUploadPhase({
   void verifiedUploadCount;
   void incompleteInterviewUploadCount;
   void processingEntries;
+  void currentCaseMeta;
+  void toIsoDate;
+  void formatShortDisplayDate;
+  void renderConfidenceDots;
 
   const [classificationGroupByUploadId, setClassificationGroupByUploadId] = useState({});
+  const [classificationMenuLayout, setClassificationMenuLayout] = useState(null);
+
+  const closeClassificationMenu = () => {
+    setActiveClassificationMenu(null);
+    setClassificationMenuLayout(null);
+  };
+
+  const buildClassificationMenuLayout = (triggerNode, preferUpward = false) => {
+    if (!(triggerNode instanceof HTMLElement) || typeof window === 'undefined') return null;
+
+    const rect = triggerNode.getBoundingClientRect();
+    const viewportPadding = 12;
+    const menuWidth = Math.min(420, Math.max(280, window.innerWidth - viewportPadding * 2));
+    const left = Math.min(
+      Math.max(viewportPadding, rect.left),
+      Math.max(viewportPadding, window.innerWidth - menuWidth - viewportPadding)
+    );
+    const availableBelow = Math.max(0, window.innerHeight - rect.bottom - viewportPadding);
+    const availableAbove = Math.max(0, rect.top - viewportPadding);
+    const openUpward = preferUpward || (availableBelow < 260 && availableAbove > availableBelow);
+
+    if (openUpward) {
+      return {
+        left,
+        width: menuWidth,
+        maxHeight: Math.max(180, availableAbove - 8),
+        openUpward: true,
+        bottom: Math.max(viewportPadding, window.innerHeight - rect.top + 8)
+      };
+    }
+
+    return {
+      left,
+      width: menuWidth,
+      maxHeight: Math.max(180, availableBelow - 8),
+      openUpward: false,
+      top: Math.min(window.innerHeight - viewportPadding, rect.bottom + 8)
+    };
+  };
 
   useEffect(() => {
     const handlePointerDown = (event) => {
-      if (!event.target.closest('.classification-cell')) {
-        setActiveClassificationMenu(null);
+      if (!event.target.closest('.classification-cell') && !event.target.closest('.classification-menu--portal')) {
+        closeClassificationMenu();
       }
     };
 
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
-        setActiveClassificationMenu(null);
+        closeClassificationMenu();
       }
     };
 
@@ -149,6 +193,21 @@ export default function DocumentsUploadPhase({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [setActiveClassificationMenu]);
+
+  useEffect(() => {
+    if (!activeClassificationMenu) return undefined;
+
+    const handleViewportChange = () => {
+      closeClassificationMenu();
+    };
+
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+    return () => {
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
+    };
+  }, [activeClassificationMenu]);
 
   const sourceEntryLookup = useMemo(
     () => new Map(SOURCE_CLASSIFICATION_ENTRIES.map((entry) => [entry.optionLabel, entry.groupLabel])),
@@ -200,20 +259,26 @@ export default function DocumentsUploadPhase({
           <p>Go back to document intake to add files and run AI classification first.</p>
         </div>
       ) : (
-        <table className="table docs-wire-table docs-wire-table--phase-one">
-          <thead>
-            <tr>
-              <th style={{ width: '104px' }}>Confirm</th>
-              <th>Classification</th>
-              <th>Name</th>
-              <th>Reason</th>
-              <th>Justification</th>
-              <th style={{ width: '100px' }}>Confidence</th>
-              <th style={{ width: '80px' }}>Added</th>
-            </tr>
-          </thead>
-          <tbody>
-            {uploadItems.flatMap((item, index) => {
+        <div className="docs-wire-table-wrap">
+          <table className="table docs-wire-table docs-wire-table--phase-one">
+            <colgroup>
+              <col style={{ width: '104px' }} />
+              <col style={{ width: '31%' }} />
+              <col style={{ width: '19%' }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '20%' }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th style={{ width: '104px' }}>Confirm</th>
+                <th>Classification</th>
+                <th>Name</th>
+                <th>Reason</th>
+                <th>Justification</th>
+              </tr>
+            </thead>
+            <tbody>
+              {uploadItems.flatMap((item, index) => {
               const normalizedItem = prepareUploadDraft(item);
               const classification = formatUploadClassificationLabel(normalizedItem);
               const isClassifying = normalizedItem.status === 'queued';
@@ -261,6 +326,7 @@ export default function DocumentsUploadPhase({
                 classificationGroups[0] ||
                 null;
               const isClassificationMenuOpen = activeClassificationMenu === item.id;
+              const shouldOpenMenuUpward = isInterviewTranscript || index >= Math.max(uploadItems.length - 3, 0);
               const showClassificationDetailInput =
                 normalizedItem.classificationL2 === documentClassificationOtherOption;
 
@@ -308,22 +374,30 @@ export default function DocumentsUploadPhase({
                         Classifying...
                       </span>
                     ) : (
-                      <div className="classification-cell">
+                      <div
+                        className={`classification-cell${isInterviewTranscript ? ' classification-cell--transcript' : ''}${
+                          isClassificationMenuOpen ? ' classification-cell--menu-open' : ''
+                        }`}
+                      >
                         <button
                           type="button"
                           className={`classification-trigger${isUnknown || isLowConfidence ? ' is-warning' : ''}`}
                           onClick={(event) => {
                             event.stopPropagation();
-                            setActiveClassificationMenu((prev) => {
-                              const nextValue = prev === item.id ? null : item.id;
-                              if (nextValue) {
-                                setClassificationGroupByUploadId((prevGroups) => ({
-                                  ...prevGroups,
-                                  [item.id]: fallbackGroupLabel
-                                }));
-                              }
-                              return nextValue;
-                            });
+                            const nextValue = activeClassificationMenu === item.id ? null : item.id;
+                            if (nextValue) {
+                              setClassificationGroupByUploadId((prevGroups) => ({
+                                ...prevGroups,
+                                [item.id]: fallbackGroupLabel
+                              }));
+                              setClassificationMenuLayout(
+                                buildClassificationMenuLayout(event.currentTarget, shouldOpenMenuUpward)
+                              );
+                              setActiveClassificationMenu(nextValue);
+                              return;
+                            }
+
+                            closeClassificationMenu();
                           }}
                           aria-expanded={isClassificationMenuOpen}
                         >
@@ -333,53 +407,69 @@ export default function DocumentsUploadPhase({
                           </span>
                         </button>
 
-                        {isClassificationMenuOpen && activeGroup ? (
-                          <div className="classification-menu" onClick={(event) => event.stopPropagation()}>
-                            <p className="classification-menu__hint">
-                              Choose the closest category first, then the specific subcategory.
-                            </p>
-                            <label className="classification-menu__field">
-                              <span className="classification-menu__heading">Category</span>
-                              <select
-                                className="classification-menu__select"
-                                value={activeGroup.label}
-                                onChange={(event) =>
-                                  setClassificationGroupByUploadId((prev) => ({
-                                    ...prev,
-                                    [item.id]: event.target.value
-                                  }))
-                                }
-                              >
-                                {classificationGroups.map((group) => (
-                                  <option key={`${item.id}-${group.id}`} value={group.label}>
-                                    {group.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            <label className="classification-menu__field">
-                              <span className="classification-menu__heading">Subcategory</span>
-                              <select
-                                className="classification-menu__select"
-                                value={normalizedItem.classificationL1 === activeGroup.label ? normalizedItem.classificationL2 ?? '' : ''}
-                                onChange={(event) => {
-                                  if (!event.target.value) return;
-                                  handleUploadClassificationSelect(item.id, activeGroup.label, event.target.value);
+                        {isClassificationMenuOpen && activeGroup && typeof document !== 'undefined'
+                          ? createPortal(
+                              <div
+                                className={`classification-menu classification-menu--portal${
+                                  classificationMenuLayout?.openUpward ? ' classification-menu--upward' : ''
+                                }`}
+                                style={{
+                                  left: `${classificationMenuLayout?.left ?? 12}px`,
+                                  width: `${classificationMenuLayout?.width ?? 420}px`,
+                                  maxHeight: `${classificationMenuLayout?.maxHeight ?? 280}px`,
+                                  ...(classificationMenuLayout?.openUpward
+                                    ? { bottom: `${classificationMenuLayout?.bottom ?? 12}px` }
+                                    : { top: `${classificationMenuLayout?.top ?? 12}px` })
                                 }}
+                                onClick={(event) => event.stopPropagation()}
                               >
-                                <option value="">Select subcategory</option>
-                                {activeGroup.options.map((optionLabel) => (
-                                  <option
-                                    key={`${item.id}-${activeGroup.label}-${optionLabel}`}
-                                    value={optionLabel}
+                                <p className="classification-menu__hint">
+                                  Choose the closest category first, then the specific subcategory.
+                                </p>
+                                <label className="classification-menu__field">
+                                  <span className="classification-menu__heading">Category</span>
+                                  <select
+                                    className="classification-menu__select"
+                                    value={activeGroup.label}
+                                    onChange={(event) =>
+                                      setClassificationGroupByUploadId((prev) => ({
+                                        ...prev,
+                                        [item.id]: event.target.value
+                                      }))
+                                    }
                                   >
-                                    {optionLabel}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                          </div>
-                        ) : null}
+                                    {classificationGroups.map((group) => (
+                                      <option key={`${item.id}-${group.id}`} value={group.label}>
+                                        {group.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <label className="classification-menu__field">
+                                  <span className="classification-menu__heading">Subcategory</span>
+                                  <select
+                                    className="classification-menu__select"
+                                    value={normalizedItem.classificationL1 === activeGroup.label ? normalizedItem.classificationL2 ?? '' : ''}
+                                    onChange={(event) => {
+                                      if (!event.target.value) return;
+                                      handleUploadClassificationSelect(item.id, activeGroup.label, event.target.value);
+                                    }}
+                                  >
+                                    <option value="">Select subcategory</option>
+                                    {activeGroup.options.map((optionLabel) => (
+                                      <option
+                                        key={`${item.id}-${activeGroup.label}-${optionLabel}`}
+                                        value={optionLabel}
+                                      >
+                                        {optionLabel}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                              </div>,
+                              document.body
+                            )
+                          : null}
 
                         {showClassificationDetailInput ? (
                           <input
@@ -393,81 +483,6 @@ export default function DocumentsUploadPhase({
                           />
                         ) : null}
 
-                        {isInterviewTranscript ? (
-                          <div className="interviewee-group">
-                            {interviewees.map((interviewee, intervieweeIndex) => (
-                              <div key={interviewee.id} className="interviewee-row">
-                                <input
-                                  type="text"
-                                  className="form-control form-control-sm"
-                                  value={interviewee.name}
-                                  onChange={(event) =>
-                                    handleUpdateUploadInterviewee(item.id, interviewee.id, 'name', event.target.value)
-                                  }
-                                  placeholder="Name *"
-                                  required
-                                  style={{ flex: 1 }}
-                                />
-                                <input
-                                  type="text"
-                                  className="form-control form-control-sm"
-                                  value={interviewee.role}
-                                  onChange={(event) =>
-                                    handleUpdateUploadInterviewee(item.id, interviewee.id, 'role', event.target.value)
-                                  }
-                                  placeholder="Role *"
-                                  required
-                                  style={{ width: '120px' }}
-                                />
-                                <input
-                                  type="date"
-                                  className="form-control form-control-sm"
-                                  value={toDateInputValue(interviewee.date)}
-                                  onChange={(event) =>
-                                    handleUpdateUploadInterviewee(item.id, interviewee.id, 'date', event.target.value)
-                                  }
-                                  style={{ width: '140px' }}
-                                />
-                                <input
-                                  type="text"
-                                  className="form-control form-control-sm"
-                                  value={interviewee.contextNote}
-                                  onChange={(event) =>
-                                    handleUpdateUploadInterviewee(
-                                      item.id,
-                                      interviewee.id,
-                                      'contextNote',
-                                      event.target.value
-                                    )
-                                  }
-                                  placeholder="Context note..."
-                                  style={{ flex: 1 }}
-                                />
-                                {intervieweeIndex > 0 ? (
-                                  <button
-                                    type="button"
-                                    className="btn btn-ghost btn-sm"
-                                    onClick={() => handleRemoveUploadInterviewee(item.id, interviewee.id)}
-                                    title="Remove"
-                                    style={{ fontSize: '1rem', padding: '2px 6px' }}
-                                  >
-                                    ×
-                                  </button>
-                                ) : null}
-                              </div>
-                            ))}
-                            <a
-                              href="#"
-                              onClick={(event) => {
-                                event.preventDefault();
-                                handleAddUploadInterviewee(item.id);
-                              }}
-                            >
-                              + Add interviewee
-                            </a>
-                          </div>
-                        ) : null}
-
                         {isLimitedAnalysis ? (
                           <span className="tooltip-wrap classification-tooltip">
                             <button type="button" className="classification-info-button" aria-label="Classification help">
@@ -477,6 +492,92 @@ export default function DocumentsUploadPhase({
                               Limited analysis. Classify more specifically for full processing.
                             </span>
                           </span>
+                        ) : null}
+
+                        {isInterviewTranscript ? (
+                          <div className="interviewee-inline-card">
+                            <div className="interviewee-inline-card__head">
+                              <strong>Interview details</strong>
+                              <span>Needed for transcript findings</span>
+                            </div>
+                            <div className="interviewee-inline-group">
+                              {interviewees.map((interviewee, intervieweeIndex) => (
+                                <div key={interviewee.id} className="interviewee-inline-row">
+                                  <label className="interviewee-inline-field">
+                                    <span className="interviewee-inline-field__label">Interviewee</span>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      value={interviewee.name}
+                                      onChange={(event) =>
+                                        handleUpdateUploadInterviewee(item.id, interviewee.id, 'name', event.target.value)
+                                      }
+                                      placeholder="Jane Smith"
+                                      required
+                                    />
+                                  </label>
+                                  <label className="interviewee-inline-field">
+                                    <span className="interviewee-inline-field__label">Topic / role</span>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      value={interviewee.role}
+                                      onChange={(event) =>
+                                        handleUpdateUploadInterviewee(item.id, interviewee.id, 'role', event.target.value)
+                                      }
+                                      placeholder="MLRO / Compliance Officer"
+                                      required
+                                    />
+                                  </label>
+                                  <label className="interviewee-inline-field">
+                                    <span className="interviewee-inline-field__label">Date</span>
+                                    <input
+                                      type="date"
+                                      className="form-control form-control-sm"
+                                      value={toDateInputValue(interviewee.date)}
+                                      onChange={(event) =>
+                                        handleUpdateUploadInterviewee(item.id, interviewee.id, 'date', event.target.value)
+                                      }
+                                    />
+                                  </label>
+                                  <label className="interviewee-inline-field">
+                                    <span className="interviewee-inline-field__label">Context</span>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      value={interviewee.contextNote}
+                                      onChange={(event) =>
+                                        handleUpdateUploadInterviewee(
+                                          item.id,
+                                          interviewee.id,
+                                          'contextNote',
+                                          event.target.value
+                                        )
+                                      }
+                                      placeholder="Optional context"
+                                    />
+                                  </label>
+                                  {intervieweeIndex > 0 ? (
+                                    <button
+                                      type="button"
+                                      className="interviewee-inline-remove-btn"
+                                      onClick={() => handleRemoveUploadInterviewee(item.id, interviewee.id)}
+                                      title="Remove interviewee"
+                                    >
+                                      ×
+                                    </button>
+                                  ) : null}
+                                </div>
+                              ))}
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm interviewee-inline-add-btn"
+                                onClick={() => handleAddUploadInterviewee(item.id)}
+                              >
+                                + Add interviewee
+                              </button>
+                            </div>
+                          </div>
                         ) : null}
                       </div>
                     )}
@@ -503,7 +604,7 @@ export default function DocumentsUploadPhase({
                       </span>
                     ) : (
                       <div className="docs-reason-cell">
-                        {classificationReason || 'AI classification reason will appear here after processing.'}
+                        {classificationReason || '—'}
                       </div>
                     )}
                   </td>
@@ -522,21 +623,14 @@ export default function DocumentsUploadPhase({
                       />
                     )}
                   </td>
-                  <td>
-                    {isClassifying || isUnknown ? (
-                      <span className="dash-muted">—</span>
-                    ) : (
-                      renderConfidenceDots(confidenceState)
-                    )}
-                  </td>
-                  <td>{formatShortDisplayDate(item.addedOn ?? currentCaseMeta.started ?? toIsoDate(new Date()))}</td>
                 </tr>
               ];
 
-              return rows;
-            })}
-          </tbody>
-        </table>
+                return rows;
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <div className="warning-messages">
