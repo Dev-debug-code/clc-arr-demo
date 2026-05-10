@@ -3,8 +3,10 @@ export default function OverviewStage({
   onGoToDocuments,
   onGoToReport,
   onClearFindingFilters,
+  onResetFindingFilters,
   reportBlockedMessage,
   overviewSummaryCards,
+  hasDefaultFindingViewFilters,
   complianceContent,
   allRequirementsMet,
   allRequirementsMetDetail,
@@ -13,6 +15,7 @@ export default function OverviewStage({
   onDismissHighRejectionPrompt
 }) {
   const hasActiveFindingFilter = overviewSummaryCards.some((item) => item.active);
+  const showFindingFilterControls = hasActiveFindingFilter || !hasDefaultFindingViewFilters;
 
   return (
     <div className="stage-card">
@@ -70,10 +73,17 @@ export default function OverviewStage({
               </button>
             ))}
           </div>
-          {hasActiveFindingFilter ? (
-            <button type="button" className="btn btn-xs ghost overview-filter-clear-btn" onClick={onClearFindingFilters}>
-              Show all findings
-            </button>
+          {showFindingFilterControls ? (
+            <div className="overview-filter-actions">
+              <button type="button" className="btn btn-xs secondary overview-filter-clear-btn" onClick={onClearFindingFilters}>
+                Show all findings
+              </button>
+              {!hasDefaultFindingViewFilters ? (
+                <button type="button" className="btn btn-xs secondary overview-filter-reset-btn" onClick={onResetFindingFilters}>
+                  Reset to default
+                </button>
+              ) : null}
+            </div>
           ) : null}
           {complianceContent}
           <div className="bottom-actions">

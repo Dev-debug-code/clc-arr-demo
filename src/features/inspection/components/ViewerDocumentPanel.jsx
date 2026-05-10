@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import PdfOverlayViewer from '../../../components/PdfOverlayViewer.jsx';
 
-function JsonDocumentPreview({ documentUrl, selectedEvidence, focusSignal }) {
+function JsonDocumentPreview({ documentUrl, documentName, documentMeta, selectedEvidence, focusSignal }) {
   const [content, setContent] = useState('');
   const [parsedContent, setParsedContent] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const activeTranscriptEntryRef = useRef(null);
+  const transcriptListRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,10 +78,72 @@ function JsonDocumentPreview({ documentUrl, selectedEvidence, focusSignal }) {
   }, [selectedTimestamp, transcriptEntries]);
 
   useEffect(() => {
-    if (activeTranscriptIndex >= 0 && activeTranscriptEntryRef.current) {
-      activeTranscriptEntryRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    const transcriptListNode = transcriptListRef.current;
+    const activeEntryNode = activeTranscriptEntryRef.current;
+    if (activeTranscriptIndex >= 0 && transcriptListNode && activeEntryNode) {
+      const listRect = transcriptListNode.getBoundingClientRect();
+      const activeRect = activeEntryNode.getBoundingClientRect();
+      const nextScrollTop = Math.max(
+        0,
+        transcriptListNode.scrollTop + (activeRect.top - listRect.top) - 12
+      );
+      transcriptListNode.scrollTo({ top: nextScrollTop, behavior: 'smooth' });
     }
   }, [activeTranscriptIndex, focusSignal]);
+
+  const metadataRows = useMemo(() => {
+    const extractedFields = documentMeta?.extractedFields ?? documentMeta?.extracted_fields ?? {};
+    const transcriptFields = parsedContent?.extracted_fields ?? parsedContent?.extractedFields ?? {};
+    const transcriptMetadata = parsedContent?.metadata ?? {};
+    const rows = [
+      {
+        label: 'Filename',
+        key: 'filename',
+        value: documentName
+      },
+      {
+        label: 'Interviewee',
+        key: 'interviewee',
+        value:
+          extractedFields.interviewee
+          || transcriptFields.interviewee
+          || transcriptMetadata.interviewee
+          || documentMeta?.intervieweeName
+          || '—'
+      },
+      {
+        label: 'Interviewer',
+        key: 'interviewer',
+        value:
+          extractedFields.interviewer
+          || transcriptFields.interviewer
+          || transcriptMetadata.interviewer
+          || '—'
+      },
+      {
+        label: 'Interview date',
+        key: 'interview-date',
+        value:
+          extractedFields.interview_date
+          || transcriptFields.interview_date
+          || transcriptMetadata.interview_date
+          || transcriptMetadata.date
+          || documentMeta?.interviewDate
+          || '—'
+      },
+      {
+        label: 'Role',
+        key: 'role',
+        value:
+          extractedFields.interviewee_role
+          || transcriptFields.interviewee_role
+          || transcriptMetadata.interviewee_role
+          || documentMeta?.intervieweeRole
+          || '—'
+      }
+    ];
+    return rows.filter((row) => String(row.value || '').trim() !== '');
+  }, [documentMeta, documentName, parsedContent]);
 
   return (
     <div className="json-doc-viewer">
@@ -88,11 +151,21 @@ function JsonDocumentPreview({ documentUrl, selectedEvidence, focusSignal }) {
         <strong>JSON transcript preview</strong>
         <span>This document is stored as JSON rather than PDF.</span>
       </div>
+      {metadataRows.length > 0 ? (
+        <div className="json-doc-viewer__meta-grid">
+          {metadataRows.map((row) => (
+            <div key={row.label} className={`json-doc-viewer__meta-card json-doc-viewer__meta-card--${row.key}`}>
+              <span>{row.label}</span>
+              <strong>{row.value}</strong>
+            </div>
+          ))}
+        </div>
+      ) : null}
       {selectedEvidence ? (
-        <div className="json-doc-viewer__evidence">
+        <div className="json-doc-viewer__selected">
           <div className="json-doc-viewer__evidence-label">Selected evidence</div>
           <strong>{selectedEvidence.title || selectedEvidence.category || 'Transcript evidence'}</strong>
-          <p>{selectedEvidence.details || selectedEvidence.category || 'Relevant transcript section selected.'}</p>
+          <span>{selectedEvidence.category || 'Relevant transcript section selected.'}</span>
         </div>
       ) : null}
       {loading ? <div className="json-doc-viewer__state">Loading transcript...</div> : null}
@@ -103,7 +176,7 @@ function JsonDocumentPreview({ documentUrl, selectedEvidence, focusSignal }) {
             Transcript
             {selectedTimestamp ? <span>Highlighted evidence at {selectedTimestamp}</span> : null}
           </div>
-          <div className="json-doc-viewer__transcript-list">
+          <div className="json-doc-viewer__transcript-list" ref={transcriptListRef}>
             {transcriptEntries.map((entry, index) => {
               const isActive = index === activeTranscriptIndex;
               return (
@@ -123,7 +196,12 @@ function JsonDocumentPreview({ documentUrl, selectedEvidence, focusSignal }) {
           </div>
         </div>
       ) : null}
-      {!loading && !error ? <pre className="json-doc-viewer__content">{content}</pre> : null}
+      {!loading && !error && content ? (
+        <details className="json-doc-viewer__raw">
+          <summary>Raw JSON payload</summary>
+          <pre className="json-doc-viewer__content">{content}</pre>
+        </details>
+      ) : null}
     </div>
   );
 }
@@ -214,6 +292,8 @@ export default function ViewerDocumentPanel({
           {isJsonDocument ? (
             <JsonDocumentPreview
               documentUrl={documentUrl}
+              documentName={activeDocument?.filename ?? activeDocument?.name ?? ''}
+              documentMeta={activeDocument}
               selectedEvidence={selectedJsonEvidence}
               focusSignal={docFocusSignal}
             />

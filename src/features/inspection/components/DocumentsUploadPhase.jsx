@@ -134,6 +134,7 @@ export default function DocumentsUploadPhase({
 
   const [classificationGroupByUploadId, setClassificationGroupByUploadId] = useState({});
   const [classificationMenuLayout, setClassificationMenuLayout] = useState(null);
+  const [showGenerateFindingsWarning, setShowGenerateFindingsWarning] = useState(false);
 
   const closeClassificationMenu = () => {
     setActiveClassificationMenu(null);
@@ -214,15 +215,6 @@ export default function DocumentsUploadPhase({
     []
   );
 
-  const classificationCorrectionCount = uploadItems.filter((item) => {
-    const normalizedItem = prepareUploadDraft(item);
-    const confidenceState = resolveConfidenceState(normalizedItem.confidence);
-    return (
-      !isUploadClassificationResolved(normalizedItem) ||
-      confidenceState === 'attention' ||
-      isUploadLimitedAnalysis(normalizedItem)
-    );
-  }).length;
   const generateFindingsBlockedReason =
     unclassifiedUploadCount > 0
       ? `Classify all ${unclassifiedUploadCount} remaining document${unclassifiedUploadCount === 1 ? '' : 's'} first.`
@@ -231,6 +223,21 @@ export default function DocumentsUploadPhase({
         : unverifiedUploadCount > 0
           ? `Confirm all ${unverifiedUploadCount} document${unverifiedUploadCount === 1 ? '' : 's'} before generating findings.`
           : '';
+
+  useEffect(() => {
+    if (!generateFindingsBlockedReason) {
+      setShowGenerateFindingsWarning(false);
+    }
+  }, [generateFindingsBlockedReason]);
+
+  const handleAttemptGenerateFindings = () => {
+    if (generateFindingsBlockedReason) {
+      setShowGenerateFindingsWarning(true);
+      return;
+    }
+    setShowGenerateFindingsWarning(false);
+    handleGenerateFindings();
+  };
 
   return (
     <div className="docs-wireframe-phase">
@@ -262,19 +269,19 @@ export default function DocumentsUploadPhase({
         <div className="docs-wire-table-wrap">
           <table className="table docs-wire-table docs-wire-table--phase-one">
             <colgroup>
-              <col style={{ width: '104px' }} />
-              <col style={{ width: '31%' }} />
               <col style={{ width: '19%' }} />
-              <col style={{ width: '20%' }} />
-              <col style={{ width: '20%' }} />
+              <col style={{ width: '35%' }} />
+              <col style={{ width: '18%' }} />
+              <col style={{ width: '18%' }} />
+              <col style={{ width: '108px' }} />
             </colgroup>
             <thead>
               <tr>
-                <th style={{ width: '104px' }}>Confirm</th>
-                <th>Classification</th>
                 <th>Name</th>
+                <th>Classification</th>
                 <th>Reason</th>
                 <th>Justification</th>
+                <th style={{ width: '108px' }}>Confirm</th>
               </tr>
             </thead>
             <tbody>
@@ -336,35 +343,18 @@ export default function DocumentsUploadPhase({
                   className={rowClassName}
                   ref={index === uploadItems.length - 1 ? uploadTableLastRowRef : null}
                 >
-                  <td className="docs-confirm-cell">
-                    {isClassifying ? (
-                      <span className="doc-status-icon classifying" title="Classifying...">
-                        —
-                      </span>
-                    ) : (
-                      <label
-                        className={`doc-confirm-toggle ${isVerified ? 'is-checked' : ''} ${
-                          !isReadyForConfirmation ? 'is-disabled' : ''
-                        }`}
-                        title={
-                          isUnknown
-                            ? 'Select classification first'
-                            : hasIncompleteUploadInterviewees(normalizedItem)
-                              ? 'Complete interviewee details first'
-                              : isVerified
-                                ? 'Untick to remove this document from findings generation'
-                                : 'Tick to use this document for findings generation'
-                        }
+                  <td className="docs-name-cell" style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
+                    {linkedDocumentId ? (
+                      <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => handleViewDocument(linkedDocumentId, null, null, stepDocuments)}
+                        title="Open document viewer"
                       >
-                        <input
-                          type="checkbox"
-                          checked={isVerified}
-                          disabled={!isReadyForConfirmation}
-                          onChange={() => handleToggleUploadConfirmed(item.id)}
-                          aria-label={`Use ${item.name} for findings generation`}
-                        />
-                        <span className="doc-confirm-toggle__control" aria-hidden="true" />
-                      </label>
+                        {item.name}
+                      </button>
+                    ) : (
+                      item.name
                     )}
                   </td>
                   <td>
@@ -504,10 +494,10 @@ export default function DocumentsUploadPhase({
                               {interviewees.map((interviewee, intervieweeIndex) => (
                                 <div key={interviewee.id} className="interviewee-inline-row">
                                   <label className="interviewee-inline-field">
-                                    <span className="interviewee-inline-field__label">Interviewee</span>
+                                    <span className="interviewee-inline-field__label">Interviewee name</span>
                                     <input
                                       type="text"
-                                      className="form-control form-control-sm"
+                                      className="form-control form-control-sm interviewee-inline-input"
                                       value={interviewee.name}
                                       onChange={(event) =>
                                         handleUpdateUploadInterviewee(item.id, interviewee.id, 'name', event.target.value)
@@ -520,7 +510,7 @@ export default function DocumentsUploadPhase({
                                     <span className="interviewee-inline-field__label">Topic / role</span>
                                     <input
                                       type="text"
-                                      className="form-control form-control-sm"
+                                      className="form-control form-control-sm interviewee-inline-input"
                                       value={interviewee.role}
                                       onChange={(event) =>
                                         handleUpdateUploadInterviewee(item.id, interviewee.id, 'role', event.target.value)
@@ -530,10 +520,10 @@ export default function DocumentsUploadPhase({
                                     />
                                   </label>
                                   <label className="interviewee-inline-field">
-                                    <span className="interviewee-inline-field__label">Date</span>
+                                    <span className="interviewee-inline-field__label">Interview date</span>
                                     <input
                                       type="date"
-                                      className="form-control form-control-sm"
+                                      className="form-control form-control-sm interviewee-inline-input"
                                       value={toDateInputValue(interviewee.date)}
                                       onChange={(event) =>
                                         handleUpdateUploadInterviewee(item.id, interviewee.id, 'date', event.target.value)
@@ -544,7 +534,7 @@ export default function DocumentsUploadPhase({
                                     <span className="interviewee-inline-field__label">Context</span>
                                     <input
                                       type="text"
-                                      className="form-control form-control-sm"
+                                      className="form-control form-control-sm interviewee-inline-input"
                                       value={interviewee.contextNote}
                                       onChange={(event) =>
                                         handleUpdateUploadInterviewee(
@@ -582,20 +572,6 @@ export default function DocumentsUploadPhase({
                       </div>
                     )}
                   </td>
-                  <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {linkedDocumentId ? (
-                      <button
-                        type="button"
-                        className="link-button"
-                        onClick={() => handleViewDocument(linkedDocumentId, null, null, stepDocuments)}
-                        title="Open document viewer"
-                      >
-                        {item.name}
-                      </button>
-                    ) : (
-                      item.name
-                    )}
-                  </td>
                   <td>
                     {isClassifying ? (
                       <span className="classifying-text">
@@ -614,13 +590,44 @@ export default function DocumentsUploadPhase({
                     ) : (
                       <input
                         type="text"
-                        className="form-control form-control-sm"
+                        className="form-control form-control-sm classification-justification-input"
                         value={classificationJustification}
                         placeholder="Optional reviewer note..."
                         onChange={(event) =>
                           handleUploadFieldChange(item.id, 'classificationJustification', event.target.value)
                         }
                       />
+                    )}
+                  </td>
+                  <td className="docs-confirm-cell">
+                    {isClassifying ? (
+                      <span className="doc-status-icon classifying" title="Classifying...">
+                        —
+                      </span>
+                    ) : (
+                      <label
+                        className={`doc-confirm-toggle ${isVerified ? 'is-checked' : ''} ${
+                          !isReadyForConfirmation ? 'is-disabled' : ''
+                        }`}
+                        title={
+                          isUnknown
+                            ? 'Select classification first'
+                            : hasIncompleteUploadInterviewees(normalizedItem)
+                              ? 'Complete interviewee details first'
+                              : isVerified
+                                ? 'Untick to remove this document from findings generation'
+                                : 'Tick to use this document for findings generation'
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isVerified}
+                          disabled={!isReadyForConfirmation}
+                          onChange={() => handleToggleUploadConfirmed(item.id)}
+                          aria-label={`Use ${item.name} for findings generation`}
+                        />
+                        <span className="doc-confirm-toggle__control" aria-hidden="true" />
+                      </label>
                     )}
                   </td>
                 </tr>
@@ -637,12 +644,6 @@ export default function DocumentsUploadPhase({
         <div className="warning-line muted">
           Tick each confirm box after the classification looks right. Only confirmed rows are used for findings generation.
         </div>
-        {classificationCorrectionCount > 0 ? (
-          <div className="warning-line amber">
-            ⚠ {classificationCorrectionCount} document{classificationCorrectionCount === 1 ? '' : 's'} need
-            classification attention before findings generation
-          </div>
-        ) : null}
         <div className="warning-line muted">
           ○ {unverifiedUploadCount} document{unverifiedUploadCount === 1 ? '' : 's'} not yet confirmed
         </div>
@@ -670,14 +671,14 @@ export default function DocumentsUploadPhase({
         <button
           type="button"
           className="btn btn-primary btn-lg"
-          disabled={!allUploadsVerified}
-          onClick={handleGenerateFindings}
+          disabled={uploadItems.length === 0}
+          onClick={handleAttemptGenerateFindings}
           title={generateFindingsBlockedReason || 'Generate findings from the confirmed documents.'}
         >
           Generate findings
         </button>
       </div>
-      {generateFindingsBlockedReason ? (
+      {showGenerateFindingsWarning && generateFindingsBlockedReason ? (
         <p className="empty-state-helper docs-action-helper">{generateFindingsBlockedReason}</p>
       ) : null}
     </div>

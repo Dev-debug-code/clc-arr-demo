@@ -6,6 +6,7 @@ export default function ComplianceByCodeAreaPanel({
   openComposerModal,
   complianceCodeAreas,
   requirementsByCodeArea,
+  requirementsById,
   availableFindings,
   findingMatchesCodeArea,
   getFindingBucketId,
@@ -120,6 +121,7 @@ export default function ComplianceByCodeAreaPanel({
               key={area.id}
               area={area}
               requirementsByCodeArea={requirementsByCodeArea}
+              requirementsById={requirementsById}
               availableFindings={availableFindings}
               filteredFindings={filteredFindings}
               findingMatchesCodeArea={findingMatchesCodeArea}

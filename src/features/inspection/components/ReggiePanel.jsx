@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
+
 export default function ReggiePanel({
   isOpen,
   onClose,
@@ -15,12 +17,41 @@ export default function ReggiePanel({
   setReggieInput,
   onSend
 }) {
-  if (!isOpen) return null;
+  const [isMounted, setIsMounted] = useState(isOpen);
+  const [isVisible, setIsVisible] = useState(isOpen);
+  const messagesRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsMounted(true);
+      const timer = setTimeout(() => setIsVisible(true), 28);
+      return () => clearTimeout(timer);
+    }
+
+    setIsVisible(false);
+    const timer = setTimeout(() => setIsMounted(false), 220);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isVisible || !messagesRef.current) return;
+    messagesRef.current.scrollTo({
+      top: messagesRef.current.scrollHeight,
+      behavior: 'smooth'
+    });
+  }, [isVisible, reggieMessages.length]);
+
+  if (!isMounted) return null;
 
   return (
     <>
-      <div className="reggie-backdrop" onClick={onClose} aria-hidden="true" />
-      <aside className="reggie-panel" role="dialog" aria-modal="true" aria-label="Reggie assistant">
+      <div className={`reggie-backdrop ${isVisible ? 'is-open' : ''}`} onClick={onClose} aria-hidden="true" />
+      <aside
+        className={`reggie-panel ${isVisible ? 'is-open' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Reggie assistant"
+      >
         <header className="reggie-panel__header">
           <div>
             <div className="reggie-panel__eyebrow">Assistant</div>
@@ -31,7 +62,7 @@ export default function ReggiePanel({
             Close
           </button>
         </header>
-        <div className="reggie-panel__messages">
+        <div className="reggie-panel__messages" ref={messagesRef}>
           {reggieMessages.length === 0 ? (
             <div className="reggie-welcome">
               <div className="reggie-welcome__icon" aria-hidden="true">
@@ -76,7 +107,7 @@ export default function ReggiePanel({
                 <div className="reggie-source-card__actions">
                   <button
                     type="button"
-                    className="btn btn-xs ghost"
+                    className="btn btn-xs secondary reggie-jump-btn"
                     onClick={() => onJumpToEvidence(finding)}
                   >
                     Jump to evidence

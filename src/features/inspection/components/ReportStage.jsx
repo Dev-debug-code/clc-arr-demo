@@ -49,7 +49,7 @@ export default function ReportStage({
   return (
     <div className="stage-card report-stage">
       <div className="report-stage__toolbar">
-        <button type="button" className="btn btn-secondary btn-sm" onClick={onBackToFindings}>
+        <button type="button" className="btn btn-secondary btn-sm report-stage__back-btn" onClick={onBackToFindings}>
           ← Back to Findings
         </button>
       </div>

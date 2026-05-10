@@ -96,17 +96,13 @@ export default function DocumentsIntakePhase({
                     <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{item.name}</td>
                     <td>{stageLabel}</td>
                     <td>
-                      {item.status === 'queued' ? (
-                        <button
-                          type="button"
-                          className="btn btn-xs ghost docs-remove-btn"
-                          onClick={() => handleRemoveUploadItem(item.id)}
-                        >
-                          Remove
-                        </button>
-                      ) : (
-                        <span className="docs-locked-label">Locked</span>
-                      )}
+                      <button
+                        type="button"
+                        className="btn btn-xs ghost docs-remove-btn"
+                        onClick={() => handleRemoveUploadItem(item.id)}
+                      >
+                        Remove
+                      </button>
                     </td>
                   </tr>
                 );

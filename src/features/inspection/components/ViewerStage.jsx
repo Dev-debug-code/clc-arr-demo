@@ -48,6 +48,7 @@ export default function ViewerStage({
   filteredInDocumentResults,
   filteredCrossDocResults,
   documentsById,
+  requirementsByCodeArea,
   formatSourceDocumentRef,
   handleViewDocument,
   getFindingPreferredBoxIdForDocument,
@@ -194,6 +195,7 @@ export default function ViewerStage({
           activeSeverityLabels={activeSeverityLabels}
           hiddenForActiveDocument={hiddenForActiveDocument}
           documentsById={documentsById}
+          requirementsByCodeArea={requirementsByCodeArea}
           getFindingBucketId={getFindingBucketId}
           activeFindingId={activeFindingId}
           setActiveFindingId={setActiveFindingId}

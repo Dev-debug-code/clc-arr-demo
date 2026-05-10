@@ -213,6 +213,7 @@ function matchesDashboardDateFilter(item, activeFilter) {
 
 const PROCESSING_MODE_CLASSIFICATION = 'classification';
 const PROCESSING_MODE_FINDINGS = 'findings';
+const DEFAULT_FINDING_VIEW_FILTERS = ['non_compliant', 'leads'];
 
 const CLASSIFICATION_PROCESSING_STEPS = [
   'Reading uploaded documents',
@@ -281,7 +282,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [overviewFilterOpen, setOverviewFilterOpen] = useState(false);
   const [viewerTypeFilterOpen, setViewerTypeFilterOpen] = useState(false);
   const [viewerCodeAreaFilterOpen, setViewerCodeAreaFilterOpen] = useState(false);
-  const [findingViewFilters, setFindingViewFilters] = useState([]);
+  const [findingViewFilters, setFindingViewFilters] = useState(DEFAULT_FINDING_VIEW_FILTERS);
   const [viewerCodeAreaFilter, setViewerCodeAreaFilter] = useState('all');
   const [activeDocId, setActiveDocId] = useState('');
   const [activeDocBoxId, setActiveDocBoxId] = useState(null);
@@ -592,6 +593,9 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
               ? snapshot.caseMetaPatch.actingForLender
               : prev.actingForLender,
           amlTier: snapshot.caseMetaPatch.amlTier ?? prev.amlTier,
+          focusAreas: Array.isArray(snapshot.caseMetaPatch.focusAreas)
+            ? snapshot.caseMetaPatch.focusAreas
+            : prev.focusAreas,
           knownParties: Array.isArray(snapshot.caseMetaPatch.knownParties)
             ? snapshot.caseMetaPatch.knownParties
             : prev.knownParties
@@ -812,7 +816,9 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   useEffect(() => {
     if (appMode !== 'inspection') return;
     if (currentStep === STEP_OVERVIEW) {
-      setFindingViewFilters([]);
+      setFindingViewFilters((prev) =>
+        prev.length === 0 ? DEFAULT_FINDING_VIEW_FILTERS : prev
+      );
       setViewerCodeAreaFilter('all');
       setFilterSeverity([]);
       setSeverityFilterOpen(false);
@@ -1398,7 +1404,22 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       return documentBoxes;
     }
 
-    const findingBoxes = documentBoxes.filter((box) => relevantBoxIds.has(coerceText(box?.id)));
+    const relatedPrefixes = new Set(
+      [...relevantBoxIds]
+        .map((boxId) => coerceText(boxId).replace(/-p\d+$/u, ''))
+        .filter(Boolean)
+    );
+    const preferredBoxPrefix = coerceText(activeFindingForDocument?.boxId).replace(/-p\d+$/u, '');
+    const findingIdPrefix = coerceText(activeFindingForDocument?.id).replace(/-p\d+$/u, '');
+    if (preferredBoxPrefix) relatedPrefixes.add(preferredBoxPrefix);
+    if (findingIdPrefix) relatedPrefixes.add(findingIdPrefix);
+
+    const findingBoxes = documentBoxes.filter((box) => {
+      const boxId = coerceText(box?.id);
+      if (!boxId) return false;
+      if (relevantBoxIds.has(boxId)) return true;
+      return [...relatedPrefixes].some((prefix) => boxId === prefix || boxId.startsWith(`${prefix}-p`));
+    });
     const selectedBoxes = findingBoxes.length > 0 ? findingBoxes : documentBoxes;
 
     return selectedBoxes.map((box) => {
@@ -1507,6 +1528,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
   const clearFindingViewFilters = useCallback(() => {
     setFindingViewFilters([]);
+  }, []);
+
+  const resetFindingViewFiltersToDefault = useCallback(() => {
+    setFindingViewFilters(DEFAULT_FINDING_VIEW_FILTERS);
   }, []);
 
   const setSingleFindingViewFilter = useCallback((filterKey) => {
@@ -1747,18 +1772,41 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         .filter(Boolean),
     [formatCodeAreaLabel, requirementsByCodeArea]
   );
-  const persistedNotAssessedAreas = useMemo(
-    () =>
-      Object.entries(requirementsByCodeArea)
-        .flatMap(([codeAreaId, rows]) =>
-          (Array.isArray(rows) ? rows : [])
-            .filter((entry) => String(entry?.status || '').trim().toLowerCase() === 'not_assessed')
-            .map((entry) => `${formatCodeAreaLabel(codeAreaId)}: ${safeText(entry.label, entry.id)}`)
-        )
-        .filter(Boolean),
-    [formatCodeAreaLabel, requirementsByCodeArea, safeText]
-  );
+  const persistedNotAssessedAreas = useMemo(() => {
+    const selectedFocusAreas = new Set(
+      (Array.isArray(currentCaseMeta.focusAreas) ? currentCaseMeta.focusAreas : [])
+        .map((entry) => normalizeCodeAreaId(entry))
+        .filter(Boolean)
+    );
+
+    if (selectedFocusAreas.size > 0) {
+      return FOCUS_AREA_OPTIONS
+        .filter((area) => !selectedFocusAreas.has(area.id))
+        .map((area) => area.label);
+    }
+
+    return Object.entries(requirementsByCodeArea)
+      .flatMap(([codeAreaId, rows]) =>
+        (Array.isArray(rows) ? rows : [])
+          .filter((entry) => String(entry?.status || '').trim().toLowerCase() === 'not_assessed')
+          .map((entry) => `${formatCodeAreaLabel(codeAreaId)}: ${safeText(entry.label, entry.id)}`)
+      )
+      .filter(Boolean);
+  }, [currentCaseMeta.focusAreas, formatCodeAreaLabel, normalizeCodeAreaId, requirementsByCodeArea, safeText]);
   const effectiveNotAssessedAreas = isActiveCasePersisted ? persistedNotAssessedAreas : notAssessedAreas;
+  const requirementsById = useMemo(() => {
+    const lookup = new Map();
+    Object.entries(requirementsByCodeArea).forEach(([codeAreaId, rows]) => {
+      (Array.isArray(rows) ? rows : []).forEach((entry) => {
+        if (!entry?.id) return;
+        lookup.set(entry.id, {
+          ...entry,
+          codeAreaId: entry.codeAreaId || codeAreaId
+        });
+      });
+    });
+    return lookup;
+  }, [requirementsByCodeArea]);
   const reportStale = hasGeneratedReport && reportNeedsRegeneration && !isDemoSeedCase;
   const overviewSummaryCards = useMemo(() => {
     const compliantCount = availableFindings.filter((finding) => getFindingBucketId(finding) === 'pass').length;
@@ -1829,6 +1877,12 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     resolvedFindingDecisions,
     setSingleFindingViewFilter
   ]);
+  const hasDefaultFindingViewFilters = useMemo(() => {
+    if (findingViewFilters.length !== DEFAULT_FINDING_VIEW_FILTERS.length) return false;
+    const current = [...findingViewFilters].sort();
+    const baseline = [...DEFAULT_FINDING_VIEW_FILTERS].sort();
+    return current.every((entry, index) => entry === baseline[index]);
+  }, [findingViewFilters]);
   const activeSeverityLabels = filterSeverity.map((key) => SEVERITY_LABEL_MAP[key] ?? key);
 
   const complianceCodeAreas = useMemo(() => {
@@ -2736,7 +2790,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setDocLevelNoteOpen(false);
     setFeedbackOpen(false);
     setContextNoteOpen(false);
-    setFindingViewFilters([]);
+    setFindingViewFilters(DEFAULT_FINDING_VIEW_FILTERS);
     setViewerCodeAreaFilter('all');
     setFilterSeverity([]);
     setSeverityFilterOpen(false);
@@ -2795,7 +2849,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setDocLevelNoteOpen(false);
     setFeedbackOpen(false);
     setContextNoteOpen(false);
-    setFindingViewFilters([]);
+    setFindingViewFilters(DEFAULT_FINDING_VIEW_FILTERS);
     setViewerCodeAreaFilter('all');
     setFilterSeverity([]);
     setSeverityFilterOpen(false);
@@ -3123,18 +3177,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     if (nextDecision === 'accepted' || nextDecision === null) {
       clearAcceptedCollapseTimer();
       handleFindingDecision(findingId, nextDecision);
-      if (nextDecision === 'accepted') {
-        acceptedOverviewCollapseTimersRef.current[findingId] = window.setTimeout(() => {
-          setExpandedOverviewFindingIds((prev) => {
-            if (!prev?.[findingId]) return prev;
-            return {
-              ...prev,
-              [findingId]: false
-            };
-          });
-          delete acceptedOverviewCollapseTimersRef.current[findingId];
-        }, 900);
-      }
       return;
     }
     if (nextDecision === 'rejected') {
@@ -5566,6 +5608,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       openComposerModal={openComposerModal}
       complianceCodeAreas={complianceCodeAreas}
       requirementsByCodeArea={requirementsByCodeArea}
+      requirementsById={requirementsById}
       availableFindings={availableFindings}
       findingMatchesCodeArea={findingMatchesCodeArea}
       getFindingBucketId={getFindingBucketId}
@@ -5675,6 +5718,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       filteredInDocumentResults={filteredInDocumentResults}
       filteredCrossDocResults={filteredCrossDocResults}
       documentsById={documentsById}
+      requirementsByCodeArea={requirementsByCodeArea}
       formatSourceDocumentRef={formatSourceDocumentRef}
       handleViewDocument={handleViewDocument}
       getFindingPreferredBoxIdForDocument={getFindingPreferredBoxIdForDocument}
@@ -5833,7 +5877,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     const openFindings = allFindings.filter((finding) => !resolvedFindingDecisions[finding.id]).length;
     const dataSourceLabel = isActiveCasePersisted ? 'Firestore' : 'Draft';
     const caseTabCounts = {
-      overview: pendingReviewCount,
+      overview: availableFindings.length,
       documents: Math.max(caseDocuments.length, uploadItems.length)
     };
     return (
@@ -5869,8 +5913,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       }}
       onGoToReport={handleAttemptOverviewReport}
       onClearFindingFilters={clearFindingViewFilters}
+      onResetFindingFilters={resetFindingViewFiltersToDefault}
       reportBlockedMessage={reportAccessNotice}
       overviewSummaryCards={overviewSummaryCards}
+      hasDefaultFindingViewFilters={hasDefaultFindingViewFilters}
       allRequirementsMet={allRequirementsMet}
       allRequirementsMetDetail={allRequirementsMetDetail}
       showHighRejectionPrompt={showHighRejectionPrompt}
@@ -6025,7 +6071,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const shellNavigationItems = useMemo(() => {
     if (appMode === 'inspection') {
       const caseTabCounts = {
-        overview: pendingReviewCount,
+        overview: availableFindings.length,
         documents: Math.max(caseDocuments.length, uploadItems.length)
       };
 
@@ -6080,12 +6126,12 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     ];
   }, [
     appMode,
+    availableFindings.length,
     caseDocuments.length,
     handleCaseTabNavigate,
     handleGoHome,
     handleOpenNewCase,
     maxStepUnlocked,
-    pendingReviewCount,
     reportStale,
     uploadItems.length
   ]);
