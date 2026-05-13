@@ -1,0 +1,34 @@
+{
+  "isGoodPractice": false,
+  "id": "COMP-COC-001",
+  "reviewStatus": "unreviewed",
+  "evidencePassages": [
+    {
+      "document_id": "12_Client_Care_Letter",
+      "page": 1,
+      "id": "COMP-COC-001-p1",
+      "section": "Fees and Disbursements",
+      "text": "Fees and Disbursements",
+      "box_id": "COMP-COC-001",
+      "file": "12_Client_Care_Letter.pdf"
+    }
+  ],
+  "detail": "The client care letter sets out the terms of instruction and gives an itemised written estimate of legal fees, VAT, disbursements, and the estimated total.",
+  "codeArea": "client-care",
+  "reference": "Code of Conduct, Specific Requirement 3.r",
+  "evidence_strength": "strong",
+  "documentId": "12_Client_Care_Letter",
+  "source": {
+    "page": 1,
+    "file": "12_Client_Care_Letter.pdf",
+    "section": "Fees and Disbursements",
+    "text": "Fees and Disbursements"
+  },
+  "boxId": "COMP-COC-001",
+  "requirementId": "cc-1",
+  "polarity": "compliant",
+  "title": "Client Care Letter Gives Written Fee Estimate",
+  "severity": "best_practice",
+  "certainty": "finding",
+  "is_good_practice": false
+}

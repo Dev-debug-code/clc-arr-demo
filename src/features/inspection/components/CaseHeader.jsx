@@ -13,22 +13,31 @@ export default function CaseHeader({
   caseTabCounts,
   reportStale
 }) {
-  if (currentStep < 1) return null;
-
   return (
     <section className="case-header">
-      <div className="case-header__top">
-        <div>
-          <h2 className="case-header__title">{currentCaseMeta.practiceName}</h2>
-          <p className="case-header__meta">
-            <code>{currentCaseMeta.caseId}</code> • Risk: {renderRiskDots(currentCaseMeta.riskLevel)} {currentCaseMeta.riskLevel} • Previous:{' '}
-            {currentCaseMeta.previousInspection}
-          </p>
-          <p className="case-header__meta">
-            HoLP: {currentCaseMeta.holp} • HoFA: {currentCaseMeta.hofa} • Inspector: {currentCaseMeta.owner}
-          </p>
+      {currentCaseMeta?.caseId ? (
+        <div className="case-header__top">
+          <div>
+            <h2 className="case-header__title">{currentCaseMeta.practiceName}</h2>
+            <p className="case-header__meta">
+              <code>{currentCaseMeta.caseId}</code> • Risk: {renderRiskDots(currentCaseMeta.riskLevel)} {currentCaseMeta.riskLevel} • Previous:{' '}
+              {currentCaseMeta.previousInspection}
+            </p>
+            <p className="case-header__meta">
+              HoLP: {currentCaseMeta.holp} • HoFA: {currentCaseMeta.hofa} • Inspector: {currentCaseMeta.owner}
+            </p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="case-header__top">
+          <div>
+            <h2 className="case-header__title">New Inspection Case</h2>
+            <p className="case-header__meta">
+              Complete the setup form below to create a new inspection case. Select a practice, configure risk and scope, then click Create Case when ready.
+            </p>
+          </div>
+        </div>
+      )}
       {pendingReprocessSummary && !reprocessBannerDismissed ? (
         <div className="reprocess-indicator">
           <span>
@@ -42,22 +51,18 @@ export default function CaseHeader({
       <div className="case-header__tabs" role="tablist" aria-label="Case views">
         {CASE_TABS.filter((tab) => tab.step <= maxStepUnlocked).map((tab) => {
           const isActive = activeCaseTabId === tab.id;
-          const isUnlocked = tab.step <= maxStepUnlocked;
           return (
             <div
               key={tab.id}
               role="tab"
               className={`case-tab${isActive ? ' active' : ''}`}
               aria-selected={isActive}
-              aria-disabled={!isUnlocked}
-              tabIndex={isUnlocked ? 0 : -1}
+              aria-disabled={false}
+              tabIndex={0}
               onClick={() => {
-                if (isUnlocked) {
-                  handleCaseTabNavigate(tab.step);
-                }
+                handleCaseTabNavigate(tab.step);
               }}
               onKeyDown={(event) => {
-                if (!isUnlocked) return;
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
                   handleCaseTabNavigate(tab.step);

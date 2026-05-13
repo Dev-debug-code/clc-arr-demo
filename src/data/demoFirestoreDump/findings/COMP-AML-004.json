@@ -1,0 +1,34 @@
+{
+  "isGoodPractice": false,
+  "id": "COMP-AML-004",
+  "reviewStatus": "unreviewed",
+  "evidencePassages": [
+    {
+      "document_id": "09_Sanctions_Screening",
+      "page": 1,
+      "id": "COMP-AML-004-p1",
+      "section": "Lists Screened",
+      "text": "OFSI UK Consolidated List",
+      "box_id": "COMP-AML-004",
+      "file": "09_Sanctions_Screening.pdf"
+    }
+  ],
+  "detail": "The sanctions screening report records the parties screened, the sanctions sources checked, and the result for each source. This supports the CLC guidance expectation that electronic verification processes show what checks were carried out and what the results were.",
+  "codeArea": "aml",
+  "reference": "Anti-Money Laundering Guidance, Checking identity by electronic means",
+  "evidence_strength": "strong",
+  "documentId": "09_Sanctions_Screening",
+  "source": {
+    "page": 1,
+    "file": "09_Sanctions_Screening.pdf",
+    "section": "Lists Screened",
+    "text": "OFSI UK Consolidated List"
+  },
+  "boxId": "COMP-AML-004",
+  "requirementId": "aml-10",
+  "polarity": "compliant",
+  "title": "Electronic Screening Record Shows Checks and Results",
+  "severity": "best_practice",
+  "certainty": "finding",
+  "is_good_practice": false
+}

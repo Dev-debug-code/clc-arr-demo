@@ -1,0 +1,28 @@
+{
+  "id": "15_Lender_Disclosure_Note",
+  "name": "15_Lender_Disclosure_Note.pdf",
+  "filename": "15_Lender_Disclosure_Note.pdf",
+  "summary": "Internal lender disclosure note recording the purchase price, lender, and source-of-funds breakdown without closing outstanding evidence enquiries.",
+  "documentType": "Lender Disclosure File Note",
+  "classification": "Legal Correspondence",
+  "classification_confidence": 0.90,
+  "confidence": "high",
+  "models_agree": true,
+  "confirmed": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "severity": "info",
+  "parties": "Client; lender",
+  "parties_found": ["Joe Bloggs", "Example Building Society"],
+  "features_found": ["lender_disclosure_note", "purchase_price_check", "sof_breakdown"],
+  "extracted_fields": {
+    "borrower": "Joe Bloggs",
+    "lender": "Example Building Society",
+    "purchase_price": "875000",
+    "price_discrepancy_identified": "no",
+    "lender_approval_recorded": "no",
+    "note_date": "17/10/2024"
+  },
+  "overlayBoxes": []
+}

@@ -43,6 +43,7 @@ export default function ComplianceCodeAreaSection({
   handleDeleteFinding,
   handleJumpToRequirement,
   handleViewDocument,
+  handleShowGuidance,
   openLeadConfirmModal,
   inlineRejectFindingId,
   inlineRejectReason,
@@ -100,7 +101,7 @@ export default function ComplianceCodeAreaSection({
   const countParts = [];
 
   if (attentionCount > 0) {
-    countParts.push({ key: 'attention', label: `${attentionCount} attention`, cls: 'count-attention' });
+    countParts.push({ key: 'non_compliant', label: `${attentionCount} non-compliant`, cls: 'count-non-compliant' });
   }
   if (goodPracticeCount > 0) {
     countParts.push({ key: 'good-practice', label: `${goodPracticeCount} good practice`, cls: 'count-gp' });
@@ -327,22 +328,36 @@ export default function ComplianceCodeAreaSection({
                         {passage.page ? ` — page ${passage.page}` : ''}
                       </div>
                       {passage.documentId ? (
-                        <span className="tooltip-wrap">
-                          <button
-                            type="button"
-                            className="jump-link-btn"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleViewDocument(passage.documentId, passage.boxId || finding.boxId, finding.id, STEP_OVERVIEW);
-                            }}
-                          >
-                            <span className="jump-link">Jump to evidence</span>
-                          </button>
-                          <span className="tooltip-text">Opens Document Viewer</span>
-                        </span>
+                        <div className="evidence-actions">
+                          <span className="tooltip-wrap">
+                            <button
+                              type="button"
+                              className="jump-link-btn"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleViewDocument(passage.documentId, passage.boxId || finding.boxId, finding.id, STEP_OVERVIEW);
+                              }}
+                            >
+                              <span className="jump-link">Jump to evidence</span>
+                            </button>
+                            <span className="tooltip-text">Opens Document Viewer</span>
+                          </span>
+                          <span className="tooltip-wrap">
+                            <button
+                              type="button"
+                              className="jump-link-btn jump-link-btn--secondary"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleShowGuidance(finding);
+                              }}
+                            >
+                              <span className="jump-link">Show guidance text</span>
+                            </button>
+                            <span className="tooltip-text">Opens linked guidance or requirement context in the workspace</span>
+                          </span>
+                        </div>
                       ) : null}
                     </div>
-                    {passage.excerpt ? <div className="excerpt">&quot;{passage.excerpt}&quot;</div> : null}
                     {!passage.documentId ? (
                       <div className="finding-extra-meta">
                         <span className="source-tag">Case-level evidence</span>
@@ -406,6 +421,18 @@ export default function ComplianceCodeAreaSection({
                   >
                     {reviewState === 'rejected' ? '✕ Rejected' : '✕ Reject'}
                   </button>
+                  {reviewState !== 'unreviewed' ? (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary overview-action-btn"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleRequestFindingDecision(finding.id, 'unreviewed');
+                      }}
+                    >
+                      Revert
+                    </button>
+                  ) : null}
                 </>
               )}
             </div>
@@ -700,8 +727,8 @@ export default function ComplianceCodeAreaSection({
               </div>
             )}
 
-            <div style={{ marginTop: 'var(--spacing-md)', textAlign: 'center' }}>
-              <button type="button" className="btn btn-sm btn-secondary" onClick={() => openComposerModal('manual')}>
+            <div className="manual-finding-hover-area" style={{ marginTop: 'var(--spacing-md)', textAlign: 'center' }}>
+              <button type="button" className="btn btn-sm btn-secondary manual-finding-btn" onClick={() => openComposerModal('manual')}>
                 + Add manual finding
               </button>
             </div>

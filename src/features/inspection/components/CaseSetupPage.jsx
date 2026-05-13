@@ -1,22 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import {
   CASE_ACTING_FOR_LENDER_OPTIONS,
   CASE_AML_TIER_OPTIONS,
   CASE_TRANSACTION_TYPE_OPTIONS,
   FOCUS_AREA_OPTIONS
 } from '../config.js';
-import { formatShortDisplayDate, toDateInputValue } from '../helpers.js';
+import { DEMO_PRACTICE_PROFILES } from '../../../data/demoPracticeProfiles.js';
 
 export default function CaseSetupPage({
-  onBackToDashboard,
   caseCreateError,
   caseSetupPracticeName,
   setCaseSetupPracticeName,
-  caseSetupLicenceNumber,
-  setCaseSetupLicenceNumber,
-  isCaseSetupPracticeLookupLoading,
-  caseSetupPracticeLookupError,
-  caseSetupPracticeLookup,
   setCaseSetupHolp,
   setCaseSetupHofa,
   setCaseSetupPreviousInspection,
@@ -38,55 +32,26 @@ export default function CaseSetupPage({
   handleSelectAllFocusAreas,
   handleDeselectAllFocusAreas,
   handleApplyAmlPreset,
-  caseSetupParties,
-  handleUpdatePartyRow,
-  handleRemovePartyRow,
-  handleAddPartyRow,
+  handleApplyPracticePreset,
   caseSetupFileInputRef,
   setCaseSetupQuestionnaireFile,
   setCaseSetupQuestionnaireFileBlob,
   caseSetupQuestionnaireFile,
   isCreatingCase,
-  handleCreateCase
+  handleCreateCase,
+  isCaseCreated
 }) {
-  const [showLookupLoading, setShowLookupLoading] = useState(false);
-  const matchedPractice = caseSetupPracticeLookup;
-  const matchedInspectionDate = matchedPractice?.last_inspection?.date || null;
-  const matchedInspectionDateLabel = matchedInspectionDate
-    ? formatShortDisplayDate(matchedInspectionDate)
-    : null;
+  const selectedProfile = useMemo(
+    () => DEMO_PRACTICE_PROFILES.find((p) => p.practiceName === caseSetupPracticeName) || null,
+    [caseSetupPracticeName]
+  );
+
   const isCreateEnabled =
     caseSetupPracticeName.trim().length > 0 &&
-    caseSetupLicenceNumber.trim().length > 0 &&
     selectedFocusAreaIds.size > 0;
-
-  useEffect(() => {
-    if (!isCaseSetupPracticeLookupLoading) {
-      setShowLookupLoading(false);
-      return undefined;
-    }
-
-    const timer = setTimeout(() => {
-      setShowLookupLoading(true);
-    }, 250);
-
-    return () => clearTimeout(timer);
-  }, [isCaseSetupPracticeLookupLoading]);
 
   return (
     <div className="case-setup-shell">
-      <div className="case-setup-back">
-        <button
-          type="button"
-          className="case-setup-back-button"
-          onClick={(event) => {
-            onBackToDashboard();
-          }}
-        >
-          <span aria-hidden="true">←</span>
-          <span>Back to Dashboard</span>
-        </button>
-      </div>
       {caseCreateError ? <div className="alert alert-warning small">{caseCreateError}</div> : null}
       <h1>New Inspection Case</h1>
 
@@ -94,65 +59,31 @@ export default function CaseSetupPage({
         <h3>Practice Details</h3>
         <div className="case-setup-grid">
           <label>
-            Practice name <span className="required">*</span>
-            <input
-              type="text"
+            <span>Practice name <span className="required">*</span></span>
+            <select
+              className="case-setup-practice-select"
               value={caseSetupPracticeName}
-              onChange={(event) => setCaseSetupPracticeName(event.target.value)}
-              placeholder="Full registered practice name"
-            />
-          </label>
-          <label>
-            CLC licence number <span className="required">*</span>
-            <input
-              type="text"
-              value={caseSetupLicenceNumber}
-              onChange={(event) => setCaseSetupLicenceNumber(event.target.value)}
-              placeholder="CLC-XXXXX"
-            />
-          </label>
-        </div>
-        {showLookupLoading ? (
-          <div className="case-setup-match">
-            <strong>Checking previous inspection history...</strong>
-          </div>
-        ) : null}
-        {caseSetupPracticeLookupError ? (
-          <p className="case-setup-error">{caseSetupPracticeLookupError}</p>
-        ) : null}
-        {matchedPractice ? (
-          <div className="case-setup-match">
-            <strong>
-              ✓ Previous inspection found{matchedInspectionDateLabel ? `: ${matchedInspectionDateLabel}` : ''}
-            </strong>
-            <p>{matchedPractice.name || 'Matched practice'}. History will be linked automatically.</p>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => {
-                const matchedLicenceNumber = String(matchedPractice.licence_number || '').trim();
-                if (matchedLicenceNumber) {
-                  setCaseSetupLicenceNumber(matchedLicenceNumber);
-                }
-                if (matchedPractice.name) {
-                  setCaseSetupPracticeName(matchedPractice.name);
-                }
-                if (matchedPractice.holp) {
-                  setCaseSetupHolp(matchedPractice.holp);
-                }
-                if (matchedPractice.hofa) {
-                  setCaseSetupHofa(matchedPractice.hofa);
-                }
-                const previousInspectionDate = toDateInputValue(matchedPractice?.last_inspection?.date);
-                if (previousInspectionDate) {
-                  setCaseSetupPreviousInspection(previousInspectionDate);
+              onChange={(event) => {
+                const selectedName = event.target.value;
+                setCaseSetupPracticeName(selectedName);
+                const profile = DEMO_PRACTICE_PROFILES.find((p) => p.practiceName === selectedName);
+                if (profile) {
+                  setCaseSetupHolp(profile.holp || '');
+                  setCaseSetupHofa(profile.hofa || '');
+                  setCaseSetupPreviousInspection(profile.previousInspection || '');
+                  handleApplyPracticePreset(profile);
                 }
               }}
             >
-              Auto-fill practice details
-            </button>
-          </div>
-        ) : null}
+              <option value="">Select a practice...</option>
+              {DEMO_PRACTICE_PROFILES.map((profile) => (
+                <option key={profile.id} value={profile.practiceName}>
+                  {profile.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <div className="case-setup-grid">
           <label>
             Head of Legal Practice (HoLP)
@@ -300,53 +231,6 @@ export default function CaseSetupPage({
         </label>
 
         <div>
-          <h4 style={{ margin: '0 0 6px' }}>
-            Known parties <span className="panel-subtitle">Optional</span>
-          </h4>
-          <p className="panel-subtitle" style={{ marginBottom: '8px' }}>
-            If the CLC provided a party list, enter them here to improve document matching.
-          </p>
-          <div className="party-rows">
-            {caseSetupParties.map((party) => (
-              <div key={party.id} className="party-row">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Party name"
-                  value={party.name}
-                  onChange={(event) => handleUpdatePartyRow(party.id, 'name', event.target.value)}
-                />
-                <select
-                  className="form-control"
-                  value={party.role}
-                  onChange={(event) => handleUpdatePartyRow(party.id, 'role', event.target.value)}
-                >
-                  <option value="">Role...</option>
-                  <option value="buyer">Buyer</option>
-                  <option value="seller">Seller</option>
-                  <option value="giftor">Giftor</option>
-                  <option value="lender">Lender</option>
-                  <option value="guarantor">Guarantor</option>
-                  <option value="other">Other</option>
-                </select>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm party-remove-btn"
-                  onClick={() => handleRemovePartyRow(party.id)}
-                  title="Remove"
-                  aria-label="Remove party row"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-          <button type="button" className="btn btn-tertiary btn-sm" onClick={handleAddPartyRow}>
-            + Add party
-          </button>
-        </div>
-
-        <div>
           <h4 style={{ margin: '0 0 6px' }}>Attach pre-inspection questionnaire</h4>
           <div
             className="upload-area-placeholder clickable"
@@ -421,23 +305,13 @@ export default function CaseSetupPage({
       </section>
 
       <div className="action-bar">
-        <a
-          href="#"
-          className="btn btn-ghost"
-          onClick={(event) => {
-            event.preventDefault();
-            onBackToDashboard();
-          }}
-        >
-          Cancel
-        </a>
         <button
           type="button"
           className="btn btn-primary"
           onClick={handleCreateCase}
-          disabled={!isCreateEnabled || isCreatingCase}
+          disabled={!isCreateEnabled || isCreatingCase || isCaseCreated}
         >
-          {isCreatingCase ? 'Creating...' : 'Create Case'}
+          {isCaseCreated ? 'Case Created' : isCreatingCase ? 'Creating...' : 'Create Case'}
         </button>
       </div>
     </div>

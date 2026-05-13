@@ -1,0 +1,34 @@
+{
+  "isGoodPractice": false,
+  "id": "LEAD-AML-004",
+  "reviewStatus": "unreviewed",
+  "evidencePassages": [
+    {
+      "document_id": "00_Firm_AML_Policy",
+      "page": 1,
+      "id": "LEAD-AML-004-p1",
+      "section": "Address Verification",
+      "text": "Utility bills",
+      "box_id": "LEAD-AML-004",
+      "file": "00_Firm_AML_Policy.pdf"
+    }
+  ],
+  "detail": "The firm's AML policy (section 2.3.2) accepts utility bills dated within the last 6 months as proof of address. CLC Anti-Money Laundering Guidance Para 3 specifies 'a utility bill less than 3 months old'. The policy is more lenient than the regulatory guidance.",
+  "codeArea": "aml",
+  "reference": "Anti-Money Laundering Guidance, Para 3",
+  "evidence_strength": "strong",
+  "documentId": "00_Firm_AML_Policy",
+  "source": {
+    "page": 1,
+    "file": "00_Firm_AML_Policy.pdf",
+    "section": "Address Verification",
+    "text": "Utility bills"
+  },
+  "boxId": "LEAD-AML-004",
+  "requirementId": "aml-6",
+  "polarity": "non_compliant",
+  "title": "Firm AML Policy Accepts Older Address Evidence Than CLC Guidance Allows",
+  "severity": "warning",
+  "certainty": "lead",
+  "is_good_practice": false
+}

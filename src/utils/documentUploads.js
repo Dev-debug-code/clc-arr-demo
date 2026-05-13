@@ -61,11 +61,17 @@ export const DOCUMENT_CLASSIFICATION_GROUPS = [
       'Fee Estimate',
       'Client Care Letter',
       'Source of Funds Declaration',
+      'Source of Funds Schedule',
       'Identity Verification',
       'Proof of Address',
       'Gift Letter',
       'Giftor ID Verification'
     ]
+  },
+  {
+    id: 'legal_correspondence',
+    label: 'Legal Correspondence',
+    options: ['Estate Distribution Letter', 'Lender Disclosure File Note']
   },
   {
     id: 'communications_and_interviews',
@@ -272,6 +278,10 @@ export const getUploadProcessingStatusPersistenceValue = (uploadItem) => {
     return 'classified';
   }
 
+  if (explicitStatus === 'removed') {
+    return 'classified';
+  }
+
   if (explicitStatus === 'queued') {
     return 'uploaded';
   }
@@ -312,8 +322,22 @@ export const normalizeUploadDraft = (uploadItem) => {
   const processingStatus = getUploadProcessingStatusPersistenceValue(safeUploadItem);
   const confirmed = safeUploadItem?.confirmed === true || normalizeText(safeUploadItem?.status).toLowerCase() === 'verified';
   const explicitStatus = normalizeText(safeUploadItem?.status).toLowerCase();
+  const explicitReviewDecision = normalizeText(
+    safeUploadItem?.reviewDecision ??
+      safeUploadItem?.review_decision ??
+      safeUploadItem?.confirmRemove ??
+      safeUploadItem?.confirm_remove
+  ).toLowerCase();
+  const reviewDecision =
+    explicitReviewDecision === 'confirm' || explicitReviewDecision === 'remove'
+      ? explicitReviewDecision
+      : explicitStatus === 'removed'
+        ? 'remove'
+        : '';
   const mappedWorkflowStatus = mapProcessingStatusToWorkflowStatus(processingStatus, classificationLabel);
-  const uiWorkflowStatus = ['queued', 'classified', 'verified', 'attention'].includes(explicitStatus) ? explicitStatus : '';
+  const uiWorkflowStatus = ['queued', 'classified', 'verified', 'attention', 'removed'].includes(explicitStatus)
+    ? explicitStatus
+    : '';
   const persistedClassificationConfidence =
     safeUploadItem?.classification_confidence ?? safeUploadItem?.classificationConfidence ?? null;
   const uiConfidence = safeUploadItem?.confidence ?? null;
@@ -374,7 +398,8 @@ export const normalizeUploadDraft = (uploadItem) => {
     interviewees,
     intervieweeName: firstInterviewee?.name ?? normalizeText(safeUploadItem?.intervieweeName),
     intervieweeRole: firstInterviewee?.role ?? normalizeText(safeUploadItem?.intervieweeRole),
-    interviewDate: firstInterviewee?.date ?? normalizeText(safeUploadItem?.interviewDate)
+    interviewDate: firstInterviewee?.date ?? normalizeText(safeUploadItem?.interviewDate),
+    reviewDecision
   };
 };
 
@@ -400,3 +425,18 @@ export const hasIncompleteUploadInterviewees = (uploadItem) => {
 
   return interviewees.some((entry) => !entry.name || !entry.role);
 };
+
+export const getUploadReviewDecision = (uploadItem) => {
+  const normalized = normalizeUploadDraft(uploadItem);
+  if (normalized.reviewDecision === 'confirm' || normalized.reviewDecision === 'remove') {
+    return normalized.reviewDecision;
+  }
+  if (!isUploadClassificationResolved(normalized)) return '';
+  if (hasIncompleteUploadInterviewees(normalized)) return '';
+  return normalized.classification === 'PEP Screening' ? '' : 'confirm';
+};
+
+export const isUploadIncludedInFindingsGeneration = (uploadItem) =>
+  getUploadReviewDecision(uploadItem) === 'confirm' &&
+  isUploadClassificationResolved(uploadItem) &&
+  !hasIncompleteUploadInterviewees(uploadItem);

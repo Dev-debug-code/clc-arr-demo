@@ -172,6 +172,14 @@ function inferFindingCodeArea(finding) {
   if (referenceText.includes('undertaking')) return 'undertakings';
   if (referenceText.includes('management') || referenceText.includes('supervision')) return 'management';
   if (
+    referenceText.includes('acting for lender') ||
+    referenceText.includes('mortgage fraud') ||
+    referenceText.includes('lender disclosure') ||
+    referenceText.includes('purchase price')
+  ) {
+    return 'lenders';
+  }
+  if (
     referenceText.includes('aml') ||
     referenceText.includes('money laundering') ||
     referenceText.includes('source of funds') ||

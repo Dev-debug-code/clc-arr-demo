@@ -8,24 +8,22 @@
       "page": 1,
       "id": "CRIT-AML-001-p1",
       "section": "Attached Passport Copy",
-      "text": "Verified: Yes - certified copy attached",
+      "text": "Certified Copy of Passport",
       "box_id": "CRIT-AML-001",
       "file": "01_Client_ID_Verification.pdf"
     }
   ],
-  "detail": "The verification record marks the certified passport as accepted for client Joe Bloggs, but the attached image shows a different person. This is a fundamental customer due diligence (CDD) failure and does not satisfy lender identity requirements when acting for a lender.",
+  "detail": "The verification record marks the certified passport as accepted for client Joe Bloggs, but the attached image shows a passport in the name of Benedict Summers. This is a fundamental customer due diligence failure and does not satisfy lender identity expectations when acting for a lender.",
   "codeArea": "aml",
-  "reference": "CLC Acting for Lenders Guidance \u00a71-2",
+  "reference": "Acting for Lenders and Prevention and Detection of Mortgage Fraud, Checking Identity by Original Documents",
   "evidence_strength": "strong",
   "documentId": "01_Client_ID_Verification",
-  "updatedAt": "2026-05-05T20:44:03.529203+00:00",
   "source": {
     "page": 1,
     "file": "01_Client_ID_Verification.pdf",
     "section": "Attached Passport Copy",
-    "text": "Verified: Yes - certified copy attached"
+    "text": "Certified Copy of Passport"
   },
-  "createdAt": "2026-05-05T20:44:03.529203+00:00",
   "boxId": "CRIT-AML-001",
   "requirementId": "aml-1",
   "polarity": "non_compliant",

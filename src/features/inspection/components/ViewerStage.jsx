@@ -129,6 +129,7 @@ export default function ViewerStage({
   const viewerBackStep = viewerOriginStep === STEP_DOCUMENTS ? STEP_DOCUMENTS : STEP_OVERVIEW;
   const viewerBackLabel = viewerOriginStep === STEP_DOCUMENTS ? 'Documents' : 'Findings';
   const viewerHasFindingFocus = Boolean(activeViewerFinding && activeViewerFindingDocumentIds.length > 0);
+  const isDocumentOnlyViewer = viewerOriginStep === STEP_DOCUMENTS && !viewerHasFindingFocus;
   const viewerDocumentCount = Math.max(viewerDocumentSequence.length, 1);
   const viewerDocumentPosition = viewerDocumentIndex >= 0 ? viewerDocumentIndex + 1 : 1;
   const findingsForActiveDocument = filteredFindings.filter((finding) => {
@@ -143,7 +144,7 @@ export default function ViewerStage({
 
   return (
     <div className="stage-card doc-viewer-stage">
-      <div className="split-view findings-view">
+      <div className={`split-view findings-view${isDocumentOnlyViewer ? ' findings-view--document-only' : ''}`}>
         <ViewerDocumentPanel
           docViewerRef={docViewerRef}
           setCurrentStep={setCurrentStep}
@@ -160,6 +161,7 @@ export default function ViewerStage({
           handleCaseTabNavigate={handleCaseTabNavigate}
           activeCaseTabId={activeCaseTabId}
           activeDocId={activeDocId}
+          showDocBoxes={showDocBoxes}
           activeDocBoxes={activeDocBoxes}
           activeDocBoxId={activeDocBoxId}
           handleSelectDocBox={handleSelectDocBox}
@@ -169,75 +171,77 @@ export default function ViewerStage({
           setFeedbackOpen={setFeedbackOpen}
           onOpenDocumentAssistant={onOpenDocumentAssistant}
         />
-        <ViewerFindingsPanel
-          findingsForActiveDocument={findingsForActiveDocument}
-          totalFindingsForActiveDocument={totalFindingsForActiveDocument}
-          severityFilterRef={severityFilterRef}
-          filterSeverity={filterSeverity}
-          setSeverityFilterOpen={setSeverityFilterOpen}
-          severityFilterOpen={severityFilterOpen}
-          severityCounts={severityCounts}
-          severityLabelMap={severityLabelMap}
-          handleToggleFilter={handleToggleFilter}
-          setFilterSeverity={setFilterSeverity}
-          viewerTypeFilterRef={viewerTypeFilterRef}
-          findingViewFilters={findingViewFilters}
-          setViewerTypeFilterOpen={setViewerTypeFilterOpen}
-          viewerTypeFilterOpen={viewerTypeFilterOpen}
-          findingFilterLabelMap={findingFilterLabelMap}
-          toggleFindingViewFilter={toggleFindingViewFilter}
-          clearFindingViewFilters={clearFindingViewFilters}
-          viewerCodeAreaFilterRef={viewerCodeAreaFilterRef}
-          viewerCodeAreaFilter={viewerCodeAreaFilter}
-          setViewerCodeAreaFilterOpen={setViewerCodeAreaFilterOpen}
-          viewerCodeAreaFilterOpen={viewerCodeAreaFilterOpen}
-          setViewerCodeAreaFilter={setViewerCodeAreaFilter}
-          activeSeverityLabels={activeSeverityLabels}
-          hiddenForActiveDocument={hiddenForActiveDocument}
-          documentsById={documentsById}
-          requirementsByCodeArea={requirementsByCodeArea}
-          getFindingBucketId={getFindingBucketId}
-          activeFindingId={activeFindingId}
-          setActiveFindingId={setActiveFindingId}
-          expandedViewerFindingIds={expandedViewerFindingIds}
-          setExpandedViewerFindingIds={setExpandedViewerFindingIds}
-          findingDecisions={findingDecisions}
-          isLeadFindingByTaxonomy={isLeadFindingByTaxonomy}
-          isInspectorAddedFinding={isInspectorAddedFinding}
-          findingSeverityBadgeMap={findingSeverityBadgeMap}
-          findingEvidenceStrengthMap={findingEvidenceStrengthMap}
-          buildEvidencePassages={buildEvidencePassages}
-          findingRefs={findingRefs}
-          currentCaseMeta={currentCaseMeta}
-          activeMenuFindingId={activeMenuFindingId}
-          setActiveMenuFindingId={setActiveMenuFindingId}
-          findingMenuRef={findingMenuRef}
-          handleRequestFindingDecision={handleRequestFindingDecision}
-          handleDeleteFinding={handleDeleteFinding}
-          handleJumpToRequirement={handleJumpToRequirement}
-          formatReferenceText={formatReferenceText}
-          openLeadConfirmModal={openLeadConfirmModal}
-          inlineRejectFindingId={inlineRejectFindingId}
-          inlineRejectReason={inlineRejectReason}
-          setInlineRejectReason={setInlineRejectReason}
-          inlineRejectNote={inlineRejectNote}
-          setInlineRejectNote={setInlineRejectNote}
-          handleConfirmInlineReject={handleConfirmInlineReject}
-          setInlineRejectFindingId={setInlineRejectFindingId}
-          inlineDismissFindingId={inlineDismissFindingId}
-          inlineDismissReason={inlineDismissReason}
-          setInlineDismissReason={setInlineDismissReason}
-          inlineDismissNote={inlineDismissNote}
-          setInlineDismissNote={setInlineDismissNote}
-          handleConfirmInlineDismiss={handleConfirmInlineDismiss}
-          setInlineDismissFindingId={setInlineDismissFindingId}
-          safeText={safeText}
-          findingReferencesDocument={findingReferencesDocument}
-          activeDocId={activeDocId}
-          getFindingPreferredBoxIdForDocument={getFindingPreferredBoxIdForDocument}
-          handleSelectDocBox={handleSelectDocBox}
-          handleViewDocument={handleViewDocument}
-        />
+        {!isDocumentOnlyViewer ? (
+          <ViewerFindingsPanel
+            findingsForActiveDocument={findingsForActiveDocument}
+            totalFindingsForActiveDocument={totalFindingsForActiveDocument}
+            severityFilterRef={severityFilterRef}
+            filterSeverity={filterSeverity}
+            setSeverityFilterOpen={setSeverityFilterOpen}
+            severityFilterOpen={severityFilterOpen}
+            severityCounts={severityCounts}
+            severityLabelMap={severityLabelMap}
+            handleToggleFilter={handleToggleFilter}
+            setFilterSeverity={setFilterSeverity}
+            viewerTypeFilterRef={viewerTypeFilterRef}
+            findingViewFilters={findingViewFilters}
+            setViewerTypeFilterOpen={setViewerTypeFilterOpen}
+            viewerTypeFilterOpen={viewerTypeFilterOpen}
+            findingFilterLabelMap={findingFilterLabelMap}
+            toggleFindingViewFilter={toggleFindingViewFilter}
+            clearFindingViewFilters={clearFindingViewFilters}
+            viewerCodeAreaFilterRef={viewerCodeAreaFilterRef}
+            viewerCodeAreaFilter={viewerCodeAreaFilter}
+            setViewerCodeAreaFilterOpen={setViewerCodeAreaFilterOpen}
+            viewerCodeAreaFilterOpen={viewerCodeAreaFilterOpen}
+            setViewerCodeAreaFilter={setViewerCodeAreaFilter}
+            activeSeverityLabels={activeSeverityLabels}
+            hiddenForActiveDocument={hiddenForActiveDocument}
+            documentsById={documentsById}
+            requirementsByCodeArea={requirementsByCodeArea}
+            getFindingBucketId={getFindingBucketId}
+            activeFindingId={activeFindingId}
+            setActiveFindingId={setActiveFindingId}
+            expandedViewerFindingIds={expandedViewerFindingIds}
+            setExpandedViewerFindingIds={setExpandedViewerFindingIds}
+            findingDecisions={findingDecisions}
+            isLeadFindingByTaxonomy={isLeadFindingByTaxonomy}
+            isInspectorAddedFinding={isInspectorAddedFinding}
+            findingSeverityBadgeMap={findingSeverityBadgeMap}
+            findingEvidenceStrengthMap={findingEvidenceStrengthMap}
+            buildEvidencePassages={buildEvidencePassages}
+            findingRefs={findingRefs}
+            currentCaseMeta={currentCaseMeta}
+            activeMenuFindingId={activeMenuFindingId}
+            setActiveMenuFindingId={setActiveMenuFindingId}
+            findingMenuRef={findingMenuRef}
+            handleRequestFindingDecision={handleRequestFindingDecision}
+            handleDeleteFinding={handleDeleteFinding}
+            handleJumpToRequirement={handleJumpToRequirement}
+            formatReferenceText={formatReferenceText}
+            openLeadConfirmModal={openLeadConfirmModal}
+            inlineRejectFindingId={inlineRejectFindingId}
+            inlineRejectReason={inlineRejectReason}
+            setInlineRejectReason={setInlineRejectReason}
+            inlineRejectNote={inlineRejectNote}
+            setInlineRejectNote={setInlineRejectNote}
+            handleConfirmInlineReject={handleConfirmInlineReject}
+            setInlineRejectFindingId={setInlineRejectFindingId}
+            inlineDismissFindingId={inlineDismissFindingId}
+            inlineDismissReason={inlineDismissReason}
+            setInlineDismissReason={setInlineDismissReason}
+            inlineDismissNote={inlineDismissNote}
+            setInlineDismissNote={setInlineDismissNote}
+            handleConfirmInlineDismiss={handleConfirmInlineDismiss}
+            setInlineDismissFindingId={setInlineDismissFindingId}
+            safeText={safeText}
+            findingReferencesDocument={findingReferencesDocument}
+            activeDocId={activeDocId}
+            getFindingPreferredBoxIdForDocument={getFindingPreferredBoxIdForDocument}
+            handleSelectDocBox={handleSelectDocBox}
+            handleViewDocument={handleViewDocument}
+          />
+        ) : null}
       </div>
     </div>
   );

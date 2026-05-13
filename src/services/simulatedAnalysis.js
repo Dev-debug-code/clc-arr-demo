@@ -1,6 +1,5 @@
 import {
-  hasIncompleteUploadInterviewees,
-  isUploadClassificationResolved,
+  isUploadIncludedInFindingsGeneration,
   normalizeUploadDraft
 } from '../utils/documentUploads.js';
 import {
@@ -17,6 +16,15 @@ function coerceText(value) {
 export function suggestClassificationFromFilename(filename) {
   const name = String(filename ?? '').toLowerCase();
   if (!name) return 'Other';
+  if ((name.includes('estate') && name.includes('distribution')) || (name.includes('solicitor') && name.includes('distribution'))) {
+    return 'Estate Distribution Letter';
+  }
+  if (name.includes('source') && name.includes('fund') && name.includes('schedule')) {
+    return 'Source of Funds Schedule';
+  }
+  if (name.includes('lender') && name.includes('disclosure') && (name.includes('note') || name.includes('file'))) {
+    return 'Lender Disclosure File Note';
+  }
   if (name.includes('interview') || name.includes('mlro')) return 'Interview Transcript';
   if ((name.includes('client') && name.includes('care')) || (name.includes('terms') && name.includes('engagement'))) {
     return 'Client Care Letter';
@@ -88,9 +96,7 @@ export function buildSimulatedFindingsWorkspace(uploadItems = []) {
     .map((item) => normalizeUploadDraft(item))
     .filter(
       (item) =>
-        item.status === 'verified' &&
-        isUploadClassificationResolved(item) &&
-        !hasIncompleteUploadInterviewees(item)
+        isUploadIncludedInFindingsGeneration(item)
     );
 
   return buildDemoGeneratedWorkspace(verifiedUploads);

@@ -1,0 +1,34 @@
+{
+  "isGoodPractice": false,
+  "id": "COMP-AFL-003",
+  "reviewStatus": "unreviewed",
+  "evidencePassages": [
+    {
+      "document_id": "15_Lender_Disclosure_Note",
+      "page": 1,
+      "id": "COMP-AFL-003-p1",
+      "section": "Lender Disclosure File Note",
+      "text": "No discrepancy has been identified between the purchase price in the contract and the price reported to the lender.",
+      "box_id": "COMP-AFL-003",
+      "file": "15_Lender_Disclosure_Note.pdf"
+    }
+  ],
+  "detail": "The lender disclosure note records that the purchase price reported to Example Building Society is £875,000 and that no discrepancy has been identified against the contract price.",
+  "codeArea": "lenders",
+  "reference": "Acting for Lenders and Prevention and Detection of Mortgage Fraud, Section 8(ii)",
+  "evidence_strength": "strong",
+  "documentId": "15_Lender_Disclosure_Note",
+  "source": {
+    "page": 1,
+    "file": "15_Lender_Disclosure_Note.pdf",
+    "section": "Lender Disclosure File Note",
+    "text": "No discrepancy has been identified between the purchase price in the contract and the price reported to the lender."
+  },
+  "boxId": "COMP-AFL-003",
+  "requirementId": "afl-3",
+  "polarity": "compliant",
+  "title": "Purchase Price Consistency Is Recorded for Lender Disclosure",
+  "severity": "best_practice",
+  "certainty": "finding",
+  "is_good_practice": false
+}

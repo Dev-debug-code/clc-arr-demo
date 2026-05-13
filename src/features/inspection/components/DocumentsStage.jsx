@@ -44,7 +44,7 @@ export default function DocumentsStage({
   handleRemoveUploadInterviewee,
   handleAddUploadInterviewee,
   handleUploadFieldChange,
-  handleToggleUploadConfirmed,
+  handleSetUploadReviewDecision,
   renderConfidenceDots,
   unclassifiedUploadCount,
   lowConfidenceUploadCount,
@@ -55,7 +55,6 @@ export default function DocumentsStage({
   confirmableUploadCount,
   hasViewedUploadTableEnd,
   allUploadsVerified,
-  handleConfirmAllUploads,
   handleGenerateFindings,
   handleRunClassification,
   handleRerunClassification,
@@ -176,7 +175,7 @@ export default function DocumentsStage({
             handleRemoveUploadInterviewee={handleRemoveUploadInterviewee}
             handleAddUploadInterviewee={handleAddUploadInterviewee}
             handleUploadFieldChange={handleUploadFieldChange}
-            handleToggleUploadConfirmed={handleToggleUploadConfirmed}
+            handleSetUploadReviewDecision={handleSetUploadReviewDecision}
             renderConfidenceDots={renderConfidenceDots}
             resolveConfidenceState={resolveConfidenceState}
             unclassifiedUploadCount={unclassifiedUploadCount}
@@ -188,7 +187,6 @@ export default function DocumentsStage({
             confirmableUploadCount={confirmableUploadCount}
             hasViewedUploadTableEnd={hasViewedUploadTableEnd}
             allUploadsVerified={allUploadsVerified}
-            handleConfirmAllUploads={handleConfirmAllUploads}
             handleGenerateFindings={handleGenerateFindings}
             processingEntries={processingEntries}
           />

@@ -4,7 +4,6 @@ import {
   DATA_PROVIDER_MODE,
   createCaseRecord,
   listCases,
-  lookupPracticeByLicenceNumber,
   searchCase,
   exportCaseReport,
   loadCaseWorkspaceData,
@@ -80,6 +79,7 @@ import {
   RISK_REGISTER_PRESET,
   REVIEW_REASON_OPTIONS,
   SEVERITY_LABEL_MAP,
+  STEP_CASE_SETUP,
   STEP_DOCUMENTS,
   STEP_HISTORY,
   STEP_OVERVIEW,
@@ -95,7 +95,6 @@ import {
   buildUploadLookupKeys,
   coerceText,
   collectFindingBoxIdsForDocument,
-  createPartyRow,
   deriveLegacyFindingSeverity,
   extractIdleDays,
   findingReferencesDocument,
@@ -120,6 +119,7 @@ import {
   toIsoDate,
   viewerSelectionsMatch
 } from './helpers.js';
+import { DEMO_PRACTICE_PROFILES } from '../../data/demoPracticeProfiles.js';
 import { renderConfidenceDots, renderRiskDots } from './displayHelpers.jsx';
 import AccessPendingPage from './components/AccessPendingPage.jsx';
 import CaseHeader from './components/CaseHeader.jsx';
@@ -142,6 +142,7 @@ import ReportRegenerateModal from './components/ReportRegenerateModal.jsx';
 import UndoToast from './components/UndoToast.jsx';
 import ViewerStage from './components/ViewerStage.jsx';
 import WorkspaceShell from './components/WorkspaceShell.jsx';
+import { GuidanceContextLayout } from '../../pages/GuidanceContextPage.jsx';
 
 function toDashboardCaseDateMs(value) {
   if (!value) return null;
@@ -289,6 +290,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [showDocBoxes, setShowDocBoxes] = useState(true);
   const [activeFindingId, setActiveFindingId] = useState(null);
   const [viewerOriginStep, setViewerOriginStep] = useState(STEP_OVERVIEW);
+  const [activeGuidanceContext, setActiveGuidanceContext] = useState(null);
   const [viewerSelectionHistory, setViewerSelectionHistory] = useState([]);
   const [docFocusSignal, setDocFocusSignal] = useState(0);
   const [findingDecisions, setFindingDecisions] = useState({});
@@ -397,7 +399,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [reportActionItems, setReportActionItems] = useState([]);
   const [reportActionOriginalItems, setReportActionOriginalItems] = useState([]);
   const [caseSetupPracticeName, setCaseSetupPracticeName] = useState('');
-  const [caseSetupLicenceNumber, setCaseSetupLicenceNumber] = useState('');
   const [caseSetupHolp, setCaseSetupHolp] = useState('');
   const [caseSetupHofa, setCaseSetupHofa] = useState('');
   const [caseSetupRiskLevel, setCaseSetupRiskLevel] = useState('not-assessed');
@@ -406,12 +407,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [caseSetupAmlTier, setCaseSetupAmlTier] = useState('');
   const [caseSetupPreviousInspection, setCaseSetupPreviousInspection] = useState('');
   const [caseSetupConcerns, setCaseSetupConcerns] = useState('');
-  const [caseSetupParties, setCaseSetupParties] = useState(() => [createPartyRow()]);
   const [caseSetupQuestionnaireFile, setCaseSetupQuestionnaireFile] = useState('');
   const [caseSetupQuestionnaireFileBlob, setCaseSetupQuestionnaireFileBlob] = useState(null);
-  const [caseSetupPracticeLookup, setCaseSetupPracticeLookup] = useState(null);
-  const [isCaseSetupPracticeLookupLoading, setIsCaseSetupPracticeLookupLoading] = useState(false);
-  const [caseSetupPracticeLookupError, setCaseSetupPracticeLookupError] = useState('');
   const [isCreatingCase, setIsCreatingCase] = useState(false);
   const [caseCreateError, setCaseCreateError] = useState('');
   const [selectedFocusAreaIds, setSelectedFocusAreaIds] = useState(
@@ -575,24 +572,43 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         const snapshot = await loadCaseWorkspaceData(caseId);
         if (!snapshot || cancelled) return;
 
+        const syncedPracticeName = snapshot.caseMetaPatch.practiceName ?? prev.practiceName;
+        const syncedHolp = snapshot.caseMetaPatch.holp ?? prev.holp;
+        const syncedHofa = snapshot.caseMetaPatch.hofa ?? prev.hofa;
+        const syncedRiskLevel = snapshot.caseMetaPatch.riskLevel ?? prev.riskLevel;
+        const syncedTransactionType = snapshot.caseMetaPatch.transactionType ?? prev.transactionType;
+        const syncedActingForLender =
+          typeof snapshot.caseMetaPatch.actingForLender === 'boolean'
+            ? snapshot.caseMetaPatch.actingForLender
+            : prev.actingForLender;
+        const syncedAmlTier = snapshot.caseMetaPatch.amlTier ?? prev.amlTier;
+        const syncedPreviousInspection = snapshot.caseMetaPatch.previousInspection ?? prev.previousInspection;
+        setCaseSetupPracticeName(syncedPracticeName || '');
+        setCaseSetupHolp(syncedHolp || '');
+        setCaseSetupHofa(syncedHofa || '');
+        setCaseSetupRiskLevel(syncedRiskLevel || 'not-assessed');
+        setCaseSetupTransactionType(syncedTransactionType || '');
+        setCaseSetupActingForLender(typeof syncedActingForLender === 'boolean' ? (syncedActingForLender ? 'yes' : 'no') : '');
+        setCaseSetupAmlTier(syncedAmlTier || '');
+        setCaseSetupPreviousInspection(syncedPreviousInspection || '');
         setCurrentCaseMeta((prev) => ({
           ...prev,
-          practiceName: snapshot.caseMetaPatch.practiceName ?? prev.practiceName,
+          practiceName: syncedPracticeName,
           caseId: snapshot.caseMetaPatch.caseId ?? prev.caseId,
           owner: snapshot.caseMetaPatch.owner ?? prev.owner,
           status: snapshot.caseMetaPatch.status ?? prev.status,
           outcome: snapshot.caseMetaPatch.outcome ?? prev.outcome,
           started: snapshot.caseMetaPatch.started ?? prev.started,
-          riskLevel: snapshot.caseMetaPatch.riskLevel ?? prev.riskLevel,
-          previousInspection: snapshot.caseMetaPatch.previousInspection ?? prev.previousInspection,
-          holp: snapshot.caseMetaPatch.holp ?? prev.holp,
-          hofa: snapshot.caseMetaPatch.hofa ?? prev.hofa,
-          transactionType: snapshot.caseMetaPatch.transactionType ?? prev.transactionType,
+          riskLevel: syncedRiskLevel,
+          previousInspection: syncedPreviousInspection,
+          holp: syncedHolp,
+          hofa: syncedHofa,
+          transactionType: syncedTransactionType,
           actingForLender:
-            typeof snapshot.caseMetaPatch.actingForLender === 'boolean'
-              ? snapshot.caseMetaPatch.actingForLender
+            typeof syncedActingForLender === 'boolean'
+              ? syncedActingForLender
               : prev.actingForLender,
-          amlTier: snapshot.caseMetaPatch.amlTier ?? prev.amlTier,
+          amlTier: syncedAmlTier,
           focusAreas: Array.isArray(snapshot.caseMetaPatch.focusAreas)
             ? snapshot.caseMetaPatch.focusAreas
             : prev.focusAreas,
@@ -716,51 +732,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       cancelled = true;
     };
   }, [appMode, currentCaseMeta.caseId]);
-
-  useEffect(() => {
-    if (appMode !== 'caseSetup') return;
-
-    const cleanLicenceNumber = caseSetupLicenceNumber.trim();
-    if (!cleanLicenceNumber) {
-      setCaseSetupPracticeLookup(null);
-      setCaseSetupPracticeLookupError('');
-      setIsCaseSetupPracticeLookupLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    const timer = setTimeout(async () => {
-      setIsCaseSetupPracticeLookupLoading(true);
-      setCaseSetupPracticeLookupError('');
-      try {
-        const response = await lookupPracticeByLicenceNumber(cleanLicenceNumber);
-        if (cancelled) return;
-        if (response?.match && response?.practice) {
-          setCaseSetupPracticeLookup(response.practice);
-        } else {
-          setCaseSetupPracticeLookup(null);
-        }
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to lookup practice by licence number', error);
-        if (!cancelled) {
-          setCaseSetupPracticeLookup(null);
-          setCaseSetupPracticeLookupError(
-            'Could not check previous inspection history right now. You can still enter details manually.'
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setIsCaseSetupPracticeLookupLoading(false);
-        }
-      }
-    }, 350);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [appMode, caseSetupLicenceNumber]);
 
   useEffect(() => {
     if (appMode !== 'inspection') {
@@ -1279,6 +1250,11 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     )
       .trim()
       .toLowerCase();
+    const originalCertainty = String(
+      baseFinding?.originalCertainty || baseFinding?.original_certainty || ''
+    )
+      .trim()
+      .toLowerCase();
 
     let reviewStatus = 'unreviewed';
     if (nextDecision === 'accepted') {
@@ -1293,9 +1269,23 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       reviewStatus = 'dismissed';
     }
 
+    const shouldPromoteLeadToFinding = nextDecision === 'accepted' && certainty === 'lead';
+    const shouldRestoreOriginalLead =
+      (nextDecision === null || nextDecision === 'unreviewed') &&
+      (originalCertainty === 'lead' || (existingReviewStatus === 'confirmed' && certainty === 'finding'));
+    const nextCertainty = shouldRestoreOriginalLead
+      ? 'lead'
+      : shouldPromoteLeadToFinding
+        ? 'finding'
+        : baseFinding?.certainty;
+
     const nextFindingState = {
       ...baseFinding,
-      certainty: nextDecision === 'accepted' && certainty === 'lead' ? 'finding' : baseFinding?.certainty,
+      certainty: nextCertainty,
+      originalCertainty:
+        shouldPromoteLeadToFinding
+          ? originalCertainty || 'lead'
+          : baseFinding?.originalCertainty || baseFinding?.original_certainty || null,
       reviewStatus,
       reviewReason: nextDecision === 'rejected' || nextDecision === 'dismissed' ? reason || null : null,
       reviewReasonNote: nextDecision === 'rejected' || nextDecision === 'dismissed' ? reasonNote || null : null
@@ -1339,6 +1329,11 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, [allFindings]);
 
   const activeDocument = documentsById.get(activeDocId) ?? caseDocuments[0] ?? null;
+  useEffect(() => {
+    if (currentStep !== STEP_VIEWER && activeGuidanceContext) {
+      setActiveGuidanceContext(null);
+    }
+  }, [activeGuidanceContext, currentStep]);
   const activeViewerFinding = useMemo(
     () => allFindings.find((finding) => finding?.id === activeFindingId) ?? null,
     [activeFindingId, allFindings]
@@ -1569,6 +1564,16 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const pendingReviewCount = Math.max(availableFindings.length - reviewedCount, 0);
   const rejectedCount = useMemo(
     () => availableFindings.filter((finding) => resolvedFindingDecisions[finding.id] === 'rejected').length,
+    [availableFindings, resolvedFindingDecisions]
+  );
+  const allFindingsRejectedOrDismissed = useMemo(
+    () =>
+      availableFindings.length > 0 &&
+      availableFindings.every(
+        (finding) =>
+          resolvedFindingDecisions[finding.id] === 'rejected' ||
+          resolvedFindingDecisions[finding.id] === 'dismissed'
+      ),
     [availableFindings, resolvedFindingDecisions]
   );
   const metRequirementsCount = useMemo(
@@ -2297,6 +2302,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   );
 
   const activeCaseTabId = useMemo(() => {
+    if (currentStep === STEP_CASE_SETUP) return 'case-setup';
     if (currentStep === STEP_VIEWER) {
       return viewerOriginStep === STEP_DOCUMENTS ? 'documents' : 'overview';
     }
@@ -2696,6 +2702,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, [appMode, currentStep, reggieOpen]);
 
   useEffect(() => {
+    const documentsWorkflowContext =
+      currentStep === STEP_DOCUMENTS || (currentStep === STEP_VIEWER && viewerOriginStep === STEP_DOCUMENTS);
+    if (documentsWorkflowContext) {
+      if (activeFindingId !== null) {
+        setActiveFindingId(null);
+      }
+      return;
+    }
     if (filteredFindings.length === 0) {
       setActiveFindingId(null);
       return;
@@ -2703,7 +2717,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     if (!filteredFindings.some((finding) => finding.id === activeFindingId)) {
       setActiveFindingId(filteredFindings[0].id);
     }
-  }, [filteredFindings, activeFindingId]);
+  }, [filteredFindings, activeFindingId, currentStep, viewerOriginStep]);
 
   useEffect(() => {
     if (complianceCodeAreas.length === 0) return;
@@ -2751,6 +2765,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       if (targetStep === STEP_REPORT) {
         setReportAccessNotice('');
         requestAnimationFrame(scrollWorkspaceToTop);
+      }
+      if (targetStep === STEP_DOCUMENTS) {
+        setActiveFindingId(null);
+        setActiveGuidanceContext(null);
       }
       setCurrentStep(targetStep);
       if (
@@ -2899,16 +2917,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   };
 
   const handleCreateCase = async () => {
-    const nextKnownParties = caseSetupParties
-      .map((party) => ({
-        name: String(party?.name || '').trim(),
-        role: String(party?.role || '').trim()
-      }))
-      .filter((party) => party.name);
-
     if (
       !caseSetupPracticeName.trim() ||
-      !caseSetupLicenceNumber.trim() ||
       selectedFocusAreaIds.size === 0
     ) {
       return;
@@ -2918,7 +2928,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     const uncheckedAreas = FOCUS_AREA_OPTIONS.filter((area) => !selectedFocusAreaIds.has(area.id)).map(
       (area) => area.label
     );
-    const nextCaseId = caseSetupLicenceNumber.trim();
+    const nextCaseId = `case-${Date.now()}`;
     const nextPracticeName = caseSetupPracticeName.trim();
     const nextOwner =
       coerceText(currentUserProfile?.displayName).trim() ||
@@ -2952,7 +2962,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         hofa: nextHofa,
         focusAreas: nextFocusAreaIds,
         preInspectionConcerns: nextPreInspectionConcerns,
-        knownParties: nextKnownParties,
         questionnaireFileName: caseSetupQuestionnaireFile || null,
         questionnaireFile: caseSetupQuestionnaireFileBlob || null,
         user: currentUser
@@ -3003,10 +3012,11 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       transactionType: nextTransactionType,
       actingForLender: nextActingForLender,
       amlTier: nextAmlTier,
-      knownParties: nextKnownParties,
       previousInspection: nextPreviousInspection,
       holp: nextHolp || prev.holp,
-      hofa: nextHofa || prev.hofa
+      hofa: nextHofa || prev.hofa,
+      focusAreas: nextFocusAreaIds,
+      preInspectionConcerns: nextPreInspectionConcerns
     }));
     setDashboardCases((prev) => [
       {
@@ -3035,28 +3045,11 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     ]);
     setIsActiveCasePersisted(true);
     clearDashboardFilters();
-    setCaseSetupPracticeName('');
-    setCaseSetupLicenceNumber('');
-    setCaseSetupHolp('');
-    setCaseSetupHofa('');
-    setCaseSetupRiskLevel('not-assessed');
-    setCaseSetupTransactionType('');
-    setCaseSetupActingForLender('');
-    setCaseSetupAmlTier('');
-    setCaseSetupPreviousInspection('');
-    setCaseSetupConcerns('');
-    setCaseSetupParties([createPartyRow()]);
-    setCaseSetupQuestionnaireFile('');
-    setCaseSetupQuestionnaireFileBlob(null);
-    setCaseSetupPracticeLookup(null);
-    setCaseSetupPracticeLookupError('');
-    setIsCaseSetupPracticeLookupLoading(false);
     setUploadItems([]);
     setDocumentsPhase('intake');
     if (caseSetupFileInputRef.current) {
       caseSetupFileInputRef.current.value = '';
     }
-    setSelectedFocusAreaIds(new Set(FOCUS_AREA_OPTIONS.map((area) => area.id)));
     setDocumentWorkspaceTab('lifecycle');
     setDocSearchQuery('');
     setDocCrossSearchOpen(false);
@@ -3174,9 +3167,9 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       delete acceptedOverviewCollapseTimersRef.current[findingId];
     };
 
-    if (nextDecision === 'accepted' || nextDecision === null) {
+    if (nextDecision === 'accepted' || nextDecision === null || nextDecision === 'unreviewed') {
       clearAcceptedCollapseTimer();
-      handleFindingDecision(findingId, nextDecision);
+      handleFindingDecision(findingId, nextDecision === 'unreviewed' ? null : nextDecision);
       return;
     }
     if (nextDecision === 'rejected') {
@@ -3643,6 +3636,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
             ? 'queued'
             : field === 'status'
               ? value
+              : entry.status === 'removed'
+                ? 'removed'
               : field === 'classificationJustification'
                 ? entry.status
               : isUploadClassificationResolved(entry)
@@ -3662,6 +3657,33 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     if (field === 'classification') {
       setActiveClassificationMenu(null);
     }
+    setReportNeedsRegeneration(true);
+    persistUpdatedUploadItem(updatedItem);
+  };
+
+  const handleSetUploadReviewDecision = (uploadId, nextDecisionValue) => {
+    const nextDecision = nextDecisionValue === 'confirm' || nextDecisionValue === 'remove' ? nextDecisionValue : '';
+    let updatedItem = null;
+    setUploadItems((prev) =>
+      prev.map((entry) => {
+        if (entry.id !== uploadId) return entry;
+
+        const normalizedEntry = prepareUploadDraft(entry);
+        const nextStatus = !isUploadClassificationResolved(normalizedEntry)
+          ? 'queued'
+          : nextDecision === 'remove'
+            ? 'removed'
+            : 'classified';
+        const nextEntry = prepareUploadDraft({
+          ...entry,
+          reviewDecision: nextDecision,
+          status: nextStatus,
+          confirmed: false
+        });
+        updatedItem = nextEntry;
+        return nextEntry;
+      })
+    );
     setReportNeedsRegeneration(true);
     persistUpdatedUploadItem(updatedItem);
   };
@@ -3755,7 +3777,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       prepareUploadDraft({
         ...item,
         status: 'queued',
-        confirmed: false
+        confirmed: false,
+        reviewDecision: ''
       })
     );
 
@@ -3777,7 +3800,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   };
 
   const handleGenerateFindings = () => {
-    if (!allUploadsVerified) return;
     setProcessingLog((prev) => [
       {
         id: `p${Date.now()}`,
@@ -3829,7 +3851,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         detail:
           mode === 'regenerate'
             ? 'Report regenerated from latest findings'
-            : 'Report generated from reviewed findings',
+            : 'Report generated from current in-scope findings',
         actor: currentUserEmail || 'Inspector'
       },
       ...items
@@ -3920,7 +3942,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
   const handleAttemptOverviewReport = () => {
     if (availableFindings.length === 0) {
-      setReportAccessNotice('Generate findings from the reviewed documents before creating the report.');
+      setReportAccessNotice('Generate findings from the selected documents before creating the report.');
       return;
     }
 
@@ -4629,26 +4651,28 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   };
 
   const handleApplyAmlPreset = () => {
-    const previousInspectionDate =
-      toDateInputValue(caseSetupPracticeLookup?.last_inspection?.date) || '2023-03-12';
-
     setSelectedFocusAreaIds(new Set(RISK_REGISTER_PRESET));
     setNotAssessedAreas(
       FOCUS_AREA_OPTIONS.filter((area) => !RISK_REGISTER_PRESET.includes(area.id)).map((area) => area.label)
     );
     setCaseSetupRiskLevel('medium');
-    setCaseSetupPreviousInspection(previousInspectionDate);
     setCaseSetupTransactionType((prev) => prev || CASE_META.transactionType);
     setCaseSetupActingForLender((prev) => prev || (CASE_META.actingForLender ? 'yes' : 'no'));
     setCaseSetupAmlTier((prev) => prev || CASE_META.amlTier);
-    setCaseSetupHolp((prev) => prev || caseSetupPracticeLookup?.holp || '');
-    setCaseSetupHofa((prev) => prev || caseSetupPracticeLookup?.hofa || '');
+  };
+
+  const handleApplyPracticePreset = (profile) => {
+    if (!profile) return;
+    setSelectedFocusAreaIds(new Set(profile.focusAreas || []));
+    setNotAssessedAreas(
+      FOCUS_AREA_OPTIONS.filter((area) => !(profile.focusAreas || []).includes(area.id)).map((area) => area.label)
+    );
+    setCaseSetupConcerns(profile.preInspectionConcerns || '');
   };
 
   const handleOpenNewCase = useCallback(() => {
     setCaseCreateError('');
     setCaseSetupPracticeName('');
-    setCaseSetupLicenceNumber('');
     setCaseSetupHolp('');
     setCaseSetupHofa('');
     setCaseSetupRiskLevel('not-assessed');
@@ -4657,17 +4681,16 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setCaseSetupAmlTier('');
     setCaseSetupPreviousInspection('');
     setCaseSetupConcerns('');
-    setCaseSetupParties([createPartyRow()]);
     setCaseSetupQuestionnaireFile('');
     setCaseSetupQuestionnaireFileBlob(null);
-    setCaseSetupPracticeLookup(null);
-    setCaseSetupPracticeLookupError('');
-    setIsCaseSetupPracticeLookupLoading(false);
     setSelectedFocusAreaIds(new Set(FOCUS_AREA_OPTIONS.map((area) => area.id)));
     if (caseSetupFileInputRef.current) {
       caseSetupFileInputRef.current.value = '';
     }
-    setAppMode('caseSetup');
+    setCurrentCaseMeta(CASE_META);
+    setAppMode('inspection');
+    setCurrentStep(STEP_CASE_SETUP);
+    setMaxStepUnlocked(STEP_CASE_SETUP);
   }, []);
 
   const setReportEditableRef = (section, index, node, meta = {}) => {
@@ -4959,23 +4982,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     [currentCaseMeta.caseId, currentUser, isActiveCasePersisted]
   );
 
-  const handleAddPartyRow = () => {
-    setCaseSetupParties((prev) => [...prev, createPartyRow()]);
-  };
-
-  const handleRemovePartyRow = (rowId) => {
-    setCaseSetupParties((prev) => {
-      const next = prev.filter((row) => row.id !== rowId);
-      return next.length > 0 ? next : [createPartyRow()];
-    });
-  };
-
-  const handleUpdatePartyRow = (rowId, field, value) => {
-    setCaseSetupParties((prev) =>
-      prev.map((row) => (row.id === rowId ? { ...row, [field]: value } : row))
-    );
-  };
-
   const handleSendReggie = (manualQuery) => {
     const query = (manualQuery ?? reggieInput).trim();
     if (!query) return;
@@ -5184,12 +5190,17 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
   const handleViewDocument = useCallback(
     (documentId, boxId, findingId, originStep = viewerOriginStep) => {
+      if (originStep === STEP_OVERVIEW) {
+        setOverviewRequirementFilter({ areaId: '', requirementId: '' });
+      }
+      setActiveGuidanceContext(null);
+      setShowDocBoxes(!(originStep === STEP_DOCUMENTS && !findingId));
       applyViewerSelection(
         { documentId, boxId, findingId, originStep },
         { pushHistory: currentStep === STEP_VIEWER }
       );
     },
-    [applyViewerSelection, currentStep, viewerOriginStep]
+    [applyViewerSelection, currentStep, setOverviewRequirementFilter, viewerOriginStep]
   );
 
   const handleViewerBack = useCallback(() => {
@@ -5559,15 +5570,9 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const renderCaseSetup = () => {
     return (
       <CaseSetupPage
-        onBackToDashboard={() => setAppMode('dashboard')}
         caseCreateError={caseCreateError}
         caseSetupPracticeName={caseSetupPracticeName}
         setCaseSetupPracticeName={setCaseSetupPracticeName}
-        caseSetupLicenceNumber={caseSetupLicenceNumber}
-        setCaseSetupLicenceNumber={setCaseSetupLicenceNumber}
-        isCaseSetupPracticeLookupLoading={isCaseSetupPracticeLookupLoading}
-        caseSetupPracticeLookupError={caseSetupPracticeLookupError}
-        caseSetupPracticeLookup={caseSetupPracticeLookup}
         setCaseSetupHolp={setCaseSetupHolp}
         setCaseSetupHofa={setCaseSetupHofa}
         setCaseSetupPreviousInspection={setCaseSetupPreviousInspection}
@@ -5589,16 +5594,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         handleSelectAllFocusAreas={handleSelectAllFocusAreas}
         handleDeselectAllFocusAreas={handleDeselectAllFocusAreas}
         handleApplyAmlPreset={handleApplyAmlPreset}
-        caseSetupParties={caseSetupParties}
-        handleUpdatePartyRow={handleUpdatePartyRow}
-        handleRemovePartyRow={handleRemovePartyRow}
-        handleAddPartyRow={handleAddPartyRow}
+        handleApplyPracticePreset={handleApplyPracticePreset}
         caseSetupFileInputRef={caseSetupFileInputRef}
         setCaseSetupQuestionnaireFile={setCaseSetupQuestionnaireFile}
         setCaseSetupQuestionnaireFileBlob={setCaseSetupQuestionnaireFileBlob}
         caseSetupQuestionnaireFile={caseSetupQuestionnaireFile}
         isCreatingCase={isCreatingCase}
         handleCreateCase={handleCreateCase}
+        isCaseCreated={Boolean(currentCaseMeta.caseId)}
       />
     );
   };
@@ -5641,6 +5644,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       handleDeleteFinding={handleDeleteFinding}
       handleJumpToRequirement={handleJumpToRequirement}
       handleViewDocument={handleViewDocument}
+      handleShowGuidance={handleShowGuidance}
       openLeadConfirmModal={openLeadConfirmModal}
       inlineRejectFindingId={inlineRejectFindingId}
       inlineRejectReason={inlineRejectReason}
@@ -5825,7 +5829,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       handleRemoveUploadInterviewee={handleRemoveUploadInterviewee}
       handleAddUploadInterviewee={handleAddUploadInterviewee}
       handleUploadFieldChange={handleUploadFieldChange}
-      handleToggleUploadConfirmed={handleToggleUploadConfirmed}
+      handleSetUploadReviewDecision={handleSetUploadReviewDecision}
       renderConfidenceDots={renderConfidenceDots}
       unclassifiedUploadCount={unclassifiedUploadCount}
       lowConfidenceUploadCount={lowConfidenceUploadCount}
@@ -5836,7 +5840,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       confirmableUploadCount={confirmableUploadCount}
       hasViewedUploadTableEnd={hasViewedUploadTableEnd}
       allUploadsVerified={allUploadsVerified}
-      handleConfirmAllUploads={handleConfirmAllUploads}
       handleRunClassification={handleRunClassification}
       handleRerunClassification={handleRerunClassification}
       handleGenerateFindings={handleGenerateFindings}
@@ -6001,6 +6004,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
   const renderStepContent = () => {
     switch (currentStep) {
+      case STEP_CASE_SETUP:
+        return renderCaseSetup();
       case STEP_DOCUMENTS:
         return renderDocumentsLifecycleWorkspace();
       case STEP_PROCESSING:
@@ -6008,7 +6013,19 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       case STEP_OVERVIEW:
         return renderOverviewWorkspace();
       case STEP_VIEWER:
-        return (
+        return activeGuidanceContext ? (
+          <div className="stage-card doc-viewer-stage doc-viewer-stage--guidance">
+            <GuidanceContextLayout
+              embedded
+              guidance={activeGuidanceContext}
+              backLabel="Back to Findings"
+              onBack={() => {
+                setActiveGuidanceContext(null);
+                setCurrentStep(STEP_OVERVIEW);
+              }}
+            />
+          </div>
+        ) : (
           <div className="stage-card doc-viewer-stage">
             {renderFindingsWorkspace()}
           </div>
@@ -6037,9 +6054,9 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
   const shellAppTitle = 'CLC Inspection Intelligence';
   const shellHeaderContext =
-    appMode === 'inspection'
+    appMode === 'inspection' && currentCaseMeta.practiceName && (currentStep !== STEP_CASE_SETUP || currentCaseMeta.caseId)
       ? currentCaseMeta.practiceName
-      : appMode === 'caseSetup'
+      : appMode === 'caseSetup' || (appMode === 'inspection' && currentStep === STEP_CASE_SETUP)
         ? 'New Inspection Case'
         : 'Dashboard';
   const shellShowHeaderContextChevron = false;
@@ -6053,9 +6070,55 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const shellPageHelpText =
     appMode === 'dashboard'
       ? 'Use the dashboard to open an existing inspection case or start a new one.'
-      : appMode === 'caseSetup'
-        ? 'Set the inspection scope, case properties and parties before uploading evidence.'
+      : appMode === 'caseSetup' || (appMode === 'inspection' && currentStep === STEP_CASE_SETUP)
+        ? 'Set the inspection scope and case properties before uploading evidence.'
         : '';
+  const handleShowGuidance = useCallback(
+    (finding) => {
+      const areaId = normalizeCodeAreaId(safeText(finding?.codeArea || finding?.code_area, ''));
+      const referenceText = safeText(finding?.reference, '');
+      const referenceLower = referenceText.toLowerCase();
+      const findingTitle = safeText(finding?.title, 'Regulatory requirement');
+      const findingDetail = safeText(finding?.detail, '');
+      let linkedDocumentLabel = '';
+      let linkedDocumentPath = '';
+      let linkedDocumentPage = 1;
+
+      if (referenceLower.includes('firm aml policy')) {
+        linkedDocumentLabel = 'Firm AML Policy';
+        linkedDocumentPath = 'assets/case-files/00_Firm_AML_Policy.pdf';
+        linkedDocumentPage = 1;
+      } else if (areaId === 'aml' || referenceLower.includes('anti-money laundering')) {
+        linkedDocumentLabel = 'CLC Anti-Money Laundering Guidance';
+        linkedDocumentPath = 'assets/case-files/CLC_Anti_Money_Laundering_Guidance_Jan2025.pdf';
+        linkedDocumentPage =
+          findingTitle === 'Identity Document Does Not Match Client'
+          || findingTitle === 'Firm AML Policy Accepts Older Address Evidence Than CLC Guidance Allows'
+            ? 2
+            : 1;
+      } else if (referenceLower.includes('acting for lenders')) {
+        linkedDocumentLabel = 'Acting for Lenders and Prevention and Detection of Mortgage Fraud';
+      } else if (referenceLower.includes('code of conduct')) {
+        linkedDocumentLabel = 'CLC Code of Conduct';
+      }
+      const linkedDocumentUrl =
+        linkedDocumentPath && typeof window !== 'undefined'
+          ? new URL(linkedDocumentPath, window.location.href).toString()
+          : '';
+
+      setActiveGuidanceContext({
+        title: findingTitle,
+        reference: referenceText || 'Requirement context',
+        detail: findingDetail || 'No further requirement context is bundled for this finding.',
+        documentLabel: linkedDocumentLabel,
+        page: linkedDocumentPath ? String(linkedDocumentPage) : '',
+        pdf: linkedDocumentUrl
+      });
+      setViewerOriginStep(STEP_OVERVIEW);
+      setCurrentStep(STEP_VIEWER);
+    },
+    [normalizeCodeAreaId, safeText]
+  );
   const handleJumpToRequirement = useCallback(
     (finding) => {
       const areaId = normalizeCodeAreaId(safeText(finding?.codeArea || finding?.code_area, ''));
@@ -6082,17 +6145,19 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           detail: 'All inspection cases',
           onSelect: handleGoHome
         },
-        ...CASE_TABS.filter((tab) => tab.step <= maxStepUnlocked).map((tab) => ({
+        ...CASE_TABS.map((tab) => ({
           id: tab.id,
           label: tab.label,
           detail:
-            tab.id === 'overview'
-              ? 'Review findings'
-              : tab.id === 'documents'
-                ? 'Select and classify evidence'
-                : 'Generate and export output',
+            tab.id === 'case-setup'
+              ? 'Set up inspection scope'
+              : tab.id === 'overview'
+                ? 'Review findings'
+                : tab.id === 'documents'
+                  ? 'Select and classify evidence'
+                  : 'Generate and export output',
           count: Object.prototype.hasOwnProperty.call(caseTabCounts, tab.id) ? caseTabCounts[tab.id] : undefined,
-          disabled: tab.step > maxStepUnlocked,
+          disabled: tab.step > maxStepUnlocked || (tab.id === 'overview' && allFindingsRejectedOrDismissed),
           showAlert: tab.id === 'report' && reportStale,
           onSelect: () => handleCaseTabNavigate(tab.step)
         }))
@@ -6133,7 +6198,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     handleOpenNewCase,
     maxStepUnlocked,
     reportStale,
-    uploadItems.length
+    uploadItems.length,
+    allFindingsRejectedOrDismissed
   ]);
   const shellActiveNavigationId =
     appMode === 'inspection'
@@ -6142,9 +6208,11 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         ? 'case-setup'
         : 'dashboard';
   const shellNavigationCaption =
-    appMode === 'inspection'
-      ? `${currentCaseMeta.practiceName || 'Inspection case'}${currentCaseMeta.caseId ? ` · ${currentCaseMeta.caseId}` : ''}`
-      : 'Inspection workspace';
+    currentCaseMeta.caseId
+      ? `${currentCaseMeta.practiceName || 'Inspection case'} · ${currentCaseMeta.caseId}`
+      : appMode === 'inspection' && currentStep === STEP_CASE_SETUP
+        ? 'New case'
+        : 'Inspection workspace';
 
   if (isProvisioningBlocked) {
     return <AccessPendingPage onSignOut={onSignOut} />;
@@ -6309,11 +6377,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           </div>
         ) : (
           <>
-            {appMode === 'inspection' && !isActiveCasePersisted ? (
-              <div className="alert alert-warning small">
-                Read-only demo mode: this case is not persisted in Firestore yet.
-              </div>
-            ) : null}
             {renderCaseHeader()}
             {renderStepContent()}
           </>

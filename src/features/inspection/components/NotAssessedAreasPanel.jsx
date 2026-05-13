@@ -4,8 +4,8 @@ export default function NotAssessedAreasPanel({
   entries,
   title = 'Not Assessed',
   emptyText = 'No entries',
-  subtitle = 'Excluded from this inspection',
-  actionLabel = 'Restore to assessment',
+  subtitle = '',
+  actionLabel = '',
   onAction = null
 }) {
   return (
@@ -38,22 +38,24 @@ export default function NotAssessedAreasPanel({
           entries.map((entry) => (
             <div key={entry} className="not-assessed-item">
               <span>{entry}</span>
-              <span className="panel-subtitle">
-                {subtitle}.{' '}
-                {typeof onAction === 'function' ? (
-                  <a
-                    href="#"
-                    className="btn-tertiary"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      onAction(entry);
-                    }}
-                  >
-                    {actionLabel}
-                  </a>
-                ) : null}
-              </span>
+              {subtitle || (typeof onAction === 'function' && actionLabel) ? (
+                <span className="panel-subtitle">
+                  {subtitle ? `${subtitle}${typeof onAction === 'function' && actionLabel ? '. ' : ''}` : ''}
+                  {typeof onAction === 'function' && actionLabel ? (
+                    <a
+                      href="#"
+                      className="btn-tertiary"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onAction(entry);
+                      }}
+                    >
+                      {actionLabel}
+                    </a>
+                  ) : null}
+                </span>
+              ) : null}
             </div>
           ))
         )}

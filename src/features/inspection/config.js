@@ -29,6 +29,7 @@ export const CASE_META = {
   knownParties: []
 };
 
+export const STEP_CASE_SETUP = 0;
 export const STEP_DOCUMENTS = 1;
 export const STEP_PROCESSING = 2;
 export const STEP_OVERVIEW = 3;
@@ -46,6 +47,7 @@ export const WORKFLOW_STEP_CONFIG = [
 ];
 
 export const CASE_TABS = [
+  { id: 'case-setup', label: 'Case Setup', step: STEP_CASE_SETUP },
   { id: 'documents', label: 'Documents', step: STEP_DOCUMENTS },
   { id: 'overview', label: 'Findings', step: STEP_OVERVIEW },
   { id: 'report', label: 'Report', step: STEP_REPORT }
@@ -100,17 +102,45 @@ export const OBSERVATION_SOURCE_OPTIONS = [
 ];
 
 export const FINDING_REQUIREMENT_OPTIONS = [
-  'S3.2.1 Practice-wide risk assessment',
-  'S3.5.2 Source of funds checks',
-  'S3.8.1 Ongoing monitoring',
-  'AC2.1 Client account controls'
+  'aml-1 Borrower identity check',
+  'aml-2 Source of funds documentation',
+  'aml-3 Enhanced due diligence',
+  'aml-4 SOF enquiries and records',
+  'aml-5 Outstanding SOF evidence resolution',
+  'aml-6 Address evidence current',
+  'aml-7 Deposit legitimate source',
+  'aml-8 Address records retained',
+  'aml-9 Estate distribution SOF evidence',
+  'aml-10 Electronic verification transparency',
+  'afl-1 Disclosure to lender',
+  'afl-3 True purchase price to lender',
+  'cc-1 Terms and estimated fees in writing',
+  'cc-2 Fee arrangements and changes',
+  'cc-3 Significant cost changes',
+  'cc-4 How costs will be paid',
+  'cmp-1 Complaints procedure',
+  'cmp-2 Legal Ombudsman escalation'
 ];
 
 export const REQUIREMENT_SEVERITY_BY_ID = {
-  'S3.2.1 Practice-wide risk assessment': 'critical',
-  'S3.5.2 Source of funds checks': 'critical',
-  'S3.8.1 Ongoing monitoring': 'warning',
-  'AC2.1 Client account controls': 'critical'
+  'aml-1 Borrower identity check': 'critical',
+  'aml-2 Source of funds documentation': 'critical',
+  'aml-3 Enhanced due diligence': 'critical',
+  'aml-4 SOF enquiries and records': 'critical',
+  'aml-5 Outstanding SOF evidence resolution': 'critical',
+  'aml-6 Address evidence current': 'best_practice',
+  'aml-7 Deposit legitimate source': 'best_practice',
+  'aml-8 Address records retained': 'best_practice',
+  'aml-9 Estate distribution SOF evidence': 'best_practice',
+  'aml-10 Electronic verification transparency': 'best_practice',
+  'afl-1 Disclosure to lender': 'best_practice',
+  'afl-3 True purchase price to lender': 'best_practice',
+  'cc-1 Terms and estimated fees in writing': 'best_practice',
+  'cc-2 Fee arrangements and changes': 'best_practice',
+  'cc-3 Significant cost changes': 'best_practice',
+  'cc-4 How costs will be paid': 'best_practice',
+  'cmp-1 Complaints procedure': 'best_practice',
+  'cmp-2 Legal Ombudsman escalation': 'best_practice'
 };
 
 export const MANUAL_CASE_LEVEL_SOURCE_OPTIONS = [
@@ -180,9 +210,11 @@ export const NOT_ASSESSED_AREAS = [];
 export const VIEWER_CODE_AREA_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'aml', label: 'AML & CTF' },
+  { id: 'lenders', label: 'Acting for Lenders' },
+  { id: 'client-care', label: 'Client Care' },
+  { id: 'complaints', label: 'Complaints Code' },
   { id: 'cyber', label: 'Cyber' },
   { id: 'accounts', label: 'Accounts Code' },
-  { id: 'complaints', label: 'Complaints Code' },
   { id: 'conflicts', label: 'Conflicts of Interest' },
   { id: 'transaction', label: 'Transaction Files' }
 ];
@@ -231,14 +263,29 @@ export const REPORT_SEVERITY_LABEL_MAP = {
 
 export const CODE_AREA_REQUIREMENT_SAMPLES = {
   aml: [
-    { id: 'aml-1', label: 'Practice-wide risk assessment current', status: 'non_compliant' },
-    { id: 'aml-2', label: 'Source of funds evidence complete', status: 'lead' },
-    { id: 'aml-3', label: 'Ongoing monitoring documented', status: 'compliant' }
+    { id: 'aml-2', label: 'Source-of-funds documentation retained', status: 'non_compliant' },
+    { id: 'aml-3', label: 'Enhanced due diligence for higher risk', status: 'non_compliant' },
+    { id: 'aml-5', label: 'Outstanding SOF evidence resolved', status: 'non_compliant' },
+    { id: 'aml-6', label: 'Address evidence current and valid', status: 'compliant' },
+    { id: 'aml-7', label: 'Deposit from legitimate source', status: 'good_practice' },
+    { id: 'aml-8', label: 'Address records copied and retained', status: 'compliant' },
+    { id: 'aml-9', label: 'Estate distribution SOF evidence', status: 'compliant' },
+    { id: 'aml-10', label: 'Electronic verification transparency', status: 'compliant' }
+  ],
+  lenders: [
+    { id: 'aml-1', label: 'Borrower identity original documents', status: 'non_compliant' },
+    { id: 'afl-1', label: 'Terms permit lender disclosure', status: 'compliant' },
+    { id: 'afl-3', label: 'True purchase price to lender', status: 'compliant' }
   ],
   'client-care': [
-    { id: 'cc-1', label: 'Terms of engagement issued', status: 'compliant' },
-    { id: 'cc-2', label: 'Scope communicated clearly', status: 'compliant' },
-    { id: 'cc-3', label: 'Fees transparency evidence', status: 'compliant' }
+    { id: 'cc-1', label: 'Terms and estimated fees in writing', status: 'compliant' },
+    { id: 'cc-2', label: 'Fee arrangements and changes', status: 'compliant' },
+    { id: 'cc-3', label: 'Significant cost changes told promptly', status: 'compliant' },
+    { id: 'cc-4', label: 'How costs will be paid agreed', status: 'compliant' }
+  ],
+  complaints: [
+    { id: 'cmp-1', label: 'Complaints procedure in writing', status: 'compliant' },
+    { id: 'cmp-2', label: 'Legal Ombudsman escalation details', status: 'compliant' }
   ],
   accounts: [
     { id: 'ac-1', label: 'Client account reconciliations', status: 'compliant' },
@@ -248,23 +295,33 @@ export const CODE_AREA_REQUIREMENT_SAMPLES = {
     { id: 'mg-1', label: 'Supervision process documented', status: 'compliant' },
     { id: 'mg-2', label: 'Escalation route clear', status: 'compliant' }
   ],
-  undertakings: [{ id: 'un-1', label: 'Undertakings register maintained', status: 'compliant' }],
-  complaints: [{ id: 'co-1', label: 'Complaints process visible to clients', status: 'compliant' }]
+  undertakings: [{ id: 'un-1', label: 'Undertakings register maintained', status: 'compliant' }]
 };
 
 export const REQUIREMENT_KEYWORDS = {
-  'aml-1': ['risk assessment', 'practice-wide risk assessment', 'pwra'],
-  'aml-2': ['source of funds', 'sof'],
-  'aml-3': ['monitoring', 'ongoing monitoring'],
-  'cc-1': ['terms of engagement', 'client care'],
-  'cc-2': ['scope', 'engagement'],
-  'cc-3': ['fees', 'transparency'],
+  'aml-1': ['identity', 'borrower identity', 'original documents'],
+  'aml-2': ['source of funds', 'sof', 'documentation retained'],
+  'aml-3': ['enhanced due diligence', 'higher risk', 'cdd'],
+  'aml-4': ['source of funds enquiries', 'evidence copies', 'recorded'],
+  'aml-5': ['outstanding', 'sof evidence', 'resolved', 'relied upon'],
+  'aml-6': ['address evidence', 'current', 'proof of address'],
+  'aml-7': ['deposit', 'legitimate source', 'good practice'],
+  'aml-8': ['address records', 'copied', 'retained'],
+  'aml-9': ['estate distribution', 'sof evidence', 'retained'],
+  'aml-10': ['electronic verification', 'transparent', 'checks carried out', 'identity'],
+  'afl-1': ['disclosure', 'lender', 'terms of engagement'],
+  'afl-3': ['purchase price', 'lender', 'true price'],
+  'cc-1': ['terms of engagement', 'estimated fees', 'writing'],
+  'cc-2': ['fee arrangements', 'changes'],
+  'cc-3': ['costs', 'changes', 'projected'],
+  'cc-4': ['costs', 'agreed', 'payment'],
+  'cmp-1': ['complaint', 'procedure', 'timeframes'],
+  'cmp-2': ['ombudsman', 'escalation', 'legal ombudsman'],
   'ac-1': ['reconciliation', 'client account'],
   'ac-2': ['residual', 'balance'],
   'mg-1': ['supervision', 'mlro'],
   'mg-2': ['escalation', 'governance'],
-  'un-1': ['undertaking'],
-  'co-1': ['complaint', 'complaints']
+  'un-1': ['undertaking']
 };
 
 export const CODE_AREA_KEYWORDS = {
@@ -280,7 +337,8 @@ export const CODE_AREA_KEYWORDS = {
     'ctf'
   ],
   cyber: ['cyber', 'cyber essentials', 'information security', 'phishing', 'firewall'],
-  'client-care': ['client care', 'terms of engagement', 'engagement letter', 'client communication'],
+  lenders: ['lender', 'mortgage fraud', 'acting for lenders', 'disclosure to lender', 'purchase price'],
+  'client-care': ['client care', 'terms of engagement', 'engagement letter', 'client communication', 'fee estimate', 'costs'],
   complaints: ['complaint', 'complaints', 'ombudsman'],
   management: ['management', 'supervision', 'mlro', 'governance', 'training'],
   accounts: ['accounts code', 'client account', 'reconciliation', 'residual balance', 'ledger'],
@@ -298,8 +356,16 @@ export const CODE_AREA_ALIASES = {
   cyber: 'cyber',
   'cyber security': 'cyber',
   'cyber essentials': 'cyber',
+  lenders: 'lenders',
+  'acting for lenders': 'lenders',
+  'acting-for-lenders': 'lenders',
+  'acting for lenders & mortgage fraud': 'lenders',
+  'acting for lenders and prevention and detection of mortgage fraud': 'lenders',
+  'mortgage fraud': 'lenders',
   complaints: 'complaints',
   'complaints code': 'complaints',
+  'code of conduct': 'complaints',
+  'code-of-conduct': 'complaints',
   'client care': 'client-care',
   'client care code': 'client-care',
   'terms of engagement': 'client-care',
@@ -331,8 +397,8 @@ export const REPORT_ACTION_DEFAULTS = [
   },
   {
     id: 'ra3',
-    action: 'Update SAR log format with outcome fields',
-    codeRef: 'S3.8.1',
+    action: 'Complete outstanding SOF evidence before relying on funds',
+    codeRef: 'AML Procedure 20',
     codeArea: 'AML',
     deadline: '2026-02-28',
     person: ''
@@ -341,6 +407,22 @@ export const REPORT_ACTION_DEFAULTS = [
     id: 'ra4',
     action: 'Update complaints information on website',
     codeRef: 'C4.1.1',
+    codeArea: 'Complaints',
+    deadline: '2026-03-14',
+    person: ''
+  },
+  {
+    id: 'ra5',
+    action: 'Remind fee-earners of lender disclosure obligations',
+    codeRef: 'AFL Section 9',
+    codeArea: 'Acting for Lenders',
+    deadline: '2026-03-14',
+    person: ''
+  },
+  {
+    id: 'ra6',
+    action: 'Ensure client care letters include Legal Ombudsman escalation details',
+    codeRef: 'COC 6.k',
     codeArea: 'Complaints',
     deadline: '2026-03-14',
     person: ''

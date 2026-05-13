@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { getUploadReviewDecision } from '../../../utils/documentUploads.js';
 
 const SOURCE_CLASSIFICATION_ENTRIES = [
   { groupLabel: 'Policy Document', optionLabel: 'AML Policy' },
@@ -14,11 +15,14 @@ const SOURCE_CLASSIFICATION_ENTRIES = [
   { groupLabel: 'Policy Document', optionLabel: 'Complaints Procedure' },
   { groupLabel: 'Client Matter Document', optionLabel: 'Fee Estimate' },
   { groupLabel: 'Client Matter Document', optionLabel: 'Client Care Letter' },
+  { groupLabel: 'Client Matter Document', optionLabel: 'Source of Funds Schedule' },
   { groupLabel: 'Client Matter Document', optionLabel: 'Identity Verification' },
   { groupLabel: 'Client Matter Document', optionLabel: 'Proof of Address' },
   { groupLabel: 'Client Matter Document', optionLabel: 'Gift Letter' },
   { groupLabel: 'Client Matter Document', optionLabel: 'Giftor ID Verification' },
-  { groupLabel: 'Client Matter Document', optionLabel: 'Source of Funds Declaration' }
+  { groupLabel: 'Client Matter Document', optionLabel: 'Source of Funds Declaration' },
+  { groupLabel: 'Legal Correspondence', optionLabel: 'Estate Distribution Letter' },
+  { groupLabel: 'Legal Correspondence', optionLabel: 'Lender Disclosure File Note' }
 ];
 
 const buildClassificationEntries = (documentClassificationGroups, currentValue, currentGroupLabel) => {
@@ -105,7 +109,7 @@ export default function DocumentsUploadPhase({
   handleRemoveUploadInterviewee,
   handleAddUploadInterviewee,
   handleUploadFieldChange,
-  handleToggleUploadConfirmed,
+  handleSetUploadReviewDecision,
   renderConfidenceDots,
   resolveConfidenceState,
   unclassifiedUploadCount,
@@ -116,7 +120,6 @@ export default function DocumentsUploadPhase({
   unverifiedUploadCount,
   confirmableUploadCount,
   allUploadsVerified,
-  handleConfirmAllUploads,
   handleGenerateFindings,
   processingEntries,
   hasViewedUploadTableEnd
@@ -125,7 +128,13 @@ export default function DocumentsUploadPhase({
   void uploadAreaCollapsed;
   void stepDocuments;
   void verifiedUploadCount;
+  void unverifiedUploadCount;
+  void confirmableUploadCount;
+  void allUploadsVerified;
+  void hasViewedUploadTableEnd;
   void incompleteInterviewUploadCount;
+  void limitedAnalysisUploadCount;
+  void lowConfidenceUploadCount;
   void processingEntries;
   void currentCaseMeta;
   void toIsoDate;
@@ -215,14 +224,23 @@ export default function DocumentsUploadPhase({
     []
   );
 
-  const generateFindingsBlockedReason =
-    unclassifiedUploadCount > 0
+  const getConfirmDecision = (item) => getUploadReviewDecision(item);
+
+  const isPepClassification = (item) => {
+    const normalizedItem = prepareUploadDraft(item);
+    const classification = formatUploadClassificationLabel(normalizedItem);
+    return classification === 'PEP Screening';
+  };
+
+  const allDecisionsMade = uploadItems.every((item) => getConfirmDecision(item) !== '');
+
+  const generateFindingsBlockedReason = !allDecisionsMade
+    ? 'Select Confirm or Remove for all documents before generating findings.'
+    : unclassifiedUploadCount > 0
       ? `Classify all ${unclassifiedUploadCount} remaining document${unclassifiedUploadCount === 1 ? '' : 's'} first.`
       : incompleteInterviewUploadCount > 0
         ? `Complete the interview details for ${incompleteInterviewUploadCount} transcript${incompleteInterviewUploadCount === 1 ? '' : 's'} before continuing.`
-        : unverifiedUploadCount > 0
-          ? `Confirm all ${unverifiedUploadCount} document${unverifiedUploadCount === 1 ? '' : 's'} before generating findings.`
-          : '';
+        : '';
 
   useEffect(() => {
     if (!generateFindingsBlockedReason) {
@@ -268,9 +286,9 @@ export default function DocumentsUploadPhase({
       ) : (
         <div className="docs-wire-table-wrap">
           <table className="table docs-wire-table docs-wire-table--phase-one">
-            <colgroup>
+          <colgroup>
               <col style={{ width: '19%' }} />
-              <col style={{ width: '35%' }} />
+              <col style={{ width: '30%' }} />
               <col style={{ width: '18%' }} />
               <col style={{ width: '18%' }} />
               <col style={{ width: '108px' }} />
@@ -279,9 +297,9 @@ export default function DocumentsUploadPhase({
               <tr>
                 <th>Name</th>
                 <th>Classification</th>
-                <th>Reason</th>
-                <th>Justification</th>
-                <th style={{ width: '108px' }}>Confirm</th>
+                <th>Confidence</th>
+                <th>Notes</th>
+                <th style={{ width: '108px' }}>Confirm/remove</th>
               </tr>
             </thead>
             <tbody>
@@ -290,9 +308,6 @@ export default function DocumentsUploadPhase({
               const classification = formatUploadClassificationLabel(normalizedItem);
               const isClassifying = normalizedItem.status === 'queued';
               const isUnknown = !isUploadClassificationResolved(normalizedItem);
-              const isVerified =
-                normalizedItem.status === 'verified' && isUploadReadyForConfirmation(normalizedItem);
-              const isReadyForConfirmation = isUploadReadyForConfirmation(normalizedItem);
               const confidenceState = resolveConfidenceState(normalizedItem.confidence);
               const interviewees = normalizeUploadInterviewees(normalizedItem);
               const isInterviewTranscript = isInterviewTranscriptUpload(normalizedItem);
@@ -574,14 +589,9 @@ export default function DocumentsUploadPhase({
                   </td>
                   <td>
                     {isClassifying ? (
-                      <span className="classifying-text">
-                        <span className="spinner" />
-                        Re-running AI classification...
-                      </span>
+                      <span className="dash-muted">—</span>
                     ) : (
-                      <div className="docs-reason-cell">
-                        {classificationReason || '—'}
-                      </div>
+                      <span>{isPepClassification(item) ? 'Low' : 'High'}</span>
                     )}
                   </td>
                   <td>
@@ -605,29 +615,18 @@ export default function DocumentsUploadPhase({
                         —
                       </span>
                     ) : (
-                      <label
-                        className={`doc-confirm-toggle ${isVerified ? 'is-checked' : ''} ${
-                          !isReadyForConfirmation ? 'is-disabled' : ''
-                        }`}
-                        title={
-                          isUnknown
-                            ? 'Select classification first'
-                            : hasIncompleteUploadInterviewees(normalizedItem)
-                              ? 'Complete interviewee details first'
-                              : isVerified
-                                ? 'Untick to remove this document from findings generation'
-                                : 'Tick to use this document for findings generation'
-                        }
+                      <select
+                        className={`docs-confirm-dropdown${getConfirmDecision(item) === '' ? ' is-unset' : ''}${getConfirmDecision(item) === 'remove' ? ' is-removed' : ''}`}
+                        value={getConfirmDecision(item)}
+                        onChange={(event) => {
+                          const newValue = event.target.value;
+                          handleSetUploadReviewDecision(item.id, newValue);
+                        }}
                       >
-                        <input
-                          type="checkbox"
-                          checked={isVerified}
-                          disabled={!isReadyForConfirmation}
-                          onChange={() => handleToggleUploadConfirmed(item.id)}
-                          aria-label={`Use ${item.name} for findings generation`}
-                        />
-                        <span className="doc-confirm-toggle__control" aria-hidden="true" />
-                      </label>
+                        <option value="">Select...</option>
+                        <option value="confirm">Confirm</option>
+                        <option value="remove">Remove</option>
+                      </select>
                     )}
                   </td>
                 </tr>
@@ -640,40 +639,13 @@ export default function DocumentsUploadPhase({
         </div>
       )}
 
-      <div className="warning-messages">
-        <div className="warning-line muted">
-          Tick each confirm box after the classification looks right. Only confirmed rows are used for findings generation.
-        </div>
-        <div className="warning-line muted">
-          ○ {unverifiedUploadCount} document{unverifiedUploadCount === 1 ? '' : 's'} not yet confirmed
-        </div>
-      </div>
-
       <div className="bottom-actions">
         <button
           type="button"
-          className="btn btn-secondary btn-sm docs-bulk-confirm-btn"
-          disabled={confirmableUploadCount === 0}
-          onClick={() => {
-            if (!window.confirm(`Confirm all remaining ${confirmableUploadCount} document${confirmableUploadCount === 1 ? '' : 's'}?`)) {
-              return;
-            }
-            handleConfirmAllUploads();
-          }}
-          title={
-            !hasViewedUploadTableEnd ? 'Confirm all classifications' : 'Confirm all classified rows'
-          }
-        >
-          {confirmableUploadCount > 0
-            ? `Confirm all classified rows (${confirmableUploadCount})`
-            : 'All classified rows confirmed'}
-        </button>
-        <button
-          type="button"
           className="btn btn-primary btn-lg"
-          disabled={uploadItems.length === 0}
+          disabled={uploadItems.length === 0 || Boolean(generateFindingsBlockedReason)}
           onClick={handleAttemptGenerateFindings}
-          title={generateFindingsBlockedReason || 'Generate findings from the confirmed documents.'}
+          title={generateFindingsBlockedReason || 'Generate findings from the selected documents.'}
         >
           Generate findings
         </button>

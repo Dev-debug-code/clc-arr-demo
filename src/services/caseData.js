@@ -191,6 +191,7 @@ function mapFinding(docSnap) {
     data.isGoodPractice === true ||
     data.is_good_practice === true ||
     String(data.severity || '').trim().toLowerCase() === 'best_practice';
+  const rawCodeArea = String(data.codeArea ?? data.code_area ?? '').trim();
   return {
     id: docSnap.id,
     severity: deriveLegacyFindingSeverity({
@@ -205,7 +206,7 @@ function mapFinding(docSnap) {
     documentId: data.documentId ?? '',
     requirementId: data.requirementId ?? data.requirement_id ?? '',
     boxId: data.boxId ?? docSnap.id,
-    codeArea: data.codeArea ?? data.code_area ?? '',
+    codeArea: normalizeCodeAreaId(rawCodeArea) || rawCodeArea || 'aml',
     certainty,
     polarity,
     isGoodPractice,
@@ -247,11 +248,13 @@ function normalizeCodeAreaId(value) {
   if (raw === 'aml' || normalized.includes('money laundering') || normalized.includes('ctf')) {
     return 'aml';
   }
+  if (normalized.includes('lender') || normalized.includes('mortgage fraud')) return 'lenders';
   if (normalized.includes('complaint')) return 'complaints';
   if (normalized.includes('client care') || normalized.includes('engagement')) return 'client-care';
   if (normalized.includes('account') || normalized.includes('reconciliation')) return 'accounts';
   if (normalized.includes('management') || normalized.includes('supervision')) return 'management';
   if (normalized.includes('undertaking')) return 'undertakings';
+  if (normalized.includes('code of conduct')) return 'client-care';
   return normalized.replace(/\s+/g, '-');
 }
 
@@ -520,6 +523,7 @@ export async function loadCaseWorkspaceData(caseId) {
       classificationReason: data.classificationReason ?? data.classification_reason ?? '',
       classificationJustification:
         data.classificationJustification ?? data.classification_justification ?? '',
+      reviewDecision: data.reviewDecision ?? data.review_decision ?? data.confirmRemove ?? data.confirm_remove ?? '',
       addedOn: data.addedOn ?? '',
       summary: data.summary ?? ''
     });
@@ -1867,6 +1871,7 @@ export async function persistUploadItem({ caseId, uploadItem, user }) {
         normalizedUploadItem.classificationReason ?? normalizedUploadItem.classification_reason ?? '',
       classificationJustification:
         normalizedUploadItem.classificationJustification ?? normalizedUploadItem.classification_justification ?? '',
+      reviewDecision: normalizedUploadItem.reviewDecision ?? '',
       addedOn: normalizedUploadItem.addedOn ?? '',
       summary: normalizedUploadItem.summary ?? '',
       updatedAt: now,

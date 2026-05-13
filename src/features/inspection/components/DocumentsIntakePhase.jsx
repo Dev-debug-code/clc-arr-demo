@@ -85,7 +85,9 @@ export default function DocumentsIntakePhase({
             <tbody>
               {uploadItems.map((item) => {
               const stageLabel =
-                item.status === 'verified'
+                item.status === 'removed'
+                  ? 'Excluded from findings'
+                  : item.status === 'verified'
                   ? 'Confirmed'
                   : item.status === 'classified'
                     ? 'Ready for review'

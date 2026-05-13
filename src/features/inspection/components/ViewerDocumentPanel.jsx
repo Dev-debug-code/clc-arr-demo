@@ -222,6 +222,7 @@ export default function ViewerDocumentPanel({
   handleCaseTabNavigate,
   activeCaseTabId,
   activeDocId,
+  showDocBoxes,
   activeDocBoxes,
   activeDocBoxId,
   handleSelectDocBox,
@@ -303,7 +304,7 @@ export default function ViewerDocumentPanel({
                 key={activeDocument?.id || activeDocument?.pdf || 'doc-viewer'}
                 pdfUrl={activeDocument?.pdf}
                 boxes={activeDocBoxes}
-                showBoxes
+                showBoxes={showDocBoxes && activeDocBoxes.length > 0}
                 activeBoxId={activeDocBoxId}
                 onSelectBox={(boxId) =>
                   handleSelectDocBox(boxId, {
@@ -314,7 +315,7 @@ export default function ViewerDocumentPanel({
                 scrollRef={docPdfScrollRef}
                 focusSignal={docFocusSignal}
               />
-              {activeDocMinimapMarkers.length > 0 ? (
+              {showDocBoxes && activeDocMinimapMarkers.length > 0 ? (
                 <div className="doc-minimap" title="Document minimap">
                   {activeDocMinimapMarkers.map((marker) => (
                     <button
@@ -342,20 +343,6 @@ export default function ViewerDocumentPanel({
             Ask Reggie about this document
           </button>
         </div>
-        <span
-          className="doc-viewer-feedback"
-          role="button"
-          tabIndex={0}
-          onClick={() => setFeedbackOpen(true)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              setFeedbackOpen(true);
-            }
-          }}
-        >
-          ? Something to tell us?
-        </span>
       </div>
     </div>
   );

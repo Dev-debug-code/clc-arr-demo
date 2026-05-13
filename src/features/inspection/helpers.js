@@ -68,10 +68,12 @@ export const buildUploadLookupKeys = (uploadItem) =>
 export const inferRequirementCodeArea = (requirement) => {
   const value = String(requirement || '').trim().toLowerCase();
   if (!value) return 'aml';
+  if (value.startsWith('afl') || value.includes('acting for lender') || (value.includes('lender') && !value.includes('client'))) return 'lenders';
+  if (value.startsWith('cmp') || value.includes('complaint')) return 'complaints';
   if (value.startsWith('ac') || value.includes('account')) return 'accounts';
-  if (value.includes('complaint')) return 'complaints';
-  if (value.includes('client care') || value.includes('engagement')) return 'client-care';
+  if (value.startsWith('cc') || value.includes('client care') || value.includes('engagement') || value.includes('costs') || value.includes('fee')) return 'client-care';
   if (value.includes('undertaking')) return 'undertakings';
+  if (value.startsWith('mg') || value.includes('management') || value.includes('supervision')) return 'management';
   return 'aml';
 };
 

@@ -1,0 +1,34 @@
+{
+  "isGoodPractice": false,
+  "id": "COMP-COC-002",
+  "reviewStatus": "unreviewed",
+  "evidencePassages": [
+    {
+      "document_id": "12_Client_Care_Letter",
+      "page": 1,
+      "id": "COMP-COC-002-p1",
+      "section": "Fees and Disbursements",
+      "text": "completion monies",
+      "box_id": "COMP-COC-002",
+      "file": "12_Client_Care_Letter.pdf"
+    }
+  ],
+  "detail": "The client care letter explains the fee arrangements, including how fees and disbursements will be paid from completion monies or invoiced if the transaction does not proceed.",
+  "codeArea": "client-care",
+  "reference": "Code of Conduct, Overriding Principle 3.j",
+  "evidence_strength": "strong",
+  "documentId": "12_Client_Care_Letter",
+  "source": {
+    "page": 1,
+    "file": "12_Client_Care_Letter.pdf",
+    "section": "Fees and Disbursements",
+    "text": "completion monies"
+  },
+  "boxId": "COMP-COC-002",
+  "requirementId": "cc-2",
+  "polarity": "compliant",
+  "title": "Client Is Told About Fee Arrangements",
+  "severity": "best_practice",
+  "certainty": "finding",
+  "is_good_practice": false
+}

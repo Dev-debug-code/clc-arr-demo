@@ -1,8 +1,8 @@
 {
   "status": "attention",
-  "parties": "James Whitfield",
+  "parties": "John Bloggs",
   "id": "10_PEP_Screening",
-  "summary": "PEP and sanctions screening report \u2014 subject name James Whitfield does not match the client (Joe Bloggs). Likely misfiled from another matter.",
+  "summary": "PEP and sanctions screening report \u2014 subject name John Bloggs does not match the buyer/client Joe Bloggs. The estate letter identifies John Bloggs as Joe Bloggs' deceased father.",
   "confidence": "low",
   "models_agree": false,
   "filename": "10_PEP_Screening.pdf",
@@ -22,8 +22,8 @@
         750
       ],
       "category": "Client Details",
-      "details": "The Politically Exposed Person (PEP) and sanctions screening report on file is in the name 'James Whitfield', which doesn't appear to match any party in this case (client: Joe Bloggs; donor: John Bloggs Senior). Worth confirming whether the document was misfiled from another matter and whether screening was completed for the actual case parties.",
-      "title": "Politically Exposed Person Check Appears to Be for the Wrong Individual",
+      "details": "The PEP and sanctions screening report on file is in the name John Bloggs. The estate letter identifies John Bloggs as Joe Bloggs' deceased father, while Joe Bloggs is the buyer/client. A separate sanctions screening report exists for Joe Bloggs, so this lead is specifically about the PEP/adverse-media report appearing to screen the wrong person.",
+      "title": "PEP Check Appears to Be for the Deceased Father, Not the Buyer",
       "severity": "warning"
     }
   ],
@@ -37,14 +37,14 @@
     "watchlist_table"
   ],
   "parties_found": [
-    "James Whitfield"
+    "John Bloggs"
   ],
   "extracted_fields": {
     "screening_date": "15/10/2024",
-    "subject_name": "James Whitfield",
-    "employer": "Example Investment Bank"
+    "subject_name": "John Bloggs",
+    "screening_result": "clear"
   },
-  "flag_reason": "Document relates to 'James Whitfield' \u2014 does not match any known party in this case (client: Joe Bloggs, giftor: John Bloggs Senior). This document may have been misfiled from another matter.",
+  "flag_reason": "Document relates to 'John Bloggs' \u2014 the deceased father of Joe Bloggs \u2014 rather than to the buyer/client Joe Bloggs. The firm appears to have screened the wrong person.",
   "severity": "warning",
   "processing_path": "ocr_then_classify_then_extract",
   "name": "10_PEP_Screening.pdf"

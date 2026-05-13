@@ -58,16 +58,15 @@ export default function ReportStage({
           <div className="spinner-sumplexity spinner-lg" aria-hidden="true" />
           <h3>{reportGenerationMode === 'regenerate' ? 'Regenerating report' : 'Generating report'}</h3>
           <p>
-            Preparing the inspection report from the latest reviewed findings and action plan items.
+            Preparing the inspection report from the current in-scope findings and action plan items.
           </p>
         </div>
       ) : availableFindings.length === 0 ? (
         <div className="edge-empty-card">
           <div className="edge-empty-card__icon">📃</div>
-          <h3>Generate findings from your documents first</h3>
+          <h3>Upload documents and generate findings first</h3>
           <p>
-            The report will be assembled from your reviewed findings, presented in a format ready
-            for the practice.
+            The report will be assembled from the findings currently in scope for this case once you generate them.
           </p>
           <a
             href="#"
@@ -82,7 +81,7 @@ export default function ReportStage({
           <p className="empty-state-list-title">What the report will include:</p>
           <ul className="empty-state-list compact">
             <li>Practice details and inspection context</li>
-            <li>Summary of compliance posture</li>
+            <li>Compliance summary</li>
             <li>Areas of good practice</li>
             <li>Areas requiring attention with actions</li>
             <li>Action plan with deadlines</li>
@@ -93,8 +92,8 @@ export default function ReportStage({
           <div className="edge-empty-card__icon">📋</div>
           <h3>Your findings are ready</h3>
           <p>
-            The report will be assembled from your reviewed findings, including action plan items
-            for accepted non-compliant findings and accepted items that required review.
+            The report will be assembled from the current in-scope findings. Findings you reject or
+            dismiss are excluded from the report and action plan.
           </p>
           <button type="button" className="btn primary" onClick={onGenerateReport} disabled={!reportCanGenerate}>
             Generate report

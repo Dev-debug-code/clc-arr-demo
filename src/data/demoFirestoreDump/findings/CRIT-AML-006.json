@@ -4,32 +4,30 @@
   "reviewStatus": "unreviewed",
   "evidencePassages": [
     {
-      "document_id": "00_Firm_AML_Policy",
+      "document_id": "14_Source_of_Funds_Schedule",
       "page": 1,
       "id": "CRIT-AML-006-p1",
-      "section": "Section 2.3.2",
-      "text": "Utility bills (gas, electricity, water, telephone) dated within the last 6 months",
+      "section": "Evidence Status Summary",
+      "text": "It is not a final approval of source-of-funds evidence",
       "box_id": "CRIT-AML-006",
-      "file": "00_Firm_AML_Policy.pdf"
+      "file": "14_Source_of_Funds_Schedule.pdf"
     }
   ],
-  "detail": "The firm's AML policy \u00a72.3.2 permits utility bills dated within the last 6 months for address verification. CLC AML Guidance specifies utility bills must be less than 3 months old. The firm's written policy sets a lower standard than the regulatory guidance \u2014 any address verification relying on a utility bill between 3 and 6 months old would be non-compliant with CLC guidance even if compliant with the firm's own policy.",
+  "detail": "The source-of-funds schedule records that savings evidence is only partial and that the donor source-of-funds documentation has not been obtained. It also states that the schedule is not a final approval of source-of-funds evidence.",
   "codeArea": "aml",
-  "reference": "CLC AML Guidance, Procedure \u00a73.2",
+  "reference": "Anti-Money Laundering, Procedure 20",
   "evidence_strength": "strong",
-  "documentId": "00_Firm_AML_Policy",
-  "updatedAt": "2026-05-05T20:44:03.529203+00:00",
+  "documentId": "14_Source_of_Funds_Schedule",
   "source": {
     "page": 1,
-    "file": "00_Firm_AML_Policy.pdf",
-    "section": "Section 2.3.2",
-    "text": "Utility bills (gas, electricity, water, telephone) dated within the last 6 months"
+    "file": "14_Source_of_Funds_Schedule.pdf",
+    "section": "Evidence Status Summary",
+    "text": "It is not a final approval of source-of-funds evidence"
   },
-  "createdAt": "2026-05-05T20:44:03.529203+00:00",
   "boxId": "CRIT-AML-006",
   "requirementId": "aml-5",
   "polarity": "non_compliant",
-  "title": "Firm Policy Allows Older Address Evidence Than CLC Guidance Permits",
+  "title": "Source-of-Funds Schedule Records Unresolved Evidence Gaps",
   "severity": "critical",
   "certainty": "finding",
   "is_good_practice": false

@@ -39,6 +39,7 @@ export default function ComplianceByCodeAreaPanel({
   handleDeleteFinding,
   handleJumpToRequirement,
   handleViewDocument,
+  handleShowGuidance,
   openLeadConfirmModal,
   inlineRejectFindingId,
   inlineRejectReason,
@@ -71,9 +72,6 @@ export default function ComplianceByCodeAreaPanel({
     <section className="panel compliance-code-area-panel">
       <div className="section-heading">
         <h2>Findings by Code Area</h2>
-        <button type="button" className="btn btn-xs secondary" onClick={() => openComposerModal('observation')}>
-          + Add observation
-        </button>
       </div>
       <div className="code-area-list">
         {[...complianceCodeAreas]
@@ -175,6 +173,7 @@ export default function ComplianceByCodeAreaPanel({
               closeLeadConfirmModal={closeLeadConfirmModal}
               launchLeadEvidenceHighlighter={launchLeadEvidenceHighlighter}
               openComposerModal={openComposerModal}
+               handleShowGuidance={handleShowGuidance}
             />
           ))}
         <NotAssessedAreasPanel
@@ -183,17 +182,6 @@ export default function ComplianceByCodeAreaPanel({
           entries={notAssessedAreas}
           title="Not Assessed"
           emptyText="No code areas skipped by the inspector."
-          subtitle="Excluded from this inspection"
-          actionLabel="Restore to assessment"
-          onAction={handleRestoreNotAssessedArea}
-        />
-        <NotAssessedAreasPanel
-          expanded={notApplicableExpanded}
-          setExpanded={setNotApplicableExpanded}
-          entries={notApplicableAreas}
-          title="Not Applicable"
-          emptyText="No requirements marked as not applicable."
-          subtitle="Excluded from this case"
         />
       </div>
     </section>

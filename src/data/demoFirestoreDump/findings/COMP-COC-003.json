@@ -1,0 +1,34 @@
+{
+  "isGoodPractice": false,
+  "id": "COMP-COC-003",
+  "reviewStatus": "unreviewed",
+  "evidencePassages": [
+    {
+      "document_id": "12_Client_Care_Letter",
+      "page": 1,
+      "id": "COMP-COC-003-p1",
+      "section": "Fees and Disbursements",
+      "text": "advise promptly",
+      "box_id": "COMP-COC-003",
+      "file": "12_Client_Care_Letter.pdf"
+    }
+  ],
+  "detail": "The client care letter says the firm will advise promptly if estimated costs change before additional fees are incurred.",
+  "codeArea": "client-care",
+  "reference": "Code of Conduct, Overriding Principle 3.m",
+  "evidence_strength": "strong",
+  "documentId": "12_Client_Care_Letter",
+  "source": {
+    "page": 1,
+    "file": "12_Client_Care_Letter.pdf",
+    "section": "Fees and Disbursements",
+    "text": "advise promptly"
+  },
+  "boxId": "COMP-COC-003",
+  "requirementId": "cc-3",
+  "polarity": "compliant",
+  "title": "Client Is Told About Changes to Costs",
+  "severity": "best_practice",
+  "certainty": "finding",
+  "is_good_practice": false
+}

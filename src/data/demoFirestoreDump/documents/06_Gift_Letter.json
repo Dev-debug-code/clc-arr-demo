@@ -2,7 +2,7 @@
   "parties": "Donor",
   "confirmed": true,
   "id": "06_Gift_Letter",
-  "summary": "Gift letter from John Bloggs Senior confirming \u00a3200,000 gift to Joe Bloggs.",
+  "summary": "Gift letter from Jill Withers confirming \u00a3200,000 gift to Joe Bloggs.",
   "confidence": "high",
   "models_agree": true,
   "filename": "06_Gift_Letter.pdf",
@@ -18,10 +18,10 @@
     "gift_declaration"
   ],
   "parties_found": [
-    "John Bloggs Senior"
+    "Jill Withers"
   ],
   "extracted_fields": {
-    "donor": "John Bloggs Senior",
+    "donor": "Jill Withers",
     "recipient": "Joe Bloggs",
     "gift_amount": "200000",
     "letter_date": "12/10/2024"

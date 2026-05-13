@@ -1,0 +1,31 @@
+{
+  "id": "14_Source_of_Funds_Schedule",
+  "name": "14_Source_of_Funds_Schedule.pdf",
+  "filename": "14_Source_of_Funds_Schedule.pdf",
+  "summary": "Source-of-funds schedule itemising the purchase funds and recording mixed evidence: partial savings evidence, outstanding donor evidence, and supported estate distribution.",
+  "documentType": "Source of Funds Schedule",
+  "classification": "Source of Funds Declaration",
+  "classification_confidence": 0.92,
+  "confidence": "high",
+  "models_agree": true,
+  "confirmed": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "severity": "warning",
+  "parties": "Client; donor; deceased parent",
+  "parties_found": ["Joe Bloggs", "Jill Withers", "John Bloggs"],
+  "features_found": ["sof_breakdown", "evidence_status_table", "outstanding_enquiries"],
+  "extracted_fields": {
+    "client": "Joe Bloggs",
+    "purchase_price": "875000",
+    "personal_savings": "575000",
+    "gift_amount": "200000",
+    "estate_distribution": "100000",
+    "savings_evidence_status": "partial evidence only",
+    "gift_evidence_status": "source-of-funds evidence outstanding",
+    "estate_evidence_status": "supported",
+    "schedule_date": "16/10/2024"
+  },
+  "overlayBoxes": []
+}

@@ -4,32 +4,30 @@
   "reviewStatus": "unreviewed",
   "evidencePassages": [
     {
-      "document_id": "04_Source_of_Funds_Declaration",
+      "document_id": "14_Source_of_Funds_Schedule",
       "page": 1,
       "id": "GP-AML-001-p1",
-      "section": "Itemised Source of Funds",
-      "text": "Personal savings (employment income)",
+      "section": "Source-of-Funds Schedule",
+      "text": "Estate distribution from John Bloggs deceased",
       "box_id": "GP-AML-001",
-      "file": "04_Source_of_Funds_Declaration.pdf"
+      "file": "14_Source_of_Funds_Schedule.pdf"
     }
   ],
-  "detail": "The source of funds declaration itemises each funding source individually \u2014 personal savings of \u00a3675,000 and gift from father of \u00a3200,000 \u2014 rather than providing a single total. This exceeds the minimum requirement and creates a clear audit trail, allowing each source to be verified independently.",
+  "detail": "The source-of-funds schedule itemises the savings, gift, and estate distribution streams and clearly records which evidence is supported, partial, or outstanding. That is useful file discipline, even though the unresolved gaps still need action.",
   "codeArea": "aml",
-  "reference": "CLC AML Guidance, Procedure \u00a720",
+  "reference": "Anti-Money Laundering, Good Practice - Due Diligence",
   "evidence_strength": "strong",
-  "documentId": "04_Source_of_Funds_Declaration",
-  "updatedAt": "2026-05-05T20:44:03.529203+00:00",
+  "documentId": "14_Source_of_Funds_Schedule",
   "source": {
     "page": 1,
-    "file": "04_Source_of_Funds_Declaration.pdf",
-    "section": "Itemised Source of Funds",
-    "text": "Personal savings (employment income)"
+    "file": "14_Source_of_Funds_Schedule.pdf",
+    "section": "Source-of-Funds Schedule",
+    "text": "Estate distribution from John Bloggs deceased"
   },
-  "createdAt": "2026-05-05T20:44:03.529203+00:00",
   "boxId": "GP-AML-001",
   "requirementId": "aml-7",
   "polarity": "compliant",
-  "title": "Strong Practice: Source of Funds Itemised by Stream",
+  "title": "Good Practice: Source-of-Funds Schedule Clearly Records Gaps",
   "severity": "best_practice",
   "certainty": "finding",
   "is_good_practice": true

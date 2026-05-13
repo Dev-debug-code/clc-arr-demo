@@ -479,8 +479,8 @@ export default function ReportGeneratedContent({
           </div>
           <div id="section7-content">
             <p contentEditable suppressContentEditableWarning>
-              Full finding details with evidence references are available in the digital case file. This appendix
-              provides a summary of all {reportAppendixRows.length} findings generated during this inspection.
+              Full details of all findings with evidence references are available in the digital case file. This appendix
+              provides a summary of all {reportAppendixRows.length} findings made during this inspection.
             </p>
             <div className="action-plan-table-wrap">
             <table className="action-plan-table report-appendix-table">
@@ -506,7 +506,7 @@ export default function ReportGeneratedContent({
             </div>
             <p className="report-appendix-link" contentEditable suppressContentEditableWarning>
               <a className="evidence-ref" href="#">
-                See digital case file for complete evidence chain.
+                The complete evidence base is available in the digital case file.
               </a>
             </p>
           </div>

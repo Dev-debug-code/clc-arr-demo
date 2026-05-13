@@ -1,0 +1,8 @@
+{
+  "createdAt": "2026-05-05T20:43:45.135733+00:00",
+  "updatedAt": "2026-05-05T20:43:45.135733+00:00",
+  "label": "Client address records must be copied and retained",
+  "status": "compliant",
+  "codeArea": "aml",
+  "requirementId": "aml-8"
+}

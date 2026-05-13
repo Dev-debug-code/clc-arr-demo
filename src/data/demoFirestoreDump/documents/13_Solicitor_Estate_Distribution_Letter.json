@@ -1,0 +1,28 @@
+{
+  "id": "13_Solicitor_Estate_Distribution_Letter",
+  "name": "13_Solicitor_Estate_Distribution_Letter.pdf",
+  "filename": "13_Solicitor_Estate_Distribution_Letter.pdf",
+  "summary": "Solicitor letter confirming Joe Bloggs received £100,000 from the estate of his late father, John Bloggs, on 10 October 2024.",
+  "documentType": "Estate Distribution Letter",
+  "classification": "Legal Correspondence",
+  "classification_confidence": 0.93,
+  "confidence": "high",
+  "models_agree": true,
+  "confirmed": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "severity": "info",
+  "parties": "Client; deceased parent; probate solicitor",
+  "parties_found": ["Joe Bloggs", "John Bloggs", "Alderwick Probate Solicitors LLP"],
+  "features_found": ["solicitor_letterhead", "estate_distribution", "source_of_funds_evidence"],
+  "extracted_fields": {
+    "beneficiary": "Joe Bloggs",
+    "deceased": "John Bloggs",
+    "relationship": "deceased father",
+    "distribution_amount": "100000",
+    "distribution_date": "10/10/2024",
+    "letter_date": "14/10/2024"
+  },
+  "overlayBoxes": []
+}
