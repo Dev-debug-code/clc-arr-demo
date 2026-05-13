@@ -216,6 +216,47 @@ const PROCESSING_MODE_CLASSIFICATION = 'classification';
 const PROCESSING_MODE_FINDINGS = 'findings';
 const DEFAULT_FINDING_VIEW_FILTERS = ['non_compliant', 'leads'];
 
+const GUIDANCE_SOURCE_PATHS = {
+  amlPolicy: 'assets/case-files/00_Firm_AML_Policy.pdf',
+  amlGuidance: 'assets/case-files/CLC_Anti_Money_Laundering_Guidance_Jan2025.pdf',
+  codeOfConduct: 'assets/case-files/Code-of-Conduct.pdf',
+  actingForLenders:
+    'assets/case-files/20240110-Acting-for-Lenders-and-Prevention-and-Detection-of-Mortgage-Fraud-Guidance.pdf'
+};
+
+function resolveCodeOfConductPage(referenceLower, titleLower) {
+  if (
+    referenceLower.includes('specific requirement 6.j')
+    || referenceLower.includes('specific requirement 6.k')
+    || titleLower.includes('complaints procedure')
+    || titleLower.includes('legal ombudsman')
+  ) {
+    return 8;
+  }
+  if (referenceLower.includes('specific requirement 3.r')) return 5;
+  if (referenceLower.includes('specific requirement 3.u')) return 5;
+  if (referenceLower.includes('overriding principle 3.j')) return 4;
+  if (referenceLower.includes('overriding principle 3.m')) return 5;
+  if (referenceLower.includes('outcome 3.5')) return 4;
+  if (referenceLower.includes('overriding principle 1.m')) return 2;
+  if (referenceLower.includes('overriding principle 2.f')) return 3;
+  return 1;
+}
+
+function resolveActingForLendersPage(referenceLower, titleLower) {
+  if (
+    referenceLower.includes('checking identity by original documents')
+    || referenceLower.includes('1-2')
+    || titleLower.includes('identity document does not match client')
+  ) {
+    return 1;
+  }
+  if (referenceLower.includes('section 9')) return 5;
+  if (referenceLower.includes('section 8(ii)') || referenceLower.includes('section 8')) return 5;
+  if (referenceLower.includes('due diligence') || referenceLower.includes('item e')) return 11;
+  return 1;
+}
+
 const CLASSIFICATION_PROCESSING_STEPS = [
   'Reading uploaded documents',
   'Classifying document types',
@@ -6079,6 +6120,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       const referenceText = safeText(finding?.reference, '');
       const referenceLower = referenceText.toLowerCase();
       const findingTitle = safeText(finding?.title, 'Regulatory requirement');
+      const titleLower = findingTitle.toLowerCase();
       const findingDetail = safeText(finding?.detail, '');
       let linkedDocumentLabel = '';
       let linkedDocumentPath = '';
@@ -6086,20 +6128,24 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
       if (referenceLower.includes('firm aml policy')) {
         linkedDocumentLabel = 'Firm AML Policy';
-        linkedDocumentPath = 'assets/case-files/00_Firm_AML_Policy.pdf';
+        linkedDocumentPath = GUIDANCE_SOURCE_PATHS.amlPolicy;
         linkedDocumentPage = 1;
       } else if (areaId === 'aml' || referenceLower.includes('anti-money laundering')) {
         linkedDocumentLabel = 'CLC Anti-Money Laundering Guidance';
-        linkedDocumentPath = 'assets/case-files/CLC_Anti_Money_Laundering_Guidance_Jan2025.pdf';
+        linkedDocumentPath = GUIDANCE_SOURCE_PATHS.amlGuidance;
         linkedDocumentPage =
           findingTitle === 'Identity Document Does Not Match Client'
           || findingTitle === 'Firm AML Policy Accepts Older Address Evidence Than CLC Guidance Allows'
             ? 2
             : 1;
-      } else if (referenceLower.includes('acting for lenders')) {
+      } else if (referenceLower.includes('acting for lenders') || referenceLower.includes('mortgage fraud')) {
         linkedDocumentLabel = 'Acting for Lenders and Prevention and Detection of Mortgage Fraud';
+        linkedDocumentPath = GUIDANCE_SOURCE_PATHS.actingForLenders;
+        linkedDocumentPage = resolveActingForLendersPage(referenceLower, titleLower);
       } else if (referenceLower.includes('code of conduct')) {
         linkedDocumentLabel = 'CLC Code of Conduct';
+        linkedDocumentPath = GUIDANCE_SOURCE_PATHS.codeOfConduct;
+        linkedDocumentPage = resolveCodeOfConductPage(referenceLower, titleLower);
       }
       const linkedDocumentUrl =
         linkedDocumentPath && typeof window !== 'undefined'

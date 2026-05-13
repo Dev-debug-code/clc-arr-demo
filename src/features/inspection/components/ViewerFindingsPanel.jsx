@@ -421,8 +421,6 @@ export default function ViewerFindingsPanel({
                   : '○';
           const severityLabel = findingSeverityBadgeMap[findingBucket] ?? 'Finding';
           const canDeleteFinding = !finding.reference;
-          const canResetDecision = !isLeadFinding && reviewState !== 'unreviewed';
-          const showInlineReset = canResetDecision && !canDeleteFinding;
           const evidenceStrength = findingEvidenceStrengthMap[findingBucket] ?? {
             key: 'supported',
             label: 'Supported'
@@ -489,20 +487,7 @@ export default function ViewerFindingsPanel({
                 </div>
                 <div className="finding-header-actions">
                   <span className={`evidence-badge ${evidenceStrength.key}`}>{evidenceStrength.label}</span>
-                  {showInlineReset ? (
-                    <button
-                      type="button"
-                      className="finding-reset-btn"
-                      aria-label="Reset finding decision"
-                      title="Reset decision"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleRequestFindingDecision(finding.id, null);
-                      }}
-                    >
-                      ↺
-                    </button>
-                  ) : canDeleteFinding || canResetDecision ? (
+                  {canDeleteFinding ? (
                     <button
                       type="button"
                       className="finding-more"
@@ -515,19 +500,8 @@ export default function ViewerFindingsPanel({
                       ⋮
                     </button>
                   ) : null}
-                  {activeMenuFindingId === finding.id && (canDeleteFinding || canResetDecision) ? (
+                  {activeMenuFindingId === finding.id && canDeleteFinding ? (
                     <div className="finding-menu" ref={findingMenuRef}>
-                      {canResetDecision ? (
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleRequestFindingDecision(finding.id, null);
-                          }}
-                        >
-                          Reset
-                        </button>
-                      ) : null}
                       {canDeleteFinding ? (
                         <button
                           type="button"
@@ -674,16 +648,18 @@ export default function ViewerFindingsPanel({
                             ))}
                           </div>
                         ) : null}
-                        {evidencePassages.map((passage) => (
-                          <div key={`viewer-evidence-${finding.id}-${passage.id}`} className="evidence-block">
-                            {passage.excerpt ? <div className="excerpt">"{passage.excerpt}"</div> : null}
-                            {!passage.documentId ? (
-                              <div className="finding-extra-meta">
-                                <span className="source-tag">Case-level evidence</span>
-                              </div>
-                            ) : null}
-                          </div>
-                        ))}
+                        {evidencePassages
+                          .filter((passage) => passage.excerpt || !passage.documentId)
+                          .map((passage) => (
+                            <div key={`viewer-evidence-${finding.id}-${passage.id}`} className="evidence-block">
+                              {passage.excerpt ? <div className="excerpt">"{passage.excerpt}"</div> : null}
+                              {!passage.documentId ? (
+                                <div className="finding-extra-meta">
+                                  <span className="source-tag">Case-level evidence</span>
+                                </div>
+                              ) : null}
+                            </div>
+                          ))}
                       </>
                     )}
                   </div>

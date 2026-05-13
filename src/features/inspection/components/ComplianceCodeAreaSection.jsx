@@ -173,8 +173,6 @@ export default function ComplianceCodeAreaSection({
       leadConfirmOpen && leadConfirmOriginStep === STEP_OVERVIEW && leadConfirmFindingId === finding.id;
     const evidencePassages = buildEvidencePassages(finding);
     const canDeleteFinding = !finding.reference;
-    const canResetDecision = !isLeadFinding && reviewState !== 'unreviewed';
-    const showInlineReset = canResetDecision && !canDeleteFinding;
     const requirementId = safeText(finding?.requirementId || finding?.requirement_id, '');
     const linkedRequirement = requirementId ? requirementsById.get(requirementId) ?? null : null;
 
@@ -224,20 +222,7 @@ export default function ComplianceCodeAreaSection({
             >
               {reviewStatusSymbol}
             </span>
-            {showInlineReset ? (
-              <button
-                type="button"
-                className="finding-reset-btn"
-                aria-label="Reset finding decision"
-                title="Reset decision"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleRequestFindingDecision(finding.id, null);
-                }}
-              >
-                ↺
-              </button>
-            ) : canDeleteFinding || canResetDecision ? (
+            {canDeleteFinding ? (
               <button
                 type="button"
                 className="finding-more"
@@ -250,19 +235,8 @@ export default function ComplianceCodeAreaSection({
                 ⋮
               </button>
             ) : null}
-            {activeMenuFindingId === finding.id && (canDeleteFinding || canResetDecision) ? (
+            {activeMenuFindingId === finding.id && canDeleteFinding ? (
               <div className="finding-menu" ref={findingMenuRef}>
-                {canResetDecision ? (
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleRequestFindingDecision(finding.id, null);
-                    }}
-                  >
-                    Reset
-                  </button>
-                ) : null}
                 {canDeleteFinding ? (
                   <button
                     type="button"

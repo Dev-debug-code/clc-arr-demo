@@ -19,7 +19,7 @@ export function GuidanceContextLayout({
     <main className={`guidance-page${embedded ? ' guidance-page--embedded' : ''}`}>
       <section className="guidance-page__hero">
         {onBack ? (
-          <button type="button" className="btn btn-sm secondary guidance-page__back" onClick={onBack}>
+          <button type="button" className="doc-breadcrumb-link guidance-page__back" onClick={onBack}>
             ← {backLabel}
           </button>
         ) : null}
