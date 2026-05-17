@@ -68,7 +68,7 @@ export default function DashboardPage({
           </div>
         </div>
       ) : (
-        <div className="dashboard-inspector-heading">My Cases</div>
+        <h1 className="dashboard-page-title">My Cases</h1>
       )}
 
       <div className="dashboard-active-indicator">

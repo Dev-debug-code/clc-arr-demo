@@ -1556,13 +1556,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setFindingViewFilters(DEFAULT_FINDING_VIEW_FILTERS);
   }, []);
 
-  const setSingleFindingViewFilter = useCallback((filterKey) => {
-    setFindingViewFilters((prev) => {
-      if (filterKey === 'all') return [];
-      return prev.length === 1 && prev[0] === filterKey ? [] : [filterKey];
-    });
-  }, []);
-
   const filteredFindings = availableFindings
     .filter((finding) => (filterSeverity.length === 0 ? true : filterSeverity.includes(getFindingBucketId(finding))))
     .filter((finding) => {
@@ -1881,7 +1874,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         detail: criticalCount > 0 ? `${criticalCount} confirmed non-compliant finding${criticalCount === 1 ? '' : 's'}` : 'none confirmed',
         tone: 'attention',
         active: findingViewFilters.includes('non_compliant'),
-        onClick: () => setSingleFindingViewFilter('non_compliant')
+        onClick: () => toggleFindingViewFilter('non_compliant')
       },
       {
         id: 'review',
@@ -1893,7 +1886,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
             : 'none awaiting judgment',
         tone: 'review',
         active: findingViewFilters.includes('leads'),
-        onClick: () => setSingleFindingViewFilter('leads')
+        onClick: () => toggleFindingViewFilter('leads')
       },
       {
         id: 'compliant',
@@ -1902,7 +1895,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         detail: compliantCount > 0 ? `${compliantCount} compliant finding${compliantCount === 1 ? '' : 's'}` : 'none identified',
         tone: 'good',
         active: findingViewFilters.includes('compliant'),
-        onClick: () => setSingleFindingViewFilter('compliant')
+        onClick: () => toggleFindingViewFilter('compliant')
       },
       {
         id: 'good',
@@ -1914,7 +1907,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
             : 'none highlighted',
         tone: 'good',
         active: findingViewFilters.includes('good_practice'),
-        onClick: () => setSingleFindingViewFilter('good_practice')
+        onClick: () => toggleFindingViewFilter('good_practice')
       }
     ];
   }, [
@@ -1924,7 +1917,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     goodPracticeCount,
     normalizeCodeAreaId,
     resolvedFindingDecisions,
-    setSingleFindingViewFilter
+    toggleFindingViewFilter
   ]);
   const hasDefaultFindingViewFilters = useMemo(() => {
     if (findingViewFilters.length !== DEFAULT_FINDING_VIEW_FILTERS.length) return false;

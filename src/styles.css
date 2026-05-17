@@ -292,6 +292,16 @@ body.nav-open {
     margin: 4px 0 2px;
 }
 
+.dashboard-page-title {
+    margin: 0;
+    font-family: var(--font-primary);
+    font-size: clamp(1.35rem, 2.1vw, 1.7rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--primary-green-dark);
+}
+
 .tab-count-badge {
     display: inline-flex;
     align-items: center;

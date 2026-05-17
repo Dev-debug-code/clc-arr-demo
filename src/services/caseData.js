@@ -749,13 +749,44 @@ function mapCase(docSnap) {
   };
 }
 
+async function attachLiveDashboardSummary(docSnap) {
+  const baseRow = mapCase(docSnap);
+  const caseRef = docSnap.ref;
+
+  try {
+    const [findingsSnap, requirementsSnap] = await Promise.all([
+      getDocs(collection(caseRef, 'findings')),
+      getDocs(collection(caseRef, 'requirements'))
+    ]);
+
+    const findings = findingsSnap.docs.map(mapFinding);
+    const requirements = requirementsSnap.docs.map(mapRequirement);
+    const summary = buildCaseDashboardSummary({ findings, requirements });
+
+    return {
+      ...baseRow,
+      ...summary,
+      outcome:
+        baseRow.status === 'completed'
+          ? 'compliant'
+          : summary.progress >= 100
+            ? 'compliant'
+            : 'in_progress'
+    };
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(`Failed to derive live dashboard summary for case ${baseRow.id}`, error);
+    return baseRow;
+  }
+}
+
 export async function listCases({ user, role } = {}) {
   const casesRef = collection(database, 'organizations', ORGANIZATION_ID, 'cases');
   const normalizedRole = normalizeUserRole(role);
 
   if (canAccessTeamCases(normalizedRole)) {
     const snapshot = await getDocs(casesRef);
-    return snapshot.docs.map(mapCase);
+    return Promise.all(snapshot.docs.map(attachLiveDashboardSummary));
   }
 
   const currentUserId = coerceText(user?.uid);
@@ -780,7 +811,7 @@ export async function listCases({ user, role } = {}) {
   }
 
   const snapshots = await Promise.all(queries);
-  return buildDistinctDocList(snapshots).map(mapCase);
+  return Promise.all(buildDistinctDocList(snapshots).map(attachLiveDashboardSummary));
 }
 
 export async function searchCase({ caseId, query, scope = 'all', documentId }) {
