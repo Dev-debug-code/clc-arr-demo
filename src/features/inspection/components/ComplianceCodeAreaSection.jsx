@@ -175,6 +175,14 @@ export default function ComplianceCodeAreaSection({
     const canDeleteFinding = !finding.reference;
     const requirementId = safeText(finding?.requirementId || finding?.requirement_id, '');
     const linkedRequirement = requirementId ? requirementsById.get(requirementId) ?? null : null;
+    const requirementHeading = safeText(
+      linkedRequirement?.codeAreaLabel,
+      safeText(formatReferenceText(finding.reference), area.label)
+    );
+    const requirementContent = safeText(
+      linkedRequirement?.content,
+      safeText(linkedRequirement?.label, formatReferenceText(finding.reference))
+    );
 
     return (
       <article
@@ -263,32 +271,32 @@ export default function ComplianceCodeAreaSection({
                   <div className="finding-section-label">Associated requirement</div>
                 </div>
                 <div className="finding-requirement-summary">
-                  {linkedRequirement ? <strong>{linkedRequirement.label}</strong> : null}
-                  {finding.reference ? <div className="finding-quote">{formatReferenceText(finding.reference)}</div> : null}
+                  {requirementHeading ? <strong>{requirementHeading}</strong> : null}
+                  {requirementContent ? (
+                    <>
+                      <div className="finding-section-label">Content</div>
+                      <div className="finding-quote">{requirementContent}</div>
+                    </>
+                  ) : null}
+                  <div className="finding-requirement-summary__actions">
+                    <button
+                      type="button"
+                      className="jump-link-btn jump-link-btn--secondary"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleShowGuidance(finding);
+                      }}
+                    >
+                      <span className="jump-link">Show guidance text</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : null}
-            {isLeadFinding ? (
-              <div className="lead-sections">
-                <div className="lead-section">
-                  <div className="lead-section-title">What was noticed</div>
-                  <p>{safeText(finding.detail, 'Potential issue identified in current evidence.')}</p>
-                </div>
-                <div className="lead-section">
-                  <div className="lead-section-title">Why this could not be confirmed</div>
-                  <p>Current uploaded material does not provide enough certainty to classify this as a confirmed finding.</p>
-                </div>
-                <div className="lead-section">
-                  <div className="lead-section-title">Suggested action</div>
-                  <p>Use &quot;Jump to evidence&quot; and request missing context from the practice before confirming or dismissing.</p>
-                </div>
-              </div>
-            ) : (
-              <div className="finding-section">
-                <div className="finding-section-label">What was found</div>
-                <p>{safeText(finding.detail, 'No detailed description available yet.')}</p>
-              </div>
-            )}
+            <div className="finding-section">
+              <div className="finding-section-label">What was found</div>
+              <p>{safeText(finding.detail, 'No detailed description available yet.')}</p>
+            </div>
             <div className="finding-section">
               <div className="finding-section-label">Evidence</div>
               {evidencePassages.length === 0 ? (
@@ -315,19 +323,6 @@ export default function ComplianceCodeAreaSection({
                               <span className="jump-link">Jump to evidence</span>
                             </button>
                             <span className="tooltip-text">Opens Document Viewer</span>
-                          </span>
-                          <span className="tooltip-wrap">
-                            <button
-                              type="button"
-                              className="jump-link-btn jump-link-btn--secondary"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleShowGuidance(finding);
-                              }}
-                            >
-                              <span className="jump-link">Show guidance text</span>
-                            </button>
-                            <span className="tooltip-text">Opens linked guidance or requirement context in the workspace</span>
                           </span>
                         </div>
                       ) : null}

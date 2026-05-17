@@ -107,6 +107,7 @@ export default function ViewerStage({
   setInlineDismissNote,
   handleConfirmInlineDismiss,
   setInlineDismissFindingId,
+  handleShowGuidance,
   onOpenDocumentAssistant
 }) {
   if (caseDocuments.length === 0) {
@@ -240,6 +241,7 @@ export default function ViewerStage({
             getFindingPreferredBoxIdForDocument={getFindingPreferredBoxIdForDocument}
             handleSelectDocBox={handleSelectDocBox}
             handleViewDocument={handleViewDocument}
+            handleShowGuidance={handleShowGuidance}
           />
         ) : null}
       </div>

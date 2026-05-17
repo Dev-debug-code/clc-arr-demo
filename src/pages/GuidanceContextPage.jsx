@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import PdfOverlayViewer from '../components/PdfOverlayViewer.jsx';
 
 export function buildPdfUrl(pdf, page) {
   if (!pdf) return '';
@@ -55,7 +56,15 @@ export function GuidanceContextLayout({
 
         <section className="guidance-page__panel guidance-page__panel--viewer">
           {viewerUrl ? (
-            <iframe className="guidance-page__viewer" title="Guidance document preview" src={viewerUrl} />
+            <div className="guidance-page__viewer-shell">
+              <PdfOverlayViewer
+                key={`${guidance.pdf || 'guidance'}-${guidance.page || '1'}`}
+                pdfUrl={guidance.pdf}
+                boxes={[]}
+                showBoxes={false}
+                initialPage={Number(guidance.page) || 1}
+              />
+            </div>
           ) : (
             <div className="guidance-page__empty">
               No linked requirement PDF is bundled for this reference in the current demo build. The reference

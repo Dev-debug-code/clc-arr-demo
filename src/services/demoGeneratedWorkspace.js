@@ -46,7 +46,9 @@ const REQUIREMENT_DEFINITIONS = (() => {
     map.set(requirementId, {
       id: requirementId,
       codeArea: coerceText(requirement?.codeArea) || 'aml',
+      codeAreaLabel: coerceText(requirement?.codeAreaLabel),
       label: coerceText(requirement?.label) || requirementId,
+      content: coerceText(requirement?.content) || coerceText(requirement?.label) || requirementId,
       status: coerceText(requirement?.status) || 'compliant'
     });
   });
@@ -154,6 +156,7 @@ function buildFindingsForDocuments(documents) {
         return {
           ...finding,
           codeArea: coerceText(finding?.codeArea || finding?.code_area) || 'aml',
+          codeAreaLabel: coerceText(finding?.codeAreaLabel),
           requirementId: coerceText(finding?.requirementId || finding?.requirement_id),
           requirementSeverity:
             severity === 'warning'
@@ -202,11 +205,13 @@ function buildRequirements(findings) {
 
     if (!existing) {
       byId.set(requirementId, {
-        id: definition.id,
-        codeArea: definition.codeArea,
-        label: definition.label,
-        status: nextStatus
-      });
+      id: definition.id,
+      codeArea: definition.codeArea,
+      codeAreaLabel: definition.codeAreaLabel,
+      label: definition.label,
+      content: definition.content,
+      status: nextStatus
+    });
       return;
     }
 
@@ -229,11 +234,13 @@ function groupRequirementsByCodeArea(requirements) {
     if (!accumulator[codeAreaId]) {
       accumulator[codeAreaId] = [];
     }
-    accumulator[codeAreaId].push({
-      id: requirement.id,
-      label: requirement.label,
-      status: requirement.status
-    });
+      accumulator[codeAreaId].push({
+        id: requirement.id,
+        codeAreaLabel: requirement.codeAreaLabel,
+        label: requirement.label,
+        content: requirement.content,
+        status: requirement.status
+      });
     return accumulator;
   }, {});
 }

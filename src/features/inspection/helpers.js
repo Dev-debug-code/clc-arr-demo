@@ -1,4 +1,5 @@
 import { REQUIREMENT_SEVERITY_BY_ID } from './config.js';
+import { getDemoRequirementDefinition } from '../../data/demoRequirementCatalog.js';
 
 export const coerceText = (value) => {
   if (typeof value === 'string') return value;
@@ -66,12 +67,25 @@ export const buildUploadLookupKeys = (uploadItem) =>
   buildFilenameKeySet([uploadItem?.name, uploadItem?.filename]);
 
 export const inferRequirementCodeArea = (requirement) => {
+  const definition = getDemoRequirementDefinition(requirement);
+  if (definition?.codeArea) {
+    return definition.codeArea;
+  }
   const value = String(requirement || '').trim().toLowerCase();
   if (!value) return 'aml';
   if (value.startsWith('afl') || value.includes('acting for lender') || (value.includes('lender') && !value.includes('client'))) return 'lenders';
-  if (value.startsWith('cmp') || value.includes('complaint')) return 'complaints';
+  if (
+    value.startsWith('cmp') ||
+    value.startsWith('cc') ||
+    value.includes('complaint') ||
+    value.includes('client care') ||
+    value.includes('engagement') ||
+    value.includes('costs') ||
+    value.includes('code of conduct')
+  ) {
+    return 'code-of-conduct';
+  }
   if (value.startsWith('ac') || value.includes('account')) return 'accounts';
-  if (value.startsWith('cc') || value.includes('client care') || value.includes('engagement') || value.includes('costs') || value.includes('fee')) return 'client-care';
   if (value.includes('undertaking')) return 'undertakings';
   if (value.startsWith('mg') || value.includes('management') || value.includes('supervision')) return 'management';
   return 'aml';

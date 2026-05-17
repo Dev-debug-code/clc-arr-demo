@@ -1,4 +1,5 @@
 import auditCaseDoc from './demoFirestoreDump/case.json';
+import { getDemoRequirementDefinition } from './demoRequirementCatalog.js';
 
 const documentModules = import.meta.glob('./demoFirestoreDump/documents/*.json', { eager: true });
 const findingModules = import.meta.glob('./demoFirestoreDump/findings/*.json', { eager: true });
@@ -27,6 +28,47 @@ function normaliseSeverity(value, fallback = 'pass') {
   if (normalized === 'best_practice') return 'best_practice';
   if (normalized === 'pass') return 'pass';
   return fallback;
+}
+
+function normalizeCodeArea(codeArea, requirementId = '') {
+  const raw = coerceText(codeArea).toLowerCase();
+  const normalized = raw.replace(/[^a-z0-9]+/g, ' ').trim();
+  const requirementKey = coerceText(requirementId).toLowerCase();
+
+  if (
+    normalized.includes('code of conduct') ||
+    normalized.includes('client care') ||
+    normalized.includes('engagement') ||
+    normalized.includes('complaint')
+  ) {
+    return 'code-of-conduct';
+  }
+  if (normalized.includes('lender') || normalized.includes('mortgage fraud')) return 'lenders';
+  if (normalized.includes('money laundering') || normalized.includes('aml') || normalized.includes('ctf')) return 'aml';
+  if (requirementKey.startsWith('cc') || requirementKey.startsWith('cmp')) return 'code-of-conduct';
+  if (requirementKey.startsWith('afl')) return 'lenders';
+  if (requirementKey.startsWith('aml')) return 'aml';
+  return raw || 'aml';
+}
+
+function deriveCodeAreaLabel(codeArea) {
+  if (codeArea === 'aml') return 'Anti-Money Laundering';
+  if (codeArea === 'lenders') return 'Acting for Lenders';
+  if (codeArea === 'code-of-conduct') return 'Code of Conduct';
+  return coerceText(codeArea) || 'General';
+}
+
+function deriveFindingSeverity(finding) {
+  const certainty = coerceText(finding?.certainty).toLowerCase();
+  const polarity = coerceText(finding?.polarity).toLowerCase();
+  const explicitGoodPractice = finding?.isGoodPractice === true || finding?.is_good_practice === true;
+  const fallbackSeverity = normaliseSeverity(finding?.severity, 'critical');
+
+  if (explicitGoodPractice) return 'best_practice';
+  if (polarity === 'compliant') return 'pass';
+  if (certainty === 'lead') return 'warning';
+  if (fallbackSeverity === 'best_practice') return 'pass';
+  return fallbackSeverity;
 }
 
 function preferredClassification(classification, documentType) {
@@ -69,10 +111,43 @@ export const auditRequirements = rawRequirements.map((requirement) => ({
   ...requirement,
   id: coerceText(requirement.requirementId || requirement.id),
   requirementId: coerceText(requirement.requirementId || requirement.id),
-  codeArea: coerceText(requirement.codeArea) || 'aml',
-  label: coerceText(requirement.label) || coerceText(requirement.requirementId || requirement.id),
-  status: coerceText(requirement.status) || 'compliant'
+  codeArea: (() => {
+    const requirementId = coerceText(requirement.requirementId || requirement.id);
+    const definition = getDemoRequirementDefinition(requirementId);
+    return normalizeCodeArea(definition?.codeArea || requirement.codeArea, requirementId);
+  })(),
+  codeAreaLabel: (() => {
+    const requirementId = coerceText(requirement.requirementId || requirement.id);
+    const definition = getDemoRequirementDefinition(requirementId);
+    return (
+      coerceText(definition?.codeAreaLabel) ||
+      coerceText(requirement.codeAreaLabel) ||
+      deriveCodeAreaLabel(normalizeCodeArea(definition?.codeArea || requirement.codeArea, requirementId))
+    );
+  })(),
+  label: (() => {
+    const requirementId = coerceText(requirement.requirementId || requirement.id);
+    const definition = getDemoRequirementDefinition(requirementId);
+    return coerceText(definition?.label) || coerceText(requirement.label) || requirementId;
+  })(),
+  content: (() => {
+    const requirementId = coerceText(requirement.requirementId || requirement.id);
+    const definition = getDemoRequirementDefinition(requirementId);
+    return (
+      coerceText(definition?.content) ||
+      coerceText(requirement.content) ||
+      coerceText(requirement.label) ||
+      requirementId
+    );
+  })(),
+  status: (() => {
+    const requirementId = coerceText(requirement.requirementId || requirement.id);
+    const definition = getDemoRequirementDefinition(requirementId);
+    return coerceText(requirement.status) || coerceText(definition?.status) || 'compliant';
+  })()
 }));
+
+const auditRequirementsById = new Map(auditRequirements.map((requirement) => [requirement.requirementId, requirement]));
 
 export const auditDocuments = rawDocuments.map((documentRow) => {
   const filename = coerceText(documentRow.filename || documentRow.name || documentRow.id);
@@ -86,6 +161,8 @@ export const auditDocuments = rawDocuments.map((documentRow) => {
     classification,
     documentType: coerceText(documentRow.documentType) || classification,
     confidence: coerceText(documentRow.confidence) || 'medium',
+    confirmed: documentRow.confirmed === true,
+    classificationConfidence: documentRow.classificationConfidence ?? documentRow.classification_confidence ?? null,
     severity: normaliseSeverity(documentRow.severity, 'warning'),
     pdf: filename ? `assets/case-files/${filename}` : undefined,
     overlay: {
@@ -95,11 +172,12 @@ export const auditDocuments = rawDocuments.map((documentRow) => {
 });
 
 export const auditFindings = rawFindings.map((finding) => {
-  const severity = normaliseSeverity(finding.severity, 'critical');
+  const severity = deriveFindingSeverity(finding);
   const isGoodPractice =
-    finding.isGoodPractice === true ||
-    finding.is_good_practice === true ||
-    severity === 'best_practice';
+    finding.isGoodPractice === true || finding.is_good_practice === true;
+  const requirementId = coerceText(finding.requirementId || finding.requirement_id);
+  const linkedRequirement = auditRequirementsById.get(requirementId);
+  const codeArea = normalizeCodeArea(linkedRequirement?.codeArea || finding.codeArea || finding.code_area, requirementId);
   const evidencePassages = Array.isArray(finding.evidencePassages)
     ? finding.evidencePassages
     : Array.isArray(finding.evidence_passages)
@@ -110,13 +188,17 @@ export const auditFindings = rawFindings.map((finding) => {
     ...finding,
     id: coerceText(finding.id),
     severity,
-    codeArea: coerceText(finding.codeArea || finding.code_area) || 'aml',
+    codeArea,
+    codeAreaLabel:
+      coerceText(linkedRequirement?.codeAreaLabel) ||
+      coerceText(finding.codeAreaLabel) ||
+      deriveCodeAreaLabel(codeArea),
     title: coerceText(finding.title) || 'Finding',
     detail: coerceText(finding.detail),
     documentId: coerceText(finding.documentId || finding.document_id),
     boxId: coerceText(finding.boxId || finding.box_id || finding.id),
     certainty: coerceText(finding.certainty) || (severity === 'warning' ? 'lead' : 'finding'),
-    polarity: coerceText(finding.polarity) || (isGoodPractice ? 'compliant' : 'non_compliant'),
+    polarity: coerceText(finding.polarity) || (severity === 'best_practice' || severity === 'pass' ? 'compliant' : 'non_compliant'),
     isGoodPractice,
     is_good_practice: isGoodPractice,
     reviewStatus: coerceText(finding.reviewStatus || finding.review_status) || 'unreviewed',

@@ -155,8 +155,14 @@ function enrichDocumentWithUpload(documentRow, uploadItem) {
 function inferFindingCodeArea(finding) {
   const referenceText =
     `${coerceText(finding?.reference)} ${coerceText(finding?.title)} ${coerceText(finding?.detail)}`.toLowerCase();
-  if (referenceText.includes('complaint')) return 'complaints';
-  if (referenceText.includes('client care') || referenceText.includes('engagement')) return 'client-care';
+  if (
+    referenceText.includes('complaint') ||
+    referenceText.includes('client care') ||
+    referenceText.includes('engagement') ||
+    referenceText.includes('code of conduct')
+  ) {
+    return 'code-of-conduct';
+  }
   if (
     referenceText.includes('residual balance') ||
     referenceText.includes('reconciliation') ||

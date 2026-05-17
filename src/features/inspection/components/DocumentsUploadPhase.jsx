@@ -226,12 +226,6 @@ export default function DocumentsUploadPhase({
 
   const getConfirmDecision = (item) => getUploadReviewDecision(item);
 
-  const isPepClassification = (item) => {
-    const normalizedItem = prepareUploadDraft(item);
-    const classification = formatUploadClassificationLabel(normalizedItem);
-    return classification === 'PEP Screening';
-  };
-
   const allDecisionsMade = uploadItems.every((item) => getConfirmDecision(item) !== '');
 
   const generateFindingsBlockedReason = !allDecisionsMade
@@ -322,6 +316,10 @@ export default function DocumentsUploadPhase({
                 normalizedItem.classificationJustification ?? normalizedItem.classification_justification,
                 ''
               );
+              const confidenceLabel = textOf(normalizedItem.confidence, '');
+              const displayConfidence = confidenceLabel
+                ? `${confidenceLabel.charAt(0).toUpperCase()}${confidenceLabel.slice(1)}`
+                : '—';
               const rowClassName = [isLowConfidence ? 'row-amber' : '', isUnknown ? 'row-warning' : '', isClassifying ? 'row-classifying' : '']
                 .filter(Boolean)
                 .join(' ');
@@ -591,7 +589,7 @@ export default function DocumentsUploadPhase({
                     {isClassifying ? (
                       <span className="dash-muted">—</span>
                     ) : (
-                      <span>{isPepClassification(item) ? 'Low' : 'High'}</span>
+                      <span>{displayConfidence}</span>
                     )}
                   </td>
                   <td>

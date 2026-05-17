@@ -71,7 +71,8 @@ export default function ViewerFindingsPanel({
   activeDocId,
   getFindingPreferredBoxIdForDocument,
   handleSelectDocBox,
-  handleViewDocument
+  handleViewDocument,
+  handleShowGuidance
 }) {
   const [activeRequirementInfoFindingId, setActiveRequirementInfoFindingId] = useState(null);
   const [requirementPopoverStyle, setRequirementPopoverStyle] = useState(null);
@@ -429,6 +430,14 @@ export default function ViewerFindingsPanel({
           const evidenceTargets = buildFindingEvidenceTargets(finding);
           const linkedRequirementId = safeText(finding?.requirementId || finding?.requirement_id, '');
           const linkedRequirement = linkedRequirementId ? requirementLookup.get(linkedRequirementId) ?? null : null;
+          const requirementHeading = safeText(
+            linkedRequirement?.codeAreaLabel,
+            safeText(finding.reference, safeText(finding?.codeAreaLabel, ''))
+          );
+          const requirementContent = safeText(
+            linkedRequirement?.content,
+            safeText(linkedRequirement?.label, formatReferenceText(finding.reference))
+          );
 
           return (
             <article
@@ -528,7 +537,25 @@ export default function ViewerFindingsPanel({
                         <div className="finding-section-label">Associated requirement</div>
                       </div>
                       <div className="viewer-requirement-card">
-                        {linkedRequirement ? <strong>{linkedRequirement.label}</strong> : null}
+                        {requirementHeading ? <strong>{requirementHeading}</strong> : null}
+                        {requirementContent ? (
+                          <>
+                            <div className="finding-section-label">Content</div>
+                            <div className="finding-quote">{requirementContent}</div>
+                          </>
+                        ) : null}
+                        <div className="viewer-requirement-card__actions">
+                          <button
+                            type="button"
+                            className="jump-link-btn jump-link-btn--secondary"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleShowGuidance(finding);
+                            }}
+                          >
+                            <span className="jump-link">Show guidance text</span>
+                          </button>
+                        </div>
                         <button
                           type="button"
                           className="btn btn-sm secondary viewer-requirement-card__trigger"
@@ -571,16 +598,16 @@ export default function ViewerFindingsPanel({
                                     overflow: 'hidden'
                                   }}
                                 >
-                                  {linkedRequirement ? (
+                                  {requirementHeading ? (
                                     <>
                                       <p className="viewer-requirement-popover__eyebrow">Requirement</p>
-                                      <strong>{linkedRequirement.label}</strong>
+                                      <strong>{requirementHeading}</strong>
                                     </>
                                   ) : null}
-                                  {finding.reference ? (
+                                  {requirementContent ? (
                                     <>
-                                      <p className="viewer-requirement-popover__eyebrow">Reference</p>
-                                      <div className="finding-quote">{formatReferenceText(finding.reference)}</div>
+                                      <p className="viewer-requirement-popover__eyebrow">Content</p>
+                                      <div className="finding-quote">{requirementContent}</div>
                                     </>
                                   ) : null}
                                 </div>
@@ -591,30 +618,10 @@ export default function ViewerFindingsPanel({
                       </div>
                     </div>
                   ) : null}
-                  {isLeadFinding ? (
-                    <div className="lead-sections">
-                      <div className="lead-section">
-                        <div className="lead-section-title">What was noticed</div>
-                        <p>{safeText(finding.detail, 'Potential issue identified in current evidence.')}</p>
-                      </div>
-                      <div className="lead-section">
-                        <div className="lead-section-title">Why this could not be confirmed</div>
-                        <p>
-                          Current uploaded material does not provide enough certainty to classify this as a confirmed
-                          finding.
-                        </p>
-                      </div>
-                      <div className="lead-section">
-                        <div className="lead-section-title">Suggested action</div>
-                        <p>Request supporting documents or clarification from the practice and then confirm or dismiss.</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="finding-section">
-                      <div className="finding-section-label">What was found</div>
-                      <p>{safeText(finding.detail, 'See linked document for further detail.')}</p>
-                    </div>
-                  )}
+                  <div className="finding-section">
+                    <div className="finding-section-label">What was found</div>
+                    <p>{safeText(finding.detail, 'See linked document for further detail.')}</p>
+                  </div>
                   <div className="finding-section">
                     <div className="finding-section-label">Evidence</div>
                     {evidencePassages.length === 0 ? (
@@ -649,10 +656,9 @@ export default function ViewerFindingsPanel({
                           </div>
                         ) : null}
                         {evidencePassages
-                          .filter((passage) => passage.excerpt || !passage.documentId)
+                          .filter((passage) => !passage.documentId)
                           .map((passage) => (
                             <div key={`viewer-evidence-${finding.id}-${passage.id}`} className="evidence-block">
-                              {passage.excerpt ? <div className="excerpt">"{passage.excerpt}"</div> : null}
                               {!passage.documentId ? (
                                 <div className="finding-extra-meta">
                                   <span className="source-tag">Case-level evidence</span>

@@ -15,6 +15,7 @@ import {
 import { getFirebaseApp } from '../config/firebase.js';
 import { FIRESTORE_DATABASE_ID, ORGANIZATION_ID } from '../config/runtime.js';
 import { canAccessTeamCases, normalizeUserRole } from '../utils/accessControl.js';
+import { getDemoRequirementDefinition } from '../data/demoRequirementCatalog.js';
 import {
   toPersistedDocumentShape,
   toPersistedFindingShape
@@ -179,6 +180,8 @@ function mapFinding(docSnap) {
   const data = docSnap.data() ?? {};
   const origin = typeof data.origin === 'string' ? data.origin : typeof data.source === 'string' ? data.source : '';
   const reviewStatus = data.reviewStatus ?? data.review_status ?? 'unreviewed';
+  const requirementId = coerceText(data.requirementId ?? data.requirement_id);
+  const requirementDefinition = getDemoRequirementDefinition(requirementId);
   const certainty =
     data.certainty ??
     (String(data.severity || '').trim().toLowerCase() === 'warning' && reviewStatus !== 'confirmed' ? 'lead' : 'finding');
@@ -191,7 +194,8 @@ function mapFinding(docSnap) {
     data.isGoodPractice === true ||
     data.is_good_practice === true ||
     String(data.severity || '').trim().toLowerCase() === 'best_practice';
-  const rawCodeArea = String(data.codeArea ?? data.code_area ?? '').trim();
+  const rawCodeArea = String(requirementDefinition?.codeArea ?? data.codeArea ?? data.code_area ?? '').trim();
+  const normalizedCodeArea = normalizeCodeAreaId(rawCodeArea) || rawCodeArea || 'aml';
   return {
     id: docSnap.id,
     severity: deriveLegacyFindingSeverity({
@@ -204,9 +208,13 @@ function mapFinding(docSnap) {
     title: data.title ?? 'Finding',
     detail: data.detail ?? '',
     documentId: data.documentId ?? '',
-    requirementId: data.requirementId ?? data.requirement_id ?? '',
+    requirementId,
     boxId: data.boxId ?? docSnap.id,
-    codeArea: normalizeCodeAreaId(rawCodeArea) || rawCodeArea || 'aml',
+    codeArea: normalizedCodeArea,
+    codeAreaLabel:
+      coerceText(requirementDefinition?.codeAreaLabel) ||
+      coerceText(data.codeAreaLabel ?? data.code_area_label) ||
+      deriveCodeAreaLabel(normalizedCodeArea),
     certainty,
     polarity,
     isGoodPractice,
@@ -249,13 +257,25 @@ function normalizeCodeAreaId(value) {
     return 'aml';
   }
   if (normalized.includes('lender') || normalized.includes('mortgage fraud')) return 'lenders';
-  if (normalized.includes('complaint')) return 'complaints';
-  if (normalized.includes('client care') || normalized.includes('engagement')) return 'client-care';
+  if (
+    normalized.includes('code of conduct') ||
+    normalized.includes('complaint') ||
+    normalized.includes('client care') ||
+    normalized.includes('engagement')
+  ) {
+    return 'code-of-conduct';
+  }
   if (normalized.includes('account') || normalized.includes('reconciliation')) return 'accounts';
   if (normalized.includes('management') || normalized.includes('supervision')) return 'management';
   if (normalized.includes('undertaking')) return 'undertakings';
-  if (normalized.includes('code of conduct')) return 'client-care';
   return normalized.replace(/\s+/g, '-');
+}
+
+function deriveCodeAreaLabel(codeAreaId) {
+  if (codeAreaId === 'aml') return 'Anti-Money Laundering';
+  if (codeAreaId === 'lenders') return 'Acting for Lenders';
+  if (codeAreaId === 'code-of-conduct') return 'Code of Conduct';
+  return codeAreaId;
 }
 
 function resolveCodeAreaIdFromSectionId(sectionId) {
@@ -276,11 +296,24 @@ function mapRequirement(docSnap) {
       : ['compliant', 'non_compliant', 'lead', 'good_practice', 'not_applicable', 'not_assessed'].includes(status)
         ? status
         : 'lead';
-  const codeAreaId = normalizeCodeAreaId(data.codeArea ?? data.code_area ?? '');
+  const requirementId = coerceText(data.requirementId ?? docSnap.id);
+  const definition = getDemoRequirementDefinition(requirementId);
+  const codeAreaId = normalizeCodeAreaId(definition?.codeArea || data.codeArea || data.code_area || '');
   return {
-    id: data.requirementId ?? docSnap.id,
+    id: requirementId,
     codeAreaId,
-    label: data.label ?? data.title ?? data.requirement ?? docSnap.id,
+    codeAreaLabel:
+      coerceText(definition?.codeAreaLabel) ||
+      coerceText(data.codeAreaLabel) ||
+      deriveCodeAreaLabel(codeAreaId),
+    label: definition?.label ?? data.label ?? data.title ?? data.requirement ?? requirementId,
+    content:
+      definition?.content ??
+      data.content ??
+      data.label ??
+      data.title ??
+      data.requirement ??
+      requirementId,
     status: safeStatus
   };
 }
@@ -544,7 +577,9 @@ export async function loadCaseWorkspaceData(caseId) {
     }
     requirementsByCodeArea[mapped.codeAreaId].push({
       id: mapped.id,
+      codeAreaLabel: mapped.codeAreaLabel,
       label: mapped.label,
+      content: mapped.content,
       status: mapped.status
     });
   });
@@ -916,11 +951,11 @@ export async function exportCaseReport({ caseId, format = 'pdf' }) {
     const severity = deriveLegacyFindingSeverity(finding);
     const label =
       severity === 'critical'
-        ? 'Critical'
+        ? 'Non-compliant'
         : severity === 'warning'
-          ? 'Guidance'
+          ? 'Requires review'
           : severity === 'best_practice'
-            ? 'Good Practice'
+            ? 'Good practice'
             : 'Compliant';
     return `F-${String(index + 1).padStart(3, '0')} | ${label} | ${codeArea} | ${String(finding.title || 'Finding').trim()}`;
   });
@@ -938,7 +973,7 @@ export async function exportCaseReport({ caseId, format = 'pdf' }) {
     summaryLines: [
       `Total findings: ${findings.length}`,
       `Non-compliant: ${totals.critical}`,
-      `Leads: ${totals.warning}`,
+      `Requires review: ${totals.warning}`,
       `Compliant: ${totals.pass}`,
       `Good practice: ${totals.bestPractice}`
     ],

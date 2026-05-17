@@ -2,15 +2,40 @@ import {
   isUploadIncludedInFindingsGeneration,
   normalizeUploadDraft
 } from '../utils/documentUploads.js';
+import { auditDocuments } from '../data/auditDataset.js';
 import {
   buildDemoGeneratedWorkspace,
   buildDocumentsFromUploads
 } from './demoGeneratedWorkspace.js';
+import {
+  buildDocumentLookupKeys,
+  buildUploadLookupKeys
+} from '../features/inspection/helpers.js';
 
 function coerceText(value) {
   if (typeof value === 'string') return value.trim();
   if (typeof value === 'number' || typeof value === 'boolean') return String(value).trim();
   return '';
+}
+
+const SAMPLE_DOCUMENT_BY_KEY = (() => {
+  const map = new Map();
+  auditDocuments.forEach((documentRow) => {
+    buildDocumentLookupKeys(documentRow).forEach((key) => {
+      if (key && !map.has(key)) {
+        map.set(key, documentRow);
+      }
+    });
+  });
+  return map;
+})();
+
+function lookupSampleDocument(uploadItem) {
+  for (const key of buildUploadLookupKeys(uploadItem)) {
+    const match = SAMPLE_DOCUMENT_BY_KEY.get(key);
+    if (match) return match;
+  }
+  return null;
 }
 
 export function suggestClassificationFromFilename(filename) {
@@ -66,20 +91,29 @@ export function buildSimulatedClassifiedUploads(uploadItems = []) {
       return normalizeUploadDraft({ ...item, isLocalDraft: false });
     }
 
-    const suggestedClassification = suggestClassificationFromFilename(item.name || item.filename);
+    const sampleDocument = lookupSampleDocument(item);
+    const suggestedClassification =
+      coerceText(sampleDocument?.classification) ||
+      suggestClassificationFromFilename(item.name || item.filename);
     changedUploadIds.push(item.id);
 
     return normalizeUploadDraft({
       ...item,
       isLocalDraft: false,
       status: 'classified',
-      confirmed: false,
+      confirmed: sampleDocument?.confirmed === true,
       classification: suggestedClassification,
-      confidence: suggestedClassification === 'Other' ? 'low' : 'high',
-      classification_confidence: suggestedClassification === 'Other' ? null : 0.98,
+      confidence:
+        coerceText(sampleDocument?.confidence) ||
+        (suggestedClassification === 'Other' ? 'low' : 'high'),
+      classification_confidence:
+        sampleDocument?.classificationConfidence ??
+        sampleDocument?.classification_confidence ??
+        (suggestedClassification === 'Other' ? null : 0.98),
       classificationReason: buildClassificationReason(item.name || item.filename, suggestedClassification),
       summary:
         item.summary ||
+        coerceText(sampleDocument?.summary) ||
         `AI classification suggests ${suggestedClassification}. Review and confirm before generating findings.`
     });
   });

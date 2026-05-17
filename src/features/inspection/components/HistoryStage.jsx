@@ -76,6 +76,9 @@ export default function HistoryStage({
   const previousInspectionLabel = currentCaseMeta.previousInspection
     ? `${currentCaseMeta.previousInspection} (pre-system)`
     : 'Not recorded';
+  void reportPendingChanges;
+  void pendingReprocessSummary;
+  void onReprocessNow;
   const attentionFindingCount = historyFindingsRows.filter((row) => row.severity !== 'Good Practice').length;
   const goodPracticeCount = historyFindingsRows.filter((row) => row.severity === 'Good Practice').length;
   const actionPlanTotal = Math.max(availableFindingsCount, 0);
@@ -83,17 +86,6 @@ export default function HistoryStage({
 
   return (
     <div className="stage-card">
-      {reportPendingChanges ? (
-        <div className="reprocess-indicator">
-          <span>
-            ⚠ Unprocessed changes pending
-            {pendingReprocessSummary ? ` — ${pendingReprocessSummary}` : ''}
-          </span>
-          <button type="button" className="btn btn-xs secondary" onClick={onReprocessNow}>
-            Reprocess now
-          </button>
-        </div>
-      ) : null}
       {!hasInspectionHistory ? (
         <div className="empty-state-wrapper">
           <div className="panel empty-state-card">

@@ -433,7 +433,10 @@ export const getUploadReviewDecision = (uploadItem) => {
   }
   if (!isUploadClassificationResolved(normalized)) return '';
   if (hasIncompleteUploadInterviewees(normalized)) return '';
-  return normalized.classification === 'PEP Screening' ? '' : 'confirm';
+  const lowConfidenceFlag =
+    normalized.confirmed !== true &&
+    normalizeConfidenceLabel(normalized.confidence) === 'low';
+  return lowConfidenceFlag ? '' : 'confirm';
 };
 
 export const isUploadIncludedInFindingsGeneration = (uploadItem) =>

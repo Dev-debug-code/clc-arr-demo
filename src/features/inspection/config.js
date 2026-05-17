@@ -101,47 +101,9 @@ export const OBSERVATION_SOURCE_OPTIONS = [
   'Other'
 ];
 
-export const FINDING_REQUIREMENT_OPTIONS = [
-  'aml-1 Borrower identity check',
-  'aml-2 Source of funds documentation',
-  'aml-3 Enhanced due diligence',
-  'aml-4 SOF enquiries and records',
-  'aml-5 Outstanding SOF evidence resolution',
-  'aml-6 Address evidence current',
-  'aml-7 Deposit legitimate source',
-  'aml-8 Address records retained',
-  'aml-9 Estate distribution SOF evidence',
-  'aml-10 Electronic verification transparency',
-  'afl-1 Disclosure to lender',
-  'afl-3 True purchase price to lender',
-  'cc-1 Terms and estimated fees in writing',
-  'cc-2 Fee arrangements and changes',
-  'cc-3 Significant cost changes',
-  'cc-4 How costs will be paid',
-  'cmp-1 Complaints procedure',
-  'cmp-2 Legal Ombudsman escalation'
-];
+export const FINDING_REQUIREMENT_OPTIONS = DEMO_REQUIREMENT_OPTIONS;
 
-export const REQUIREMENT_SEVERITY_BY_ID = {
-  'aml-1 Borrower identity check': 'critical',
-  'aml-2 Source of funds documentation': 'critical',
-  'aml-3 Enhanced due diligence': 'critical',
-  'aml-4 SOF enquiries and records': 'critical',
-  'aml-5 Outstanding SOF evidence resolution': 'critical',
-  'aml-6 Address evidence current': 'best_practice',
-  'aml-7 Deposit legitimate source': 'best_practice',
-  'aml-8 Address records retained': 'best_practice',
-  'aml-9 Estate distribution SOF evidence': 'best_practice',
-  'aml-10 Electronic verification transparency': 'best_practice',
-  'afl-1 Disclosure to lender': 'best_practice',
-  'afl-3 True purchase price to lender': 'best_practice',
-  'cc-1 Terms and estimated fees in writing': 'best_practice',
-  'cc-2 Fee arrangements and changes': 'best_practice',
-  'cc-3 Significant cost changes': 'best_practice',
-  'cc-4 How costs will be paid': 'best_practice',
-  'cmp-1 Complaints procedure': 'best_practice',
-  'cmp-2 Legal Ombudsman escalation': 'best_practice'
-};
+export const REQUIREMENT_SEVERITY_BY_ID = DEMO_REQUIREMENT_SEVERITY_BY_ID;
 
 export const MANUAL_CASE_LEVEL_SOURCE_OPTIONS = [
   'On-site observation',
@@ -151,28 +113,7 @@ export const MANUAL_CASE_LEVEL_SOURCE_OPTIONS = [
   'Other'
 ];
 
-export const FOCUS_AREA_OPTIONS = [
-  { id: 'aml', label: 'Anti-Money Laundering & CTF' },
-  { id: 'cyber', label: 'Cyber Security & Cyber Essentials' },
-  { id: 'accounts', label: 'Accounts Code' },
-  { id: 'lenders', label: 'Acting for Lenders / Mortgage Fraud Prevention' },
-  { id: 'insurance', label: 'Ancillary Insurance Intermediaries' },
-  { id: 'business', label: 'Business Arrangements' },
-  { id: 'client-care', label: 'Client Care & Terms of Engagement' },
-  { id: 'complaints', label: 'Complaints Code' },
-  { id: 'conflicts', label: 'Conflicts of Interest' },
-  { id: 'cpd', label: 'CPD (Ongoing Competence)' },
-  { id: 'non-authorised', label: 'Dealing with Non-Authorised Persons' },
-  { id: 'disclosure', label: 'Disclosure of Profits & Advantage' },
-  { id: 'equality', label: 'Equality Code' },
-  { id: 'abs', label: 'Licensed Body (ABS) Code' },
-  { id: 'management', label: 'Management & Supervision' },
-  { id: 'notification', label: 'Notification Code' },
-  { id: 'pii', label: 'Professional Indemnity Insurance' },
-  { id: 'recognised', label: 'Recognised Body Code' },
-  { id: 'transaction', label: 'Transaction Files' },
-  { id: 'undertakings', label: 'Undertakings' }
-];
+export const FOCUS_AREA_OPTIONS = DEMO_FOCUS_AREAS;
 
 export const CASE_TRANSACTION_TYPE_OPTIONS = [
   { value: 'purchase', label: 'Purchase' },
@@ -193,13 +134,15 @@ export const CASE_AML_TIER_OPTIONS = [
   { value: 'simplified', label: 'Simplified' }
 ];
 
-export const RISK_REGISTER_PRESET = ['aml', 'cyber'];
+export const RISK_REGISTER_PRESET = DEMO_FOCUS_AREAS.map((area) => area.id);
 
 export const REGGIE_SUGGESTIONS = [
-  'Show the most serious findings',
-  'Summarise the AML issues',
-  'What evidence supports this finding?',
-  'Draft a short case summary'
+  'What should I be worried about with this risk assessment?',
+  'Who is John Bloggs and is he mentioned in any other documents?',
+  'Source of funds documentation',
+  'What did the MLRO say about training?',
+  'Cross-reference bank statements',
+  'What is the firm doing well?'
 ];
 
 export const RECURRING_FINDING_IDS = new Set();
@@ -209,14 +152,9 @@ export const COMPLIANCE_CODE_AREAS = [];
 export const NOT_ASSESSED_AREAS = [];
 export const VIEWER_CODE_AREA_FILTERS = [
   { id: 'all', label: 'All' },
-  { id: 'aml', label: 'AML & CTF' },
+  { id: 'aml', label: 'Anti-Money Laundering' },
   { id: 'lenders', label: 'Acting for Lenders' },
-  { id: 'client-care', label: 'Client Care' },
-  { id: 'complaints', label: 'Complaints Code' },
-  { id: 'cyber', label: 'Cyber' },
-  { id: 'accounts', label: 'Accounts Code' },
-  { id: 'conflicts', label: 'Conflicts of Interest' },
-  { id: 'transaction', label: 'Transaction Files' }
+  { id: 'code-of-conduct', label: 'Code of Conduct' }
 ];
 
 export const FINDING_EVIDENCE_STRENGTH_MAP = {
@@ -338,8 +276,18 @@ export const CODE_AREA_KEYWORDS = {
   ],
   cyber: ['cyber', 'cyber essentials', 'information security', 'phishing', 'firewall'],
   lenders: ['lender', 'mortgage fraud', 'acting for lenders', 'disclosure to lender', 'purchase price'],
-  'client-care': ['client care', 'terms of engagement', 'engagement letter', 'client communication', 'fee estimate', 'costs'],
-  complaints: ['complaint', 'complaints', 'ombudsman'],
+  'code-of-conduct': [
+    'code of conduct',
+    'client care',
+    'terms of engagement',
+    'engagement letter',
+    'client communication',
+    'fee estimate',
+    'costs',
+    'complaint',
+    'complaints',
+    'ombudsman'
+  ],
   management: ['management', 'supervision', 'mlro', 'governance', 'training'],
   accounts: ['accounts code', 'client account', 'reconciliation', 'residual balance', 'ledger'],
   undertakings: ['undertaking', 'undertakings']
@@ -362,14 +310,15 @@ export const CODE_AREA_ALIASES = {
   'acting for lenders & mortgage fraud': 'lenders',
   'acting for lenders and prevention and detection of mortgage fraud': 'lenders',
   'mortgage fraud': 'lenders',
-  complaints: 'complaints',
-  'complaints code': 'complaints',
-  'code of conduct': 'complaints',
-  'code-of-conduct': 'complaints',
-  'client care': 'client-care',
-  'client care code': 'client-care',
-  'terms of engagement': 'client-care',
-  'client care & terms of engagement': 'client-care',
+  complaints: 'code-of-conduct',
+  'complaints code': 'code-of-conduct',
+  'code of conduct': 'code-of-conduct',
+  'code-of-conduct': 'code-of-conduct',
+  'client care': 'code-of-conduct',
+  'client care code': 'code-of-conduct',
+  'terms of engagement': 'code-of-conduct',
+  'client care & terms of engagement': 'code-of-conduct',
+  'client-care': 'code-of-conduct',
   'accounts code': 'accounts',
   accounts: 'accounts',
   'management supervision': 'management',
@@ -428,3 +377,8 @@ export const REPORT_ACTION_DEFAULTS = [
     person: ''
   }
 ];
+import {
+  DEMO_FOCUS_AREAS,
+  DEMO_REQUIREMENT_OPTIONS,
+  DEMO_REQUIREMENT_SEVERITY_BY_ID
+} from '../../data/demoRequirementCatalog.js';

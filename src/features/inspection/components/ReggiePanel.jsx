@@ -1,18 +1,59 @@
 import { useEffect, useRef, useState } from 'react';
 
+function renderMessageSegments(message) {
+  const text = message?.answerText || message?.text || '';
+  const citations = Array.isArray(message?.citations) ? message.citations.filter(Boolean) : [];
+
+  if (!text || citations.length === 0) {
+    return [{ type: 'text', value: text }];
+  }
+
+  const tokens = citations
+    .map((citation) => ({
+      label: String(citation?.label || '').trim(),
+      citation
+    }))
+    .filter((entry) => entry.label);
+
+  if (tokens.length === 0) {
+    return [{ type: 'text', value: text }];
+  }
+
+  const pattern = new RegExp(
+    `(${tokens.map((entry) => entry.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
+    'g'
+  );
+  const lookup = new Map(tokens.map((entry) => [entry.label, entry.citation]));
+  const segments = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: 'text', value: text.slice(lastIndex, match.index) });
+    }
+    const label = match[0];
+    segments.push({ type: 'citation', value: label, citation: lookup.get(label) });
+    lastIndex = match.index + label.length;
+  }
+
+  if (lastIndex < text.length) {
+    segments.push({ type: 'text', value: text.slice(lastIndex) });
+  }
+
+  return segments.length > 0 ? segments : [{ type: 'text', value: text }];
+}
+
 export default function ReggiePanel({
   isOpen,
   onClose,
   reggieScope,
+  reggieThinkingLevel,
+  setReggieThinkingLevel,
   suggestions,
   reggieMessages,
   onQuickPrompt,
-  filteredCrossDocResults,
-  documentsById,
-  safeText,
-  safeSourceField,
-  onJumpToEvidence,
-  onAddAsFinding,
+  onOpenCitation,
   reggieInput,
   setReggieInput,
   onSend
@@ -62,68 +103,98 @@ export default function ReggiePanel({
             Close
           </button>
         </header>
-        <div className="reggie-panel__messages" ref={messagesRef}>
-          {reggieMessages.length === 0 ? (
-            <div className="reggie-welcome">
-              <div className="reggie-welcome__icon" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M10 2L3 5v5.5C3 15 6.2 18.2 10 19c3.8-.8 7-4 7-8.5V5L10 2z" />
-                  <polyline points="6.5,10.5 8.75,12.75 13.5,7.5" />
-                </svg>
-              </div>
-              <p>Regulatory Guidance &amp; Inspection Engine</p>
-              <span>Use Reggie to surface linked evidence, cross-document patterns and quick drafting prompts.</span>
-            </div>
-          ) : null}
-          {reggieMessages.length === 0 ? (
-            <div className="reggie-suggestions-wrap">
-              <div className="reggie-section-label">Suggested prompts</div>
-              <div className="reggie-suggestions">
-              {suggestions.map((prompt) => (
+
+        <div className="reggie-panel__controls">
+          <div className="reggie-panel__thinking">
+            <span className="reggie-section-label">Thinking level</span>
+            <div className="reggie-thinking-toggle" role="tablist" aria-label="Reggie thinking level">
+              {['medium', 'high'].map((level) => (
                 <button
-                  key={prompt}
+                  key={level}
                   type="button"
-                  className="reggie-suggestion-chip"
-                  onClick={() => onQuickPrompt(prompt)}
+                  className={`reggie-thinking-toggle__btn${reggieThinkingLevel === level ? ' is-active' : ''}`}
+                  onClick={() => setReggieThinkingLevel(level)}
                 >
-                  {prompt}
+                  {level === 'medium' ? 'Medium' : 'High'}
                 </button>
               ))}
-              </div>
             </div>
+          </div>
+          <p className="reggie-panel__hint">
+            Medium follows the canned demo flow. High keeps the same response shape for now until the live endpoint is exposed.
+          </p>
+        </div>
+
+        <div className="reggie-panel__messages" ref={messagesRef}>
+          {reggieMessages.length === 0 ? (
+            <>
+              <div className="reggie-welcome">
+                <div className="reggie-welcome__icon" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10 2L3 5v5.5C3 15 6.2 18.2 10 19c3.8-.8 7-4 7-8.5V5L10 2z" />
+                    <polyline points="6.5,10.5 8.75,12.75 13.5,7.5" />
+                  </svg>
+                </div>
+                <p>Regulatory Guidance &amp; Inspection Engine</p>
+                <span>Use Reggie to cross-check the document corpus and return linked citations.</span>
+              </div>
+              <div className="reggie-suggestions-wrap">
+                <div className="reggie-section-label">Suggested prompts</div>
+                <div className="reggie-suggestions">
+                  {suggestions.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      className="reggie-suggestion-chip"
+                      onClick={() => onQuickPrompt(prompt)}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
           ) : null}
+
           {reggieMessages.map((message) => (
             <article key={message.id} className={`reggie-message ${message.role}`}>
-              <p>{message.text}</p>
+              <p className="reggie-answer">
+                {renderMessageSegments(message).map((segment, index) =>
+                  segment.type === 'citation' ? (
+                    <button
+                      key={`${message.id}-citation-${segment.value}-${index}`}
+                      type="button"
+                      className="reggie-inline-citation"
+                      onClick={() => onOpenCitation(segment.citation)}
+                    >
+                      {segment.value}
+                    </button>
+                  ) : (
+                    <span key={`${message.id}-text-${index}`}>{segment.value}</span>
+                  )
+                )}
+              </p>
+              {message.role === 'assistant' && Array.isArray(message.citations) && message.citations.length > 0 ? (
+                <div className="reggie-citations">
+                  <div className="reggie-section-label">Citations</div>
+                  {message.citations.map((citation) => (
+                    <div key={`${message.id}-${citation.label}-${citation.source}`} className="reggie-citation-card">
+                      <button
+                        type="button"
+                        className="btn btn-xs secondary reggie-citation-card__button"
+                        onClick={() => onOpenCitation(citation)}
+                      >
+                        {citation.label} {citation.source}
+                      </button>
+                      <p>{citation.quote}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </article>
           ))}
-          {filteredCrossDocResults.slice(0, 2).map((finding) => {
-            const relatedDoc = documentsById.get(finding.documentId);
-            return (
-              <article key={`reggie-source-${finding.id}`} className="reggie-source-card">
-                <div className="reggie-source-card__label">Relevant source</div>
-                <strong>{safeText(finding.title, 'Finding')}</strong>
-                <p>{relatedDoc?.label ?? 'Document'} · {safeSourceField(finding.source, 'section', 'Source excerpt')}</p>
-                <div className="reggie-source-card__actions">
-                  <button
-                    type="button"
-                    className="btn btn-xs secondary reggie-jump-btn"
-                    onClick={() => onJumpToEvidence(finding)}
-                  >
-                    Jump to evidence
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-xs secondary"
-                    onClick={() => onAddAsFinding(finding)}
-                  >
-                    Add as finding
-                  </button>
-                </div>
-              </article>
-            );
-          })}
         </div>
+
         <div className="reggie-panel__composer">
           <input
             type="text"

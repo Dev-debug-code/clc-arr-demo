@@ -39,14 +39,17 @@ export default function ReportGeneratedContent({
   reportAppendixRows,
   reportExportRef
 }) {
+  void reportPendingChanges;
+  void onOpenPendingChangesGate;
   const practiceDetailRefs = useRef([]);
   const practiceDetailRows = [
     ['Practice', currentCaseMeta.practiceName],
-    ['Licence', currentCaseMeta.caseId],
+    ['CLC licence number', currentCaseMeta.licenceNumber || '—'],
+    ['Case reference', currentCaseMeta.caseId],
     ['Head of Legal Practice', currentCaseMeta.holp],
     ['Head of Finance & Admin', currentCaseMeta.hofa],
     ['Inspection type', reportInspectionType],
-    ['Date', currentCaseMeta.started],
+    ['Inspection date', currentCaseMeta.started],
     ['Inspector', currentCaseMeta.owner]
   ];
 
@@ -81,14 +84,6 @@ export default function ReportGeneratedContent({
 
   return (
     <>
-      {reportPendingChanges ? (
-        <div className="alert-banner warning">
-          ⚠ Unprocessed changes pending
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onOpenPendingChangesGate}>
-            Reprocess now
-          </button>
-        </div>
-      ) : null}
       {reportStale ? (
         <div className="alert-banner warning">
           <span>⚠</span> Findings updated since last report generation.

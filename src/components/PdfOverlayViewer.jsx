@@ -323,7 +323,8 @@ export default function PdfOverlayViewer({
   activeBoxId,
   onSelectBox,
   scrollRef,
-  focusSignal = 0
+  focusSignal = 0,
+  initialPage = 1
 }) {
   const [pageCount, setPageCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -412,6 +413,15 @@ export default function PdfOverlayViewer({
     setCurrentPage(1);
     setZoomPercent(100);
   }, [resolvedPdfUrl, pdfFile]);
+
+  useEffect(() => {
+    const safeInitialPage = Number(initialPage);
+    if (!Number.isFinite(safeInitialPage) || safeInitialPage < 1) return;
+    setCurrentPage((previous) => {
+      const cappedPage = pageCount > 0 ? Math.min(Math.max(Math.round(safeInitialPage), 1), pageCount) : Math.max(Math.round(safeInitialPage), 1);
+      return previous === cappedPage ? previous : cappedPage;
+    });
+  }, [initialPage, pageCount, resolvedPdfUrl, pdfFile]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -626,5 +636,6 @@ PdfOverlayViewer.propTypes = {
   activeBoxId: PropTypes.string,
   onSelectBox: PropTypes.func,
   scrollRef: PropTypes.shape({ current: PropTypes.any }),
-  focusSignal: PropTypes.number
+  focusSignal: PropTypes.number,
+  initialPage: PropTypes.number
 };

@@ -1,37 +1,35 @@
 {
-  "status": "attention",
   "parties": "John Bloggs",
+  "confirmed": true,
   "id": "10_PEP_Screening",
-  "summary": "PEP and sanctions screening report \u2014 subject name John Bloggs does not match the buyer/client Joe Bloggs. The estate letter identifies John Bloggs as Joe Bloggs' deceased father.",
-  "confidence": "low",
-  "models_agree": false,
+  "summary": "PEP and sanctions screening report for John Bloggs.",
+  "confidence": "high",
+  "models_agree": true,
   "filename": "10_PEP_Screening.pdf",
-  "confirmed": false,
   "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/10_PEP_Screening.pdf",
   "documentType": "PEP Screening",
-  "classification_confidence": 0.61,
+  "classification_confidence": 0.94,
   "overlayBoxes": [
     {
       "page": 1,
       "pageno": 0,
       "id": "LEAD-AML-003",
       "bbox": [
-        60,
-        730,
-        270,
-        750
+        45,
+        225,
+        535,
+        312
       ],
-      "category": "Client Details",
+      "category": "Subject Details",
       "details": "The PEP and sanctions screening report on file is in the name John Bloggs. The estate letter identifies John Bloggs as Joe Bloggs' deceased father, while Joe Bloggs is the buyer/client. A separate sanctions screening report exists for Joe Bloggs, so this lead is specifically about the PEP/adverse-media report appearing to screen the wrong person.",
       "title": "PEP Check Appears to Be for the Deceased Father, Not the Buyer",
       "severity": "warning"
     }
   ],
-  "classification_flag": "unmatched_party",
-  "updatedAt": "2026-05-05T20:42:47.911928+00:00",
-  "processing_status": "failed_partial",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00",
+  "processing_status": "complete",
   "classification": "CDD Records",
-  "createdAt": "2026-05-05T20:42:47.911928+00:00",
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
   "features_found": [
     "pep_screen_header",
     "watchlist_table"
@@ -44,8 +42,8 @@
     "subject_name": "John Bloggs",
     "screening_result": "clear"
   },
-  "flag_reason": "Document relates to 'John Bloggs' \u2014 the deceased father of Joe Bloggs \u2014 rather than to the buyer/client Joe Bloggs. The firm appears to have screened the wrong person.",
-  "severity": "warning",
+  "status": "verified",
+  "severity": "info",
   "processing_path": "ocr_then_classify_then_extract",
   "name": "10_PEP_Screening.pdf"
 }

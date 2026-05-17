@@ -143,6 +143,7 @@ import UndoToast from './components/UndoToast.jsx';
 import ViewerStage from './components/ViewerStage.jsx';
 import WorkspaceShell from './components/WorkspaceShell.jsx';
 import { GuidanceContextLayout } from '../../pages/GuidanceContextPage.jsx';
+import { findCannedReggieResponse } from '../../data/reggieDemoResponses.js';
 
 function toDashboardCaseDateMs(value) {
   if (!value) return null;
@@ -214,7 +215,7 @@ function matchesDashboardDateFilter(item, activeFilter) {
 
 const PROCESSING_MODE_CLASSIFICATION = 'classification';
 const PROCESSING_MODE_FINDINGS = 'findings';
-const DEFAULT_FINDING_VIEW_FILTERS = ['non_compliant', 'leads'];
+const DEFAULT_FINDING_VIEW_FILTERS = [];
 
 const GUIDANCE_SOURCE_PATHS = {
   amlPolicy: 'assets/case-files/00_Firm_AML_Policy.pdf',
@@ -365,6 +366,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [uploadItems, setUploadItems] = useState(INITIAL_UPLOAD_ITEMS);
   const [reggieOpen, setReggieOpen] = useState(false);
   const [reggieScope, setReggieScope] = useState('all');
+  const [reggieThinkingLevel, setReggieThinkingLevel] = useState('medium');
   const [reggieInput, setReggieInput] = useState('');
   const [reggieMessages, setReggieMessages] = useState([]);
   const [inspectorFindings, setInspectorFindings] = useState([]);
@@ -525,23 +527,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           user: currentUser,
           role: currentUserRole
         });
-        setDashboardCases((prev) => {
-          const activeCaseId = coerceText(currentCaseMeta.caseId);
-          const liveDashboardRow = currentCaseDashboardRowRef.current;
-          if (!isActiveCasePersisted || !activeCaseId || !liveDashboardRow) {
-            return rows;
-          }
-
-          if (rows.some((entry) => entry.id === activeCaseId)) {
-            return rows.map((entry) => (entry.id === activeCaseId ? { ...entry, ...liveDashboardRow } : entry));
-          }
-
-          const existingRow = prev.find((entry) => entry.id === activeCaseId);
-          return [
-            existingRow ? { ...existingRow, ...liveDashboardRow } : liveDashboardRow,
-            ...rows.filter((entry) => entry.id !== activeCaseId)
-          ];
-        });
+        setDashboardCases(rows);
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Failed to load dashboard cases from data provider', error);
@@ -1788,8 +1774,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     if (raw.includes('aml') || normalized.includes('money laundering') || normalized.includes('ctf')) {
       return 'aml';
     }
-    if (normalized.includes('complaint')) return 'complaints';
-    if (normalized.includes('client care') || normalized.includes('engagement')) return 'client-care';
+    if (
+      normalized.includes('code of conduct') ||
+      normalized.includes('complaint') ||
+      normalized.includes('client care') ||
+      normalized.includes('engagement')
+    ) {
+      return 'code-of-conduct';
+    }
     if (normalized.includes('account') || normalized.includes('reconciliation')) return 'accounts';
     if (normalized.includes('management') || normalized.includes('supervision')) return 'management';
     if (normalized.includes('undertaking')) return 'undertakings';
@@ -1824,10 +1816,21 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         .map((entry) => normalizeCodeAreaId(entry))
         .filter(Boolean)
     );
+    const requirementAreaIds = new Set(
+      Object.keys(requirementsByCodeArea)
+        .map((entry) => normalizeCodeAreaId(entry))
+        .filter(Boolean)
+    );
 
     if (selectedFocusAreas.size > 0) {
-      return FOCUS_AREA_OPTIONS
-        .filter((area) => !selectedFocusAreas.has(area.id))
+      const scopedAreaIds =
+        requirementAreaIds.size > 0
+          ? Array.from(requirementAreaIds)
+          : FOCUS_AREA_OPTIONS.map((area) => area.id);
+      return scopedAreaIds
+        .filter((areaId) => !selectedFocusAreas.has(areaId))
+        .map((areaId) => ({ id: areaId, label: formatCodeAreaLabel(areaId) }))
+        .sort((left, right) => left.label.localeCompare(right.label))
         .map((area) => area.label);
     }
 
@@ -2074,7 +2077,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       const goodPracticeCount = reportGoodPracticeFindings.length;
       const codeAreaCount = reportCodeAreaSummaries.length;
       const summary = total
-        ? `Of ${total} findings across ${codeAreaCount || 1} code area${codeAreaCount === 1 ? '' : 's'}, ${compliantCount} are compliant, ${goodPracticeCount} are good practice, and ${criticalCount + leadCount} require attention.`
+        ? `Of ${total} findings across ${codeAreaCount || 1} code area${codeAreaCount === 1 ? '' : 's'}, ${compliantCount} are compliant, ${goodPracticeCount} identify good practice, and ${criticalCount + leadCount} are non-compliant or require review.`
         : 'No findings are currently available for this case.';
 
       const summaryLine = safeText(executiveSummaryValue, '').trim() || summary;
@@ -2784,12 +2787,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const totalSteps = INSPECTION_LINEAR_FINAL_STEP;
 
   const handleGoHome = useCallback(() => {
-    if (currentCaseDashboardRow) {
-      setDashboardCases((prev) => [
-        currentCaseDashboardRow,
-        ...prev.filter((entry) => entry.id !== currentCaseDashboardRow.id)
-      ]);
-    }
     setCaseOpenTransitionCaseId('');
     setAppMode('dashboard');
     setFeedbackOpen(false);
@@ -5023,18 +5020,103 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     [currentCaseMeta.caseId, currentUser, isActiveCasePersisted]
   );
 
+  const buildFallbackReggieResponse = useCallback(
+    (query) => {
+      const candidateRows = filteredCrossDocResults.slice(0, 2);
+      if (candidateRows.length === 0) {
+        return {
+          answerText:
+            'I could not find a stronger direct match in the current demo corpus. Try asking about John Bloggs, source of funds, the MLRO interview, or bank statements.',
+          citations: [],
+          sourceMode: 'fallback'
+        };
+      }
+
+      const citations = candidateRows.map((finding, index) => {
+        const documentRow = documentsById.get(finding.documentId);
+        return {
+          n: index + 1,
+          label: `[${index + 1}]`,
+          source: documentRow?.filename || documentRow?.name || finding.documentId,
+          quote: safeText(finding.detail, safeText(finding.title, 'Linked case evidence'))
+        };
+      });
+
+      return {
+        answerText: `I found the strongest linked material for "${query}" in the current case. ${citations
+          .map((citation) => citation.label)
+          .join(' ')}`,
+        citations,
+        sourceMode: 'fallback'
+      };
+    },
+    [documentsById, filteredCrossDocResults, safeText]
+  );
+
+  const handleOpenReggieCitation = (citation) => {
+    const source = textOf(citation?.source, '').trim();
+    if (!source) return;
+
+    const findingMatch = allFindings.find((finding) => textOf(finding?.id, '') === source);
+    if (findingMatch?.documentId) {
+      handleViewDocument(findingMatch.documentId, findingMatch.boxId || null, findingMatch.id, STEP_OVERVIEW);
+      setReggieOpen(false);
+      return;
+    }
+
+    const normalizedSourceId = source.replace(/\.(pdf|json)$/i, '');
+    if (normalizedSourceId && documentsById.has(normalizedSourceId)) {
+      handleViewDocument(normalizedSourceId, null, null, STEP_VIEWER);
+      setReggieOpen(false);
+      return;
+    }
+
+    const sourceKeys = buildFilenameKeySet([source, normalizedSourceId]);
+    const documentMatch = caseDocuments.find((documentRow) => {
+      const documentKeys = buildDocumentLookupKeys(documentRow);
+      return [...documentKeys].some((key) => sourceKeys.has(key));
+    });
+
+    if (documentMatch?.id) {
+      handleViewDocument(documentMatch.id, null, null, STEP_VIEWER);
+      setReggieOpen(false);
+    }
+  };
+
   const handleSendReggie = (manualQuery) => {
     const query = (manualQuery ?? reggieInput).trim();
     if (!query) return;
-    const userMessage = { id: `r${Date.now()}-u`, role: 'user', text: query };
-    const candidate = filteredCrossDocResults[0];
-    const relatedDoc = candidate ? documentsById.get(candidate.documentId) : null;
-    const assistantText = candidate
-      ? `I found relevant passages. ${relatedDoc?.label ?? 'AML_Policy_2023.pdf'} includes: "${candidate.title}".`
-      : 'I found relevant references across this case. Try "source of funds", "training", or "overseas transactions".';
-    const assistantMessage = { id: `r${Date.now()}-a`, role: 'assistant', text: assistantText };
-    setReggieMessages((prev) => [...prev, userMessage, assistantMessage]);
+
+    const timestamp = Date.now();
+    const userMessage = { id: `r${timestamp}-u`, role: 'user', text: query };
+    const response = findCannedReggieResponse(query) ?? buildFallbackReggieResponse(query);
+    const assistantMessage = {
+      id: `r${timestamp}-a`,
+      role: 'assistant',
+      answerText: response.answerText,
+      citations: response.citations,
+      sourceMode: reggieThinkingLevel === 'high' ? 'mock-high' : response.sourceMode
+    };
     setReggieInput('');
+
+    if (reggieThinkingLevel === 'high') {
+      const planningMessage = {
+        id: `r${timestamp}-p`,
+        role: 'assistant',
+        text:
+          'Okay, let me plan my approach.\n1. Check the most relevant document.\n2. Cross-reference any linked evidence or guidance.\n3. Return the strongest grounded answer with citations.'
+      };
+
+      setReggieMessages((prev) => [...prev, userMessage, planningMessage]);
+      setTimeout(() => {
+        setReggieMessages((prev) => [...prev, assistantMessage]);
+      }, 1400);
+      return;
+    }
+
+    setTimeout(() => {
+      setReggieMessages((prev) => [...prev, userMessage, assistantMessage]);
+    }, 220);
   };
 
   const handleQuickReggiePrompt = (prompt) => {
@@ -5822,6 +5904,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       setInlineDismissNote={setInlineDismissNote}
       handleConfirmInlineDismiss={handleConfirmInlineDismiss}
       setInlineDismissFindingId={setInlineDismissFindingId}
+      handleShowGuidance={handleShowGuidance}
       onOpenDocumentAssistant={() => openReggie('document')}
     />
   );
@@ -6138,11 +6221,15 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           || findingTitle === 'Firm AML Policy Accepts Older Address Evidence Than CLC Guidance Allows'
             ? 2
             : 1;
-      } else if (referenceLower.includes('acting for lenders') || referenceLower.includes('mortgage fraud')) {
+      } else if (
+        areaId === 'lenders' ||
+        referenceLower.includes('acting for lenders') ||
+        referenceLower.includes('mortgage fraud')
+      ) {
         linkedDocumentLabel = 'Acting for Lenders and Prevention and Detection of Mortgage Fraud';
         linkedDocumentPath = GUIDANCE_SOURCE_PATHS.actingForLenders;
         linkedDocumentPage = resolveActingForLendersPage(referenceLower, titleLower);
-      } else if (referenceLower.includes('code of conduct')) {
+      } else if (areaId === 'code-of-conduct' || referenceLower.includes('code of conduct')) {
         linkedDocumentLabel = 'CLC Code of Conduct';
         linkedDocumentPath = GUIDANCE_SOURCE_PATHS.codeOfConduct;
         linkedDocumentPage = resolveCodeOfConductPage(referenceLower, titleLower);
@@ -6340,30 +6427,12 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
             isOpen={reggieOpen}
             onClose={() => setReggieOpen(false)}
             reggieScope={reggieScope}
+            reggieThinkingLevel={reggieThinkingLevel}
+            setReggieThinkingLevel={setReggieThinkingLevel}
             suggestions={REGGIE_SUGGESTIONS}
             reggieMessages={reggieMessages}
             onQuickPrompt={handleQuickReggiePrompt}
-            filteredCrossDocResults={filteredCrossDocResults}
-            documentsById={documentsById}
-            safeText={safeText}
-            safeSourceField={safeSourceField}
-            onJumpToEvidence={(finding) => {
-              handleViewDocument(finding.documentId, finding.boxId, finding.id);
-              setReggieOpen(false);
-              setDocumentWorkspaceTab('findings');
-            }}
-            onAddAsFinding={(finding) => {
-              setReggieOpen(false);
-              openComposerModal('manual');
-              setComposerModal((prev) => ({
-                ...prev,
-                open: true,
-                type: 'manual',
-                text: safeText(finding.detail, safeText(finding.title, '')),
-                evidenceType: 'document',
-                evidenceNote: safeText(finding.source?.text, safeText(finding.detail, ''))
-              }));
-            }}
+            onOpenCitation={handleOpenReggieCitation}
             reggieInput={reggieInput}
             setReggieInput={setReggieInput}
             onSend={handleSendReggie}
