@@ -1,0 +1,31 @@
+{
+  "id": "up7",
+  "filename": "06_Gift_Letter.pdf",
+  "name": "06_Gift_Letter.pdf",
+  "summary": "Gift letter from Jill Withers confirming \u00a3200,000 gift to Joe Bloggs.",
+  "classification": "CDD Records",
+  "classificationL1": "CDD Records",
+  "classificationL2": "Gift Letter",
+  "classificationDetail": "Gift letter from Jill Withers confirming \u00a3200,000 gift to Joe Bloggs.",
+  "classificationJustification": "",
+  "classificationReason": "AI classification reason will appear here after processing.",
+  "classification_confidence": 0.89,
+  "confidence": "high",
+  "confirmed": true,
+  "models_agree": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "parties": "Donor",
+  "features_found": [
+    "gift_declaration"
+  ],
+  "limitedAnalysis": false,
+  "interviewees": [],
+  "intervieweeName": "",
+  "intervieweeRole": "",
+  "interviewDate": "",
+  "addedOn": "",
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
+}

@@ -1,19 +1,39 @@
 {
-  "parties": "Client",
-  "confirmed": true,
   "id": "03_Client_Risk_Assessment",
+  "name": "03_Client_Risk_Assessment.pdf",
+  "filename": "03_Client_Risk_Assessment.pdf",
   "summary": "Client and matter risk assessment \u2014 overall classification STANDARD RISK.",
+  "documentType": "Client Risk Assessment",
+  "classification": "CDD Records",
+  "classification_confidence": 0.93,
   "confidence": "high",
   "models_agree": true,
-  "filename": "03_Client_Risk_Assessment.pdf",
+  "confirmed": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "severity": "critical",
+  "parties": "Client",
+  "parties_found": [
+    "Joe Bloggs"
+  ],
+  "features_found": [
+    "risk_factor_table",
+    "overall_classification"
+  ],
+  "extracted_fields": {
+    "subject_name": "Joe Bloggs",
+    "client_residence": "Dubai, UAE",
+    "overall_risk": "STANDARD",
+    "due_diligence_applied": "Standard CDD",
+    "assessor": "Sarah Example"
+  },
   "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/03_Client_Risk_Assessment.pdf",
-  "documentType": "Client Risk Assessment",
-  "classification_confidence": 0.93,
   "overlayBoxes": [
     {
+      "id": "CRIT-AML-004",
       "page": 1,
       "pageno": 0,
-      "id": "CRIT-AML-004",
       "bbox": [
         27,
         601,
@@ -21,31 +41,11 @@
         623
       ],
       "category": "Risk Factor Assessment / Overall Classification",
-      "details": "The client is resident in Dubai, UAE (8 years) but was classified as STANDARD RISK with only Standard customer due diligence (CDD) applied. The firm's own policy \u00a73.2.1 explicitly states that clients resident outside the UK shall be classified as HIGH RISK and subject to Enhanced Due Diligence (deeper checks) regardless of nationality.",
-      "title": "Incorrect Risk Classification \u2014 Overseas Client",
+      "title": "Incorrect Risk Classification for Overseas Client",
+      "details": "The client is resident in Dubai, UAE, but was classified as standard risk with only standard customer due diligence applied. The firm's own policy requires clients resident outside the UK to be high risk and subject to enhanced due diligence.",
       "severity": "critical"
     }
   ],
-  "updatedAt": "2026-05-05T20:42:47.911928+00:00",
-  "processing_status": "complete",
-  "classification": "CDD Records",
-  "createdAt": "2026-05-05T20:42:47.911928+00:00",
-  "features_found": [
-    "risk_factor_table",
-    "overall_classification"
-  ],
-  "parties_found": [
-    "Joe Bloggs"
-  ],
-  "extracted_fields": {
-    "subject_name": "Joe Bloggs",
-    "due_diligence_applied": "Standard CDD",
-    "client_residence": "Dubai, UAE",
-    "assessor": "Sarah Example",
-    "overall_risk": "STANDARD"
-  },
-  "status": "verified",
-  "severity": "critical",
-  "processing_path": "ocr_then_classify_then_extract",
-  "name": "03_Client_Risk_Assessment.pdf"
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

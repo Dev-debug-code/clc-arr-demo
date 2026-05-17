@@ -1,6 +1,5 @@
 import ComplianceCodeAreaSection from './ComplianceCodeAreaSection.jsx';
 import NotAssessedAreasPanel from './NotAssessedAreasPanel.jsx';
-import { isRequirementExcluded, isRequirementMet } from '../helpers.js';
 
 export default function ComplianceByCodeAreaPanel({
   openComposerModal,
@@ -13,6 +12,7 @@ export default function ComplianceByCodeAreaPanel({
   expandedCodeAreaIds,
   setExpandedCodeAreaIds,
   filteredFindings,
+  overviewFindingScope,
   overviewRequirementFilter,
   setOverviewRequirementFilter,
   overviewFilterRef,
@@ -25,6 +25,7 @@ export default function ComplianceByCodeAreaPanel({
   findingDecisions,
   expandedOverviewFindingIds,
   setExpandedOverviewFindingIds,
+  closingOverviewFindingIds,
   findingSeverityBadgeMap,
   findingEvidenceStrengthMap,
   isLeadFindingByTaxonomy,
@@ -75,45 +76,7 @@ export default function ComplianceByCodeAreaPanel({
       </div>
       <div className="code-area-list">
         {[...complianceCodeAreas]
-          .sort((left, right) => {
-            const summarize = (areaId) => {
-              const requirementRows = requirementsByCodeArea[areaId] ?? [];
-              const areaFindings = availableFindings.filter((finding) => findingMatchesCodeArea(finding, areaId));
-              const activeFindings = areaFindings.filter((finding) => {
-                const reviewState = findingDecisions[finding.id] ?? 'unreviewed';
-                return reviewState !== 'rejected' && reviewState !== 'dismissed';
-              });
-              const attentionCount = activeFindings.filter((entry) => getFindingBucketId(entry) === 'critical').length;
-              const leadCount = activeFindings.filter((entry) => getFindingBucketId(entry) === 'warning').length;
-              const pendingReviewCount = areaFindings.filter(
-                (finding) => (findingDecisions[finding.id] ?? 'unreviewed') === 'unreviewed'
-              ).length;
-              const assessableRequirements = requirementRows.filter((entry) => !isRequirementExcluded(entry.status));
-              const metRequirements = assessableRequirements.filter((entry) => isRequirementMet(entry.status)).length;
-              return {
-                attentionCount,
-                leadCount,
-                pendingReviewCount,
-                metRequirements,
-                totalRequirements: assessableRequirements.length
-              };
-            };
-            const leftStats = summarize(left.id);
-            const rightStats = summarize(right.id);
-            const leftWeight = leftStats.attentionCount * 100 + leftStats.leadCount * 10 + leftStats.pendingReviewCount;
-            const rightWeight = rightStats.attentionCount * 100 + rightStats.leadCount * 10 + rightStats.pendingReviewCount;
-            if (rightWeight !== leftWeight) return rightWeight - leftWeight;
-            const leftCompliant =
-              leftStats.attentionCount === 0 &&
-              leftStats.leadCount === 0 &&
-              (leftStats.totalRequirements === 0 || leftStats.metRequirements === leftStats.totalRequirements);
-            const rightCompliant =
-              rightStats.attentionCount === 0 &&
-              rightStats.leadCount === 0 &&
-              (rightStats.totalRequirements === 0 || rightStats.metRequirements === rightStats.totalRequirements);
-            if (leftCompliant !== rightCompliant) return leftCompliant ? 1 : -1;
-            return left.name.localeCompare(right.name);
-          })
+          .sort((left, right) => left.name.localeCompare(right.name))
           .map((area) => (
             <ComplianceCodeAreaSection
               key={area.id}
@@ -127,6 +90,7 @@ export default function ComplianceByCodeAreaPanel({
               expandedCodeAreaIds={expandedCodeAreaIds}
               setExpandedCodeAreaIds={setExpandedCodeAreaIds}
               overviewRequirementFilter={overviewRequirementFilter}
+              overviewFindingScope={overviewFindingScope}
               setOverviewRequirementFilter={setOverviewRequirementFilter}
               overviewFilterRef={overviewFilterRef}
               findingViewFilters={findingViewFilters}
@@ -138,6 +102,7 @@ export default function ComplianceByCodeAreaPanel({
               findingDecisions={findingDecisions}
               expandedOverviewFindingIds={expandedOverviewFindingIds}
               setExpandedOverviewFindingIds={setExpandedOverviewFindingIds}
+              closingOverviewFindingIds={closingOverviewFindingIds}
               findingSeverityBadgeMap={findingSeverityBadgeMap}
               findingEvidenceStrengthMap={findingEvidenceStrengthMap}
               isLeadFindingByTaxonomy={isLeadFindingByTaxonomy}

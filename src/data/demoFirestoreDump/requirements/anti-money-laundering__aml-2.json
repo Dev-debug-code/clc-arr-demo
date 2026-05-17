@@ -1,0 +1,9 @@
+{
+  "requirementId": "aml-2",
+  "codeArea": "anti-money-laundering",
+  "codeAreaLabel": "Anti-Money Laundering",
+  "label": "Source-of-funds documentation must be copied and retained",
+  "status": "non_compliant",
+  "createdAt": "2026-05-15T12:25:32.969863+00:00",
+  "updatedAt": "2026-05-15T12:25:32.969863+00:00"
+}

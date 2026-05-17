@@ -2,7 +2,7 @@
   "id": "13_Solicitor_Estate_Distribution_Letter",
   "name": "13_Solicitor_Estate_Distribution_Letter.pdf",
   "filename": "13_Solicitor_Estate_Distribution_Letter.pdf",
-  "summary": "Solicitor letter confirming Joe Bloggs received £100,000 from the estate of his late father, John Bloggs, on 10 October 2024.",
+  "summary": "Solicitor letter confirming Joe Bloggs received \u00a3100,000 from the estate of his late father, John Bloggs, on 10 October 2024.",
   "documentType": "Estate Distribution Letter",
   "classification": "Legal Correspondence",
   "classification_confidence": 0.93,
@@ -14,8 +14,16 @@
   "status": "verified",
   "severity": "info",
   "parties": "Client; deceased parent; probate solicitor",
-  "parties_found": ["Joe Bloggs", "John Bloggs", "Alderwick Probate Solicitors LLP"],
-  "features_found": ["solicitor_letterhead", "estate_distribution", "source_of_funds_evidence"],
+  "parties_found": [
+    "Joe Bloggs",
+    "John Bloggs",
+    "Alderwick Probate Solicitors LLP"
+  ],
+  "features_found": [
+    "solicitor_letterhead",
+    "estate_distribution",
+    "source_of_funds_evidence"
+  ],
   "extracted_fields": {
     "beneficiary": "Joe Bloggs",
     "deceased": "John Bloggs",
@@ -24,5 +32,24 @@
     "distribution_date": "10/10/2024",
     "letter_date": "14/10/2024"
   },
-  "overlayBoxes": []
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/13_Solicitor_Estate_Distribution_Letter.pdf",
+  "overlayBoxes": [
+    {
+      "id": "COMP-AML-003",
+      "page": 1,
+      "pageno": 0,
+      "bbox": [
+        0.10628572710229012,
+        0.43683245366919343,
+        0.8501173188338557,
+        0.4768324536691934
+      ],
+      "category": "Estate Distribution Confirmation",
+      "title": "Estate Distribution Stream Is Supported by Solicitor Evidence",
+      "details": "The probate solicitor's letter confirms that Joe Bloggs received \u00a3100,000 from the estate of his late father, John Bloggs. That gives clear documentary support for one source-of-funds stream.",
+      "severity": "compliant"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

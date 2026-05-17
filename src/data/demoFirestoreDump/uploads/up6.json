@@ -1,0 +1,32 @@
+{
+  "id": "up6",
+  "filename": "05_Bank_Statements_Client.pdf",
+  "name": "05_Bank_Statements_Client.pdf",
+  "summary": "Client bank statements covering 1 September \u2013 15 October 2024 (~6 weeks).",
+  "classification": "Bank Statement",
+  "classificationL1": "Bank Statement",
+  "classificationL2": "Bank Statement",
+  "classificationDetail": "Client bank statements covering 1 September \u2013 15 October 2024 (~6 weeks).",
+  "classificationJustification": "",
+  "classificationReason": "AI classification reason will appear here after processing.",
+  "classification_confidence": 0.86,
+  "confidence": "high",
+  "confirmed": true,
+  "models_agree": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "parties": "Client",
+  "features_found": [
+    "statement_header",
+    "transaction_table"
+  ],
+  "limitedAnalysis": false,
+  "interviewees": [],
+  "intervieweeName": "",
+  "intervieweeRole": "",
+  "interviewDate": "",
+  "addedOn": "",
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
+}

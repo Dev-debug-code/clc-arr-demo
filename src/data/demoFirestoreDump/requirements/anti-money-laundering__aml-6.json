@@ -1,0 +1,9 @@
+{
+  "requirementId": "aml-6",
+  "codeArea": "anti-money-laundering",
+  "codeAreaLabel": "Anti-Money Laundering",
+  "label": "Address evidence must show that the client lives at the address given",
+  "status": "compliant",
+  "createdAt": "2026-05-15T12:25:32.971241+00:00",
+  "updatedAt": "2026-05-15T12:25:32.971241+00:00"
+}

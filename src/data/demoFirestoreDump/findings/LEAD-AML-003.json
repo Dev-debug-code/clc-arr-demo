@@ -1,34 +1,35 @@
 {
-  "isGoodPractice": false,
   "id": "LEAD-AML-003",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "10_PEP_Screening",
-      "page": 1,
-      "id": "LEAD-AML-003-p1",
-      "section": "Subject Details",
-      "text": "John Bloggs",
-      "box_id": "LEAD-AML-003",
-      "file": "10_PEP_Screening.pdf"
-    }
-  ],
+  "title": "PEP Check Appears to Be for the Deceased Father, Not the Buyer",
   "detail": "The PEP and sanctions screening report on file is in the name John Bloggs. The estate letter identifies John Bloggs as Joe Bloggs' deceased father, while Joe Bloggs is the buyer/client. A separate sanctions screening report exists for Joe Bloggs, so this lead is specifically about the PEP/adverse-media report appearing to screen the wrong person.",
-  "codeArea": "aml",
   "reference": "Firm AML Policy \u00a75.1 (PEP and sanctions screening)",
-  "evidence_strength": "supported",
+  "codeArea": "anti-money-laundering",
+  "codeAreaLabel": "Anti-Money Laundering",
+  "requirementId": "aml-3",
   "documentId": "10_PEP_Screening",
+  "boxId": "LEAD-AML-003",
+  "polarity": "non_compliant",
+  "certainty": "lead",
+  "severity": "warning",
+  "isGoodPractice": false,
+  "evidence_strength": "strong",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 1,
     "file": "10_PEP_Screening.pdf",
-    "section": "Subject Details",
-    "text": "John Bloggs"
+    "section": "Subject Details"
   },
-  "boxId": "LEAD-AML-003",
-  "requirementId": "aml-3",
-  "polarity": "non_compliant",
-  "title": "PEP Check Appears to Be for the Deceased Father, Not the Buyer",
-  "severity": "warning",
-  "certainty": "lead",
-  "is_good_practice": false
+  "evidencePassages": [
+    {
+      "id": "LEAD-AML-003-p1",
+      "document_id": "10_PEP_Screening",
+      "file": "10_PEP_Screening.pdf",
+      "page": 1,
+      "section": "Subject Details",
+      "box_id": "LEAD-AML-003"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

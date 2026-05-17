@@ -38,16 +38,6 @@ export default function CaseHeader({
           </div>
         </div>
       )}
-      {pendingReprocessSummary && !reprocessBannerDismissed ? (
-        <div className="reprocess-indicator">
-          <span>
-            Unprocessed changes pending: {pendingReprocessSummary}. Reprocess when ready.
-          </span>
-          <button type="button" className="btn btn-xs secondary" onClick={onReprocessNow}>
-            Reprocess now
-          </button>
-        </div>
-      ) : null}
       <div className="case-header__tabs" role="tablist" aria-label="Case views">
         {CASE_TABS.filter((tab) => tab.step <= maxStepUnlocked).map((tab) => {
           const isActive = activeCaseTabId === tab.id;

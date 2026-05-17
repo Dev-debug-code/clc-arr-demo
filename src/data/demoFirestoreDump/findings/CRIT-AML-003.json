@@ -1,36 +1,35 @@
 {
-  "isGoodPractice": false,
   "id": "CRIT-AML-003",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "05_Bank_Statements_Client",
-      "page": 1,
-      "id": "CRIT-AML-003-p1",
-      "section": "Statement Period",
-      "text": "Statement Period: 01 Sep - 30 Sep 2024",
-      "box_id": "CRIT-AML-003",
-      "file": "05_Bank_Statements_Client.pdf"
-    }
-  ],
-  "detail": "Bank statements provided cover only ~6 weeks (1 September \u2013 15 October 2024) for an \u00a3875,000 transaction by an overseas client. Firm policy \u00a74.1.1 requires a minimum of 6 months' statements for high-value transactions exceeding \u00a3500,000 or for overseas clients \u2014 both conditions apply here.",
-  "codeArea": "aml",
+  "title": "Bank Statements Cover Six Weeks, Not the Six Months Required",
+  "detail": "Bank statements provided cover only about six weeks for an \u00a3875,000 transaction by an overseas client. Firm policy requires a minimum of six months' statements for high-value transactions exceeding \u00a3500,000 or for overseas clients.",
   "reference": "Firm AML Policy \u00a74.1.1",
-  "evidence_strength": "strong",
+  "codeArea": "anti-money-laundering",
+  "codeAreaLabel": "Anti-Money Laundering",
+  "requirementId": "aml-2",
   "documentId": "05_Bank_Statements_Client",
-  "updatedAt": "2026-05-05T20:44:03.529203+00:00",
+  "boxId": "CRIT-AML-003",
+  "polarity": "non_compliant",
+  "certainty": "finding",
+  "severity": "critical",
+  "isGoodPractice": false,
+  "evidence_strength": "strong",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 1,
     "file": "05_Bank_Statements_Client.pdf",
-    "section": "Statement Period",
-    "text": "Statement Period: 01 Sep - 30 Sep 2024"
+    "section": "Statement Period"
   },
-  "createdAt": "2026-05-05T20:44:03.529203+00:00",
-  "boxId": "CRIT-AML-003",
-  "requirementId": "aml-2",
-  "polarity": "non_compliant",
-  "title": "Bank Statements Cover Six Weeks, Not the Six Months Required",
-  "severity": "critical",
-  "certainty": "finding",
-  "is_good_practice": false
+  "evidencePassages": [
+    {
+      "id": "CRIT-AML-003-p1",
+      "document_id": "05_Bank_Statements_Client",
+      "file": "05_Bank_Statements_Client.pdf",
+      "page": 1,
+      "section": "Statement Period",
+      "box_id": "CRIT-AML-003"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

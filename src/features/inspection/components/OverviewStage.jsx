@@ -2,6 +2,8 @@ export default function OverviewStage({
   caseDocumentsLength,
   onGoToDocuments,
   onGoToReport,
+  findingVisibilityScope,
+  onSetFindingVisibilityScope,
   onClearFindingFilters,
   onResetFindingFilters,
   reportBlockedMessage,
@@ -73,18 +75,37 @@ export default function OverviewStage({
               </button>
             ))}
           </div>
-          {showFindingFilterControls ? (
-            <div className="overview-filter-actions">
-              <button type="button" className="btn btn-xs secondary overview-filter-clear-btn" onClick={onClearFindingFilters}>
-                Show all findings
-              </button>
-              {!hasDefaultFindingViewFilters ? (
-                <button type="button" className="btn btn-xs secondary overview-filter-reset-btn" onClick={onResetFindingFilters}>
-                  Reset to default
+          <div className="overview-filter-actions">
+            <div className="overview-scope-toggle" role="tablist" aria-label="Findings visibility">
+              {[
+                ['open', 'Open findings'],
+                ['closed', 'Closed findings'],
+                ['all', 'All findings']
+              ].map(([scopeId, label]) => (
+                <button
+                  key={scopeId}
+                  type="button"
+                  className={`overview-scope-toggle__btn${findingVisibilityScope === scopeId ? ' is-active' : ''}`}
+                  onClick={() => onSetFindingVisibilityScope(scopeId)}
+                  aria-pressed={findingVisibilityScope === scopeId}
+                >
+                  {label}
                 </button>
-              ) : null}
+              ))}
             </div>
-          ) : null}
+            {showFindingFilterControls ? (
+              <div className="overview-filter-actions__secondary">
+                <button type="button" className="btn btn-xs secondary overview-filter-clear-btn" onClick={onClearFindingFilters}>
+                  Show all types
+                </button>
+                {!hasDefaultFindingViewFilters ? (
+                  <button type="button" className="btn btn-xs secondary overview-filter-reset-btn" onClick={onResetFindingFilters}>
+                    Reset type filters
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
           {complianceContent}
           <div className="bottom-actions">
             <button type="button" className="btn primary" onClick={onGoToReport}>

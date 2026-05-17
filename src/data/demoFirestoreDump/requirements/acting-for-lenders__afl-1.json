@@ -1,0 +1,9 @@
+{
+  "requirementId": "afl-1",
+  "codeArea": "acting-for-lenders",
+  "codeAreaLabel": "Acting for Lenders and Prevention and Detection of Mortgage Fraud",
+  "label": "Terms of engagement should permit disclosure of material facts to lenders",
+  "status": "compliant",
+  "createdAt": "2026-05-15T12:25:32.973019+00:00",
+  "updatedAt": "2026-05-15T12:25:32.973019+00:00"
+}

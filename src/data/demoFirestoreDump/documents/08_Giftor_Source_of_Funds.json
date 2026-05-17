@@ -1,53 +1,53 @@
 {
-  "parties": "Donor",
-  "confirmed": true,
   "id": "08_Giftor_Source_of_Funds",
+  "name": "08_Giftor_Source_of_Funds.pdf",
+  "filename": "08_Giftor_Source_of_Funds.pdf",
   "summary": "Donor source-of-funds review for Jill Withers \u2014 donor explanation recorded, documentary evidence missing, but gift funds accepted for completion.",
+  "documentType": "Donor Source of Funds",
+  "classification": "Source of Funds Declaration",
+  "classification_confidence": 0.81,
   "confidence": "medium",
   "models_agree": true,
-  "filename": "08_Giftor_Source_of_Funds.pdf",
-  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/08_Giftor_Source_of_Funds.pdf",
-  "documentType": "Donor Source of Funds",
-  "classification_confidence": 0.81,
-  "overlayBoxes": [
-    {
-      "page": 1,
-      "pageno": 0,
-      "id": "CRIT-AML-002",
-      "bbox": [
-        12,
-        475,
-        452,
-        617
-      ],
-      "category": "Supporting Evidence Checklist",
-      "details": "The \u00a3200,000 gift from Jill Withers remains unsupported by documentary source-of-funds evidence. The donor review records that no independent evidence was provided to evidence the origin or accumulation of the funds, but the file nevertheless accepts the gift funds for completion without requesting further donor source-of-funds evidence.",
-      "title": "Insufficient Source of Funds Evidence for Gift",
-      "severity": "critical"
-    }
-  ],
-  "updatedAt": "2026-05-05T20:42:47.911928+00:00",
+  "confirmed": true,
   "processing_status": "complete",
-  "classification": "Source of Funds Declaration",
-  "createdAt": "2026-05-05T20:42:47.911928+00:00",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "severity": "critical",
+  "parties": "Donor",
+  "parties_found": [
+    "Jill Withers"
+  ],
   "features_found": [
     "sof_checklist",
     "outstanding_evidence",
     "verification_decision"
   ],
-  "parties_found": [
-    "Jill Withers"
-  ],
   "extracted_fields": {
     "donor": "Jill Withers",
-    "gift_amount": "200000",
     "stated_source": "Accumulated personal savings",
+    "gift_amount": "200000",
     "evidence_obtained": "none",
     "review_status": "accepted despite missing evidence",
     "decision": "No further donor source-of-funds evidence requested before completion"
   },
-  "status": "verified",
-  "severity": "critical",
-  "processing_path": "ocr_then_classify_then_extract",
-  "name": "08_Giftor_Source_of_Funds.pdf"
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/08_Giftor_Source_of_Funds.pdf",
+  "overlayBoxes": [
+    {
+      "id": "CRIT-AML-002",
+      "page": 1,
+      "pageno": 0,
+      "bbox": [
+        50,
+        232,
+        525,
+        266
+      ],
+      "category": "Supporting Evidence Checklist",
+      "title": "Insufficient Source-of-Funds Evidence for Gift",
+      "details": "The \u00a3200,000 gift from Jill Withers remains unsupported by documentary source-of-funds evidence. The donor review records that no independent evidence was provided to evidence the origin or accumulation of the funds, but the file nevertheless accepts the gift funds for completion without requesting further donor source-of-funds evidence.",
+      "severity": "critical"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

@@ -1,34 +1,35 @@
 {
-  "isGoodPractice": false,
   "id": "CRIT-AML-006",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "14_Source_of_Funds_Schedule",
-      "page": 1,
-      "id": "CRIT-AML-006-p1",
-      "section": "Evidence Status Summary",
-      "text": "It is not a final approval of source-of-funds evidence",
-      "box_id": "CRIT-AML-006",
-      "file": "14_Source_of_Funds_Schedule.pdf"
-    }
-  ],
+  "title": "Source-of-Funds Schedule Records Unresolved Evidence Gaps",
   "detail": "The source-of-funds schedule records that savings evidence is only partial and that the donor source-of-funds documentation has not been obtained. It also states that the schedule is not a final approval of source-of-funds evidence.",
-  "codeArea": "aml",
   "reference": "Anti-Money Laundering, Procedure 20",
-  "evidence_strength": "strong",
+  "codeArea": "anti-money-laundering",
+  "codeAreaLabel": "Anti-Money Laundering",
+  "requirementId": "aml-5",
   "documentId": "14_Source_of_Funds_Schedule",
+  "boxId": "CRIT-AML-006",
+  "polarity": "non_compliant",
+  "certainty": "finding",
+  "severity": "critical",
+  "isGoodPractice": false,
+  "evidence_strength": "strong",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 1,
     "file": "14_Source_of_Funds_Schedule.pdf",
-    "section": "Evidence Status Summary",
-    "text": "It is not a final approval of source-of-funds evidence"
+    "section": "Evidence Status Summary"
   },
-  "boxId": "CRIT-AML-006",
-  "requirementId": "aml-5",
-  "polarity": "non_compliant",
-  "title": "Source-of-Funds Schedule Records Unresolved Evidence Gaps",
-  "severity": "critical",
-  "certainty": "finding",
-  "is_good_practice": false
+  "evidencePassages": [
+    {
+      "id": "CRIT-AML-006-p1",
+      "document_id": "14_Source_of_Funds_Schedule",
+      "file": "14_Source_of_Funds_Schedule.pdf",
+      "page": 1,
+      "section": "Evidence Status Summary",
+      "box_id": "CRIT-AML-006"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

@@ -1,19 +1,37 @@
 {
-  "parties": "John Bloggs",
-  "confirmed": true,
   "id": "10_PEP_Screening",
+  "name": "10_PEP_Screening.pdf",
+  "filename": "10_PEP_Screening.pdf",
   "summary": "PEP and sanctions screening report for John Bloggs.",
+  "documentType": "PEP Screening",
+  "classification": "CDD Records",
+  "classification_confidence": 0.94,
   "confidence": "high",
   "models_agree": true,
-  "filename": "10_PEP_Screening.pdf",
+  "confirmed": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "severity": "info",
+  "parties": "John Bloggs",
+  "parties_found": [
+    "John Bloggs"
+  ],
+  "features_found": [
+    "pep_screen_header",
+    "watchlist_table"
+  ],
+  "extracted_fields": {
+    "subject_name": "John Bloggs",
+    "screening_date": "15/10/2024",
+    "screening_result": "clear"
+  },
   "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/10_PEP_Screening.pdf",
-  "documentType": "PEP Screening",
-  "classification_confidence": 0.94,
   "overlayBoxes": [
     {
+      "id": "LEAD-AML-003",
       "page": 1,
       "pageno": 0,
-      "id": "LEAD-AML-003",
       "bbox": [
         45,
         225,
@@ -21,29 +39,11 @@
         312
       ],
       "category": "Subject Details",
-      "details": "The PEP and sanctions screening report on file is in the name John Bloggs. The estate letter identifies John Bloggs as Joe Bloggs' deceased father, while Joe Bloggs is the buyer/client. A separate sanctions screening report exists for Joe Bloggs, so this lead is specifically about the PEP/adverse-media report appearing to screen the wrong person.",
       "title": "PEP Check Appears to Be for the Deceased Father, Not the Buyer",
+      "details": "The PEP and sanctions screening report on file is in the name John Bloggs. The estate letter identifies John Bloggs as Joe Bloggs' deceased father, while Joe Bloggs is the buyer/client. A separate sanctions screening report exists for Joe Bloggs, so this lead is specifically about the PEP/adverse-media report appearing to screen the wrong person.",
       "severity": "warning"
     }
   ],
-  "updatedAt": "2026-05-15T12:25:32.924897+00:00",
-  "processing_status": "complete",
-  "classification": "CDD Records",
   "createdAt": "2026-05-15T12:25:32.924897+00:00",
-  "features_found": [
-    "pep_screen_header",
-    "watchlist_table"
-  ],
-  "parties_found": [
-    "John Bloggs"
-  ],
-  "extracted_fields": {
-    "screening_date": "15/10/2024",
-    "subject_name": "John Bloggs",
-    "screening_result": "clear"
-  },
-  "status": "verified",
-  "severity": "info",
-  "processing_path": "ocr_then_classify_then_extract",
-  "name": "10_PEP_Screening.pdf"
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

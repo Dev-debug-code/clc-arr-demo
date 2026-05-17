@@ -1,34 +1,35 @@
 {
-  "isGoodPractice": false,
   "id": "CRIT-AML-002",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "08_Giftor_Source_of_Funds",
-      "page": 1,
-      "id": "CRIT-AML-002-p1",
-      "section": "Supporting Evidence Checklist",
-      "text": "No independent documentary evidence has been provided to evidence the origin or accumulation of the funds.",
-      "box_id": "CRIT-AML-002",
-      "file": "08_Giftor_Source_of_Funds.pdf"
-    }
-  ],
+  "title": "Insufficient Source-of-Funds Evidence for Gift",
   "detail": "The \u00a3200,000 gift from Jill Withers remains unsupported by documentary source-of-funds evidence. The donor review records that no independent evidence was provided to evidence the origin or accumulation of the funds, but the file nevertheless accepts the gift funds for completion without requesting further donor source-of-funds evidence.",
-  "codeArea": "aml",
   "reference": "Anti-Money Laundering, Procedure 20",
-  "evidence_strength": "strong",
+  "codeArea": "anti-money-laundering",
+  "codeAreaLabel": "Anti-Money Laundering",
+  "requirementId": "aml-2",
   "documentId": "08_Giftor_Source_of_Funds",
+  "boxId": "CRIT-AML-002",
+  "polarity": "non_compliant",
+  "certainty": "finding",
+  "severity": "critical",
+  "isGoodPractice": false,
+  "evidence_strength": "strong",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 1,
     "file": "08_Giftor_Source_of_Funds.pdf",
-    "section": "Supporting Evidence Checklist",
-    "text": "No independent documentary evidence has been provided to evidence the origin or accumulation of the funds."
+    "section": "Supporting Evidence Checklist"
   },
-  "boxId": "CRIT-AML-002",
-  "requirementId": "aml-2",
-  "polarity": "non_compliant",
-  "title": "Insufficient Source-of-Funds Evidence for Gift",
-  "severity": "critical",
-  "certainty": "finding",
-  "is_good_practice": false
+  "evidencePassages": [
+    {
+      "id": "CRIT-AML-002-p1",
+      "document_id": "08_Giftor_Source_of_Funds",
+      "file": "08_Giftor_Source_of_Funds.pdf",
+      "page": 1,
+      "section": "Supporting Evidence Checklist",
+      "box_id": "CRIT-AML-002"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

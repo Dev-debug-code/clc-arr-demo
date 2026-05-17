@@ -1,34 +1,35 @@
 {
-  "isGoodPractice": false,
   "id": "COMP-AFL-001",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "12_Client_Care_Letter",
-      "page": 2,
-      "id": "COMP-AFL-001-p1",
-      "section": "Acting for Your Mortgage Lender",
-      "text": "consent to our making such disclosures to the lender where required",
-      "box_id": "COMP-AFL-001",
-      "file": "12_Client_Care_Letter.pdf"
-    }
-  ],
+  "title": "Terms Permit Disclosure of Material Facts to the Lender",
   "detail": "The client care letter explains the firm's duties when acting for the lender and records the client's consent to disclosures to the lender where required.",
-  "codeArea": "lenders",
   "reference": "Acting for Lenders and Prevention and Detection of Mortgage Fraud, Section 9",
-  "evidence_strength": "strong",
+  "codeArea": "acting-for-lenders",
+  "codeAreaLabel": "Acting for Lenders and Prevention and Detection of Mortgage Fraud",
+  "requirementId": "afl-1",
   "documentId": "12_Client_Care_Letter",
+  "boxId": "COMP-AFL-001",
+  "polarity": "compliant",
+  "certainty": "finding",
+  "severity": "compliant",
+  "isGoodPractice": false,
+  "evidence_strength": "strong",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 2,
     "file": "12_Client_Care_Letter.pdf",
-    "section": "Acting for Your Mortgage Lender",
-    "text": "consent to our making such disclosures to the lender where required"
+    "section": "Acting for Your Mortgage Lender"
   },
-  "boxId": "COMP-AFL-001",
-  "requirementId": "afl-1",
-  "polarity": "compliant",
-  "title": "Terms Permit Disclosure of Material Facts to the Lender",
-  "severity": "best_practice",
-  "certainty": "finding",
-  "is_good_practice": false
+  "evidencePassages": [
+    {
+      "id": "COMP-AFL-001-p1",
+      "document_id": "12_Client_Care_Letter",
+      "file": "12_Client_Care_Letter.pdf",
+      "page": 2,
+      "section": "Acting for Your Mortgage Lender",
+      "box_id": "COMP-AFL-001"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

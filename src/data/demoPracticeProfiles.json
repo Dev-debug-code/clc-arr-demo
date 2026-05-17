@@ -3,11 +3,11 @@
     "id": "example-conveyancing",
     "label": "Example Conveyancing Co Ltd",
     "practiceName": "Example Conveyancing Co Ltd",
-    "holp": "Sarah Chen",
-    "hofa": "James Wright",
-    "previousInspection": "2024-01-17",
-    "focusAreas": ["aml", "lenders", "code-of-conduct"],
-    "preInspectionConcerns": "Gifted deposit, estate-derived funds, and inconsistent source-of-funds recording warrant a focused AML review."
+    "holp": "David Thompson",
+    "hofa": "Sarah Johnson",
+    "previousInspection": "2022-06-01",
+    "focusAreas": ["aml", "acting-for-lenders", "code-of-conduct"],
+    "preInspectionConcerns": "Risk tool annual audit (June 2025) flagged heightened risk across three areas:\n\n- Anti-Money Laundering: firm acts for overseas clients and accepts third-party gifts without clear source-of-funds evidence or enhanced due diligence\n- Acting for Lenders: identity verification and disclosure practices not fully aligned with CLC Mortgage Fraud Guidance\n- Code of Conduct: terms of engagement and fee disclosure incomplete in two sampled files\n\nCurrent matter engages all three: UAE-resident buyer, £200,000 third-party gift, £100,000 estate distribution, lender involvement."
   },
   {
     "id": "harbour-legal",
@@ -16,7 +16,7 @@
     "holp": "Amira Khan",
     "hofa": "David Morse",
     "previousInspection": "2023-09-28",
-    "focusAreas": ["aml", "lenders"],
+    "focusAreas": ["aml", "accounts", "management"],
     "preInspectionConcerns": "Recent staff turnover and prior accountant comments suggest closer checking of AML controls and supervision."
   },
   {
@@ -26,7 +26,7 @@
     "holp": "Nia Roberts",
     "hofa": "Luke Bennett",
     "previousInspection": "2024-06-05",
-    "focusAreas": ["code-of-conduct", "lenders", "aml"],
+    "focusAreas": ["client-care", "complaints", "lenders"],
     "preInspectionConcerns": "Risk profile indicates a recent increase in lender-panel work and a cluster of service complaints."
   }
 ]

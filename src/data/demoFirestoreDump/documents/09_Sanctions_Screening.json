@@ -5,8 +5,8 @@
   "summary": "Sanctions screening report for Joe Bloggs with no matches identified.",
   "documentType": "Sanctions Screening",
   "classification": "CDD Records",
-  "classification_confidence": 0.88,
-  "confidence": "high",
+  "classification_confidence": 0.68,
+  "confidence": "medium",
   "models_agree": true,
   "confirmed": true,
   "processing_status": "complete",
@@ -14,12 +14,36 @@
   "status": "verified",
   "severity": "info",
   "parties": "Client",
-  "parties_found": ["Joe Bloggs"],
-  "features_found": ["sanctions_screen_header", "screening_result"],
+  "parties_found": [
+    "Joe Bloggs"
+  ],
+  "features_found": [
+    "sanctions_screen_header",
+    "screening_result"
+  ],
   "extracted_fields": {
     "subject_name": "Joe Bloggs",
     "screening_date": "15/10/2024",
     "screening_result": "clear"
   },
-  "overlayBoxes": []
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/09_Sanctions_Screening.pdf",
+  "overlayBoxes": [
+    {
+      "id": "COMP-AML-004",
+      "page": 1,
+      "pageno": 0,
+      "bbox": [
+        39,
+        314,
+        556,
+        448
+      ],
+      "category": "Lists Screened",
+      "title": "Electronic Screening Record Shows Checks and Results",
+      "details": "The sanctions screening report records the parties screened, the sanctions sources checked, and the result for each source. This supports the CLC guidance expectation that electronic verification processes show what checks were carried out and what the results were.",
+      "severity": "compliant"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

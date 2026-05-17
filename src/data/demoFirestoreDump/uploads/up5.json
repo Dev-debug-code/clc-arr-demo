@@ -1,0 +1,32 @@
+{
+  "id": "up5",
+  "filename": "04_Source_of_Funds_Declaration.pdf",
+  "name": "04_Source_of_Funds_Declaration.pdf",
+  "summary": "Source of funds declaration signed by Joe Bloggs (16 October 2024).",
+  "classification": "Source of Funds Declaration",
+  "classificationL1": "Source of Funds Declaration",
+  "classificationL2": "Source of Funds Declaration",
+  "classificationDetail": "Source of funds declaration signed by Joe Bloggs (16 October 2024).",
+  "classificationJustification": "",
+  "classificationReason": "AI classification reason will appear here after processing.",
+  "classification_confidence": 0.95,
+  "confidence": "high",
+  "confirmed": true,
+  "models_agree": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "parties": "Client",
+  "features_found": [
+    "sof_table",
+    "poca_acknowledgment"
+  ],
+  "limitedAnalysis": false,
+  "interviewees": [],
+  "intervieweeName": "",
+  "intervieweeRole": "",
+  "interviewDate": "",
+  "addedOn": "",
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
+}

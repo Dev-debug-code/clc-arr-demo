@@ -1,34 +1,35 @@
 {
-  "isGoodPractice": false,
   "id": "CRIT-AML-005",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "11_MLRO_Interview_Transcript",
-      "page": 1,
-      "id": "CRIT-AML-005-p1",
-      "section": "Interview transcript at 00:02:41",
-      "text": "I tend to just glance at the file by that point",
-      "box_id": "CRIT-AML-005",
-      "file": "11_MLRO_Interview_Transcript.json"
-    }
-  ],
+  "title": "MLRO Source-of-Funds Oversight Is a Glance, Not a Review",
   "detail": "In interview, the Money Laundering Reporting Officer described her source-of-funds review as 'just glancing at the file' after the fee earner has signed it off, rather than conducting an independent assessment. The MLRO role requires substantive oversight, not mere confirmation that a fee earner has ticked a box.",
-  "codeArea": "aml",
   "reference": "Anti-Money Laundering, Procedure 20",
-  "evidence_strength": "supported",
+  "codeArea": "anti-money-laundering",
+  "codeAreaLabel": "Anti-Money Laundering",
+  "requirementId": "aml-4",
   "documentId": "11_MLRO_Interview_Transcript",
+  "boxId": "CRIT-AML-005",
+  "polarity": "non_compliant",
+  "certainty": "finding",
+  "severity": "critical",
+  "isGoodPractice": false,
+  "evidence_strength": "supported",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 1,
     "file": "11_MLRO_Interview_Transcript.json",
-    "section": "Interview transcript at 00:02:41",
-    "text": "I tend to just glance at the file by that point"
+    "section": "Interview transcript at 00:02:41"
   },
-  "boxId": "CRIT-AML-005",
-  "requirementId": "aml-4",
-  "polarity": "non_compliant",
-  "title": "MLRO Source-of-Funds Oversight Is a Glance, Not a Review",
-  "severity": "critical",
-  "certainty": "finding",
-  "is_good_practice": false
+  "evidencePassages": [
+    {
+      "id": "CRIT-AML-005-p1",
+      "document_id": "11_MLRO_Interview_Transcript",
+      "file": "11_MLRO_Interview_Transcript.json",
+      "page": 1,
+      "section": "Interview transcript at 00:02:41",
+      "box_id": "CRIT-AML-005"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

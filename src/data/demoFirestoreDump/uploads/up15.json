@@ -1,0 +1,33 @@
+{
+  "id": "up15",
+  "filename": "14_Source_of_Funds_Schedule.pdf",
+  "name": "14_Source_of_Funds_Schedule.pdf",
+  "summary": "Source-of-funds schedule itemising the purchase funds and recording mixed evidence: partial savings evidence, outstanding donor evidence, and supported estate distribution.",
+  "classification": "Source of Funds Declaration",
+  "classificationL1": "Source of Funds Declaration",
+  "classificationL2": "Source of Funds Schedule",
+  "classificationDetail": "Source-of-funds schedule itemising the purchase funds and recording mixed evidence: partial savings evidence, outstanding donor evidence, and supported estate distribution.",
+  "classificationJustification": "",
+  "classificationReason": "AI classification reason will appear here after processing.",
+  "classification_confidence": 0.92,
+  "confidence": "high",
+  "confirmed": true,
+  "models_agree": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "parties": "Client; donor; deceased parent",
+  "features_found": [
+    "sof_breakdown",
+    "evidence_status_table",
+    "outstanding_enquiries"
+  ],
+  "limitedAnalysis": false,
+  "interviewees": [],
+  "intervieweeName": "",
+  "intervieweeRole": "",
+  "interviewDate": "",
+  "addedOn": "",
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
+}

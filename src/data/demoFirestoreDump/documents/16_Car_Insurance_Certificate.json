@@ -1,36 +1,36 @@
 {
-  "parties": "Client",
-  "confirmed": false,
   "id": "16_Car_Insurance_Certificate",
+  "name": "16_car_insurance_certificate.pdf",
+  "filename": "16_car_insurance_certificate.pdf",
   "summary": "Car insurance certificate for Joe Bloggs — not a recognised conveyancing document type.",
+  "documentType": "Other",
+  "classification": "Other",
+  "classification_confidence": 0.42,
   "confidence": "low",
   "models_agree": false,
-  "filename": "16_car_insurance_certificate.pdf",
-  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/16_car_insurance_certificate.pdf",
-  "documentType": "Other",
-  "classification_confidence": 0.42,
-  "overlayBoxes": [],
-  "updatedAt": "2026-05-15T12:25:32.924897+00:00",
+  "confirmed": false,
   "processing_status": "complete",
-  "classification": "Other",
-  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "attention",
+  "severity": "info",
+  "parties": "Client",
+  "parties_found": [
+    "Joe Bloggs"
+  ],
   "features_found": [
     "vehicle_registration",
     "insurance_policy_number",
     "premium_amount"
   ],
-  "parties_found": [
-    "Joe Bloggs"
-  ],
   "extracted_fields": {
-    "annual_premium": "684",
-    "policy_number": "CI-2024-88421",
     "policy_holder": "Joe Bloggs",
+    "vehicle": "2022 BMW 320i M Sport",
+    "policy_number": "CI-2024-88421",
     "renewal_date": "01/12/2024",
-    "vehicle": "2022 BMW 320i M Sport"
+    "annual_premium": "684"
   },
-  "status": "attention",
-  "severity": "info",
-  "processing_path": "ocr_then_classify_then_extract",
-  "name": "16_car_insurance_certificate.pdf"
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/16_car_insurance_certificate.pdf",
+  "overlayBoxes": [],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

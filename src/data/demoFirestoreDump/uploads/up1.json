@@ -1,0 +1,33 @@
+{
+  "id": "up1",
+  "filename": "00_Firm_AML_Policy.pdf",
+  "name": "00_Firm_AML_Policy.pdf",
+  "summary": "Firm's written AML policy and procedures (v3.2, January 2024).",
+  "classification": "AML Policy",
+  "classificationL1": "Policy",
+  "classificationL2": "AML Policy",
+  "classificationDetail": "Firm's written AML policy and procedures (v3.2, January 2024).",
+  "classificationJustification": "",
+  "classificationReason": "AI classification reason will appear here after processing.",
+  "classification_confidence": 0.94,
+  "confidence": "high",
+  "confirmed": true,
+  "models_agree": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "parties": "Firm",
+  "features_found": [
+    "aml_policy_header",
+    "review_cycle",
+    "mlro_named"
+  ],
+  "limitedAnalysis": false,
+  "interviewees": [],
+  "intervieweeName": "",
+  "intervieweeRole": "",
+  "interviewDate": "",
+  "addedOn": "",
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
+}

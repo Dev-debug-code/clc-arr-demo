@@ -168,7 +168,7 @@ export const FINDING_FILTER_LABEL_MAP = {
   all: 'All',
   unreviewed: 'Unreviewed',
   reviewed: 'Reviewed',
-  leads: 'Requires review',
+  leads: 'Inconclusive',
   non_compliant: 'Non-compliant',
   compliant: 'Compliant',
   good_practice: 'Good Practice',
@@ -180,61 +180,37 @@ export const FINDING_FILTER_LABEL_MAP = {
 
 export const FINDING_SEVERITY_BADGE_MAP = {
   critical: 'Non-compliant',
-  warning: 'Requires review',
+  warning: 'Inconclusive',
   best_practice: 'Good practice',
   pass: 'Compliant'
 };
 
 export const SEVERITY_LABEL_MAP = {
   critical: 'Non-compliant',
-  warning: 'Requires review',
+  warning: 'Inconclusive',
   pass: 'Compliant',
   best_practice: 'Good Practice'
 };
 
 export const REPORT_SEVERITY_LABEL_MAP = {
   critical: 'Non-compliant',
-  warning: 'Requires review',
+  warning: 'Inconclusive',
   pass: 'Compliant',
   best_practice: 'Good Practice'
 };
 
-export const CODE_AREA_REQUIREMENT_SAMPLES = {
-  aml: [
-    { id: 'aml-2', label: 'Source-of-funds documentation retained', status: 'non_compliant' },
-    { id: 'aml-3', label: 'Enhanced due diligence for higher risk', status: 'non_compliant' },
-    { id: 'aml-5', label: 'Outstanding SOF evidence resolved', status: 'non_compliant' },
-    { id: 'aml-6', label: 'Address evidence current and valid', status: 'compliant' },
-    { id: 'aml-7', label: 'Deposit from legitimate source', status: 'good_practice' },
-    { id: 'aml-8', label: 'Address records copied and retained', status: 'compliant' },
-    { id: 'aml-9', label: 'Estate distribution SOF evidence', status: 'compliant' },
-    { id: 'aml-10', label: 'Electronic verification transparency', status: 'compliant' }
-  ],
-  lenders: [
-    { id: 'aml-1', label: 'Borrower identity original documents', status: 'non_compliant' },
-    { id: 'afl-1', label: 'Terms permit lender disclosure', status: 'compliant' },
-    { id: 'afl-3', label: 'True purchase price to lender', status: 'compliant' }
-  ],
-  'client-care': [
-    { id: 'cc-1', label: 'Terms and estimated fees in writing', status: 'compliant' },
-    { id: 'cc-2', label: 'Fee arrangements and changes', status: 'compliant' },
-    { id: 'cc-3', label: 'Significant cost changes told promptly', status: 'compliant' },
-    { id: 'cc-4', label: 'How costs will be paid agreed', status: 'compliant' }
-  ],
-  complaints: [
-    { id: 'cmp-1', label: 'Complaints procedure in writing', status: 'compliant' },
-    { id: 'cmp-2', label: 'Legal Ombudsman escalation details', status: 'compliant' }
-  ],
-  accounts: [
-    { id: 'ac-1', label: 'Client account reconciliations', status: 'compliant' },
-    { id: 'ac-2', label: 'Residual balances controls', status: 'compliant' }
-  ],
-  management: [
-    { id: 'mg-1', label: 'Supervision process documented', status: 'compliant' },
-    { id: 'mg-2', label: 'Escalation route clear', status: 'compliant' }
-  ],
-  undertakings: [{ id: 'un-1', label: 'Undertakings register maintained', status: 'compliant' }]
-};
+export const CODE_AREA_REQUIREMENT_SAMPLES = DEMO_REQUIREMENT_CATALOG.reduce((accumulator, entry) => {
+  const codeAreaId = String(entry.codeArea || '').trim() || 'aml';
+  if (!accumulator[codeAreaId]) {
+    accumulator[codeAreaId] = [];
+  }
+  accumulator[codeAreaId].push({
+    id: entry.requirementId,
+    label: entry.label,
+    status: entry.status
+  });
+  return accumulator;
+}, {});
 
 export const REQUIREMENT_KEYWORDS = {
   'aml-1': ['identity', 'borrower identity', 'original documents'],
@@ -378,6 +354,7 @@ export const REPORT_ACTION_DEFAULTS = [
   }
 ];
 import {
+  DEMO_REQUIREMENT_CATALOG,
   DEMO_FOCUS_AREAS,
   DEMO_REQUIREMENT_OPTIONS,
   DEMO_REQUIREMENT_SEVERITY_BY_ID

@@ -39,7 +39,7 @@ export const toCanonicalFilenameKey = (value) => {
   const text = coerceText(value).trim().toLowerCase();
   if (!text) return '';
   const base = text.replace(/\\/g, '/').split('/').pop() ?? '';
-  const stem = base.replace(/\.pdf$/i, '');
+  const stem = base.replace(/\.[^.]+$/u, '');
   return stem.replace(/[^a-z0-9]/g, '');
 };
 
@@ -109,6 +109,7 @@ export const deriveLegacyFindingSeverity = (finding) => {
   const isGoodPractice = finding?.isGoodPractice === true || finding?.is_good_practice === true;
 
   if (isGoodPractice) return 'best_practice';
+  if (polarity === 'compliant' && reviewStatus === 'rejected') return 'critical';
   if (polarity === 'compliant') return 'pass';
   if (certainty === 'lead') return 'warning';
 
@@ -119,6 +120,36 @@ export const deriveLegacyFindingSeverity = (finding) => {
 };
 
 export const getFindingBucketId = (finding) => deriveLegacyFindingSeverity(finding);
+
+const normalizeFindingDecisionState = (decision) => {
+  const normalized = String(decision || '').trim().toLowerCase();
+  return normalized || 'unreviewed';
+};
+
+export const isFindingOverturned = (finding, reviewDecision = '') => {
+  const decisionState = normalizeFindingDecisionState(
+    reviewDecision || finding?.reviewStatus || finding?.review_status
+  );
+  const polarity = String(finding?.polarity || '').trim().toLowerCase();
+  const isGoodPractice = finding?.isGoodPractice === true || finding?.is_good_practice === true;
+  return polarity === 'compliant' && !isGoodPractice && decisionState === 'rejected';
+};
+
+export const getFindingDisplayBucketId = (finding, reviewDecision = '') => {
+  const decisionState = normalizeFindingDecisionState(
+    reviewDecision || finding?.reviewStatus || finding?.review_status
+  );
+  const baseBucket = deriveLegacyFindingSeverity(finding);
+  if (baseBucket === 'pass' && decisionState === 'rejected') return 'critical';
+  return baseBucket;
+};
+
+export const getFindingDisplayDecisionState = (finding, reviewDecision = '') => {
+  const decisionState = normalizeFindingDecisionState(
+    reviewDecision || finding?.reviewStatus || finding?.review_status
+  );
+  return isFindingOverturned(finding, decisionState) ? 'overturned' : decisionState;
+};
 
 export const getFindingEffectiveCertainty = (finding) => {
   const reviewStatus = String(finding?.reviewStatus || finding?.review_status || '').trim().toLowerCase();

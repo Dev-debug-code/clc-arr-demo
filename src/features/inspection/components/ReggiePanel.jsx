@@ -51,6 +51,10 @@ export default function ReggiePanel({
   reggieThinkingLevel,
   setReggieThinkingLevel,
   suggestions,
+  reggieChats,
+  activeReggieChatId,
+  onCreateNewChat,
+  onSelectChat,
   reggieMessages,
   onQuickPrompt,
   onOpenCitation,
@@ -80,7 +84,7 @@ export default function ReggiePanel({
       top: messagesRef.current.scrollHeight,
       behavior: 'smooth'
     });
-  }, [isVisible, reggieMessages.length]);
+  }, [activeReggieChatId, isVisible, reggieMessages.length]);
 
   if (!isMounted) return null;
 
@@ -120,9 +124,26 @@ export default function ReggiePanel({
               ))}
             </div>
           </div>
-          <p className="reggie-panel__hint">
-            Medium follows the canned demo flow. High keeps the same response shape for now until the live endpoint is exposed.
-          </p>
+          <div className="reggie-panel__chats">
+            <div className="reggie-panel__chats-head">
+              <span className="reggie-section-label">Chats</span>
+              <button type="button" className="btn btn-xs secondary" onClick={onCreateNewChat}>
+                New chat
+              </button>
+            </div>
+            <div className="reggie-chat-list">
+              {reggieChats.map((chat) => (
+                <button
+                  key={chat.id}
+                  type="button"
+                  className={`reggie-chat-chip${activeReggieChatId === chat.id ? ' is-active' : ''}`}
+                  onClick={() => onSelectChat(chat.id)}
+                >
+                  {chat.title}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="reggie-panel__messages" ref={messagesRef}>

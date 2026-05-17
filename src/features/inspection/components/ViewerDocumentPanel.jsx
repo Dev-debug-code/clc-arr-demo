@@ -232,8 +232,6 @@ export default function ViewerDocumentPanel({
   setFeedbackOpen,
   onOpenDocumentAssistant
 }) {
-  void viewerSelectionHistory;
-  void handleViewerBack;
   void maxStepUnlocked;
   void handleCaseTabNavigate;
   void activeCaseTabId;
@@ -246,11 +244,14 @@ export default function ViewerDocumentPanel({
   }, [activeDocument?.filename, documentUrl]);
 
   const selectedJsonEvidence = useMemo(() => {
+    if (!showDocBoxes) {
+      return null;
+    }
     if (!Array.isArray(activeDocBoxes) || activeDocBoxes.length === 0) {
       return null;
     }
     return activeDocBoxes.find((box) => box.id === activeDocBoxId) ?? activeDocBoxes[0] ?? null;
-  }, [activeDocBoxId, activeDocBoxes]);
+  }, [activeDocBoxId, activeDocBoxes, showDocBoxes]);
 
   return (
     <div className="panel doc-panel" ref={docViewerRef}>
@@ -267,6 +268,11 @@ export default function ViewerDocumentPanel({
               <div>Document: {activeDocument?.filename ?? 'No document selected'}</div>
             </div>
             <div className="doc-top-nav-right">
+              {viewerSelectionHistory.length > 0 ? (
+                <button type="button" className="btn btn-xs secondary" onClick={handleViewerBack}>
+                  Back
+                </button>
+              ) : null}
               <span>Viewing: {viewerDocumentPosition} of {viewerDocumentCount} documents</span>
               <button
                 type="button"

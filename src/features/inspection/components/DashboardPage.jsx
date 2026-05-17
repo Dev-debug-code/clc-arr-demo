@@ -194,7 +194,7 @@ export default function DashboardPage({
             </div>
             <p className="dashboard-case-card__meta">
               {item.unreviewed > 0 || item.leads > 0
-                ? `(${item.unreviewed}) unreviewed · (${item.leads}) requires review · ${item.goodPractice} good practice`
+                ? `(${item.unreviewed}) unreviewed · (${item.leads}) inconclusive · ${item.goodPractice} good practice`
                 : 'All reviewed ✓'}
             </p>
             <p className="dashboard-case-card__meta">

@@ -1,34 +1,35 @@
 {
-  "isGoodPractice": false,
   "id": "COMP-COC-003",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "12_Client_Care_Letter",
-      "page": 1,
-      "id": "COMP-COC-003-p1",
-      "section": "Fees and Disbursements",
-      "text": "advise promptly",
-      "box_id": "COMP-COC-003",
-      "file": "12_Client_Care_Letter.pdf"
-    }
-  ],
+  "title": "Client Is Told About Changes to Costs",
   "detail": "The client care letter says the firm will advise promptly if estimated costs change before additional fees are incurred.",
-  "codeArea": "client-care",
   "reference": "Code of Conduct, Overriding Principle 3.m",
-  "evidence_strength": "strong",
+  "codeArea": "code-of-conduct",
+  "codeAreaLabel": "Code of Conduct",
+  "requirementId": "code_of_conduct_3",
   "documentId": "12_Client_Care_Letter",
+  "boxId": "COMP-COC-003",
+  "polarity": "compliant",
+  "certainty": "finding",
+  "severity": "compliant",
+  "isGoodPractice": false,
+  "evidence_strength": "strong",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 1,
     "file": "12_Client_Care_Letter.pdf",
-    "section": "Fees and Disbursements",
-    "text": "advise promptly"
+    "section": "Fees and Disbursements"
   },
-  "boxId": "COMP-COC-003",
-  "requirementId": "cc-3",
-  "polarity": "compliant",
-  "title": "Client Is Told About Changes to Costs",
-  "severity": "best_practice",
-  "certainty": "finding",
-  "is_good_practice": false
+  "evidencePassages": [
+    {
+      "id": "COMP-COC-003-p1",
+      "document_id": "12_Client_Care_Letter",
+      "file": "12_Client_Care_Letter.pdf",
+      "page": 1,
+      "section": "Fees and Disbursements",
+      "box_id": "COMP-COC-003"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

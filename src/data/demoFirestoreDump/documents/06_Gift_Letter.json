@@ -1,24 +1,24 @@
 {
-  "parties": "Donor",
-  "confirmed": true,
   "id": "06_Gift_Letter",
+  "name": "06_Gift_Letter.pdf",
+  "filename": "06_Gift_Letter.pdf",
   "summary": "Gift letter from Jill Withers confirming \u00a3200,000 gift to Joe Bloggs.",
+  "documentType": "Gift Letter",
+  "classification": "CDD Records",
+  "classification_confidence": 0.89,
   "confidence": "high",
   "models_agree": true,
-  "filename": "06_Gift_Letter.pdf",
-  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/06_Gift_Letter.pdf",
-  "documentType": "Gift Letter",
-  "classification_confidence": 0.89,
-  "overlayBoxes": [],
-  "updatedAt": "2026-05-05T20:42:47.911928+00:00",
+  "confirmed": true,
   "processing_status": "complete",
-  "classification": "CDD Records",
-  "createdAt": "2026-05-05T20:42:47.911928+00:00",
-  "features_found": [
-    "gift_declaration"
-  ],
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "severity": "warning",
+  "parties": "Donor",
   "parties_found": [
     "Jill Withers"
+  ],
+  "features_found": [
+    "gift_declaration"
   ],
   "extracted_fields": {
     "donor": "Jill Withers",
@@ -26,8 +26,8 @@
     "gift_amount": "200000",
     "letter_date": "12/10/2024"
   },
-  "status": "verified",
-  "severity": "warning",
-  "processing_path": "ocr_then_classify_then_extract",
-  "name": "06_Gift_Letter.pdf"
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/06_Gift_Letter.pdf",
+  "overlayBoxes": [],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

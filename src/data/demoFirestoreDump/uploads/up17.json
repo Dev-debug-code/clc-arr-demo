@@ -1,0 +1,33 @@
+{
+  "id": "up17",
+  "filename": "16_car_insurance_certificate.pdf",
+  "name": "16_car_insurance_certificate.pdf",
+  "summary": "Car insurance certificate for Joe Bloggs — not a recognised conveyancing document type.",
+  "classification": "Other",
+  "classificationL1": "Other",
+  "classificationL2": "Other",
+  "classificationDetail": "Car insurance certificate for Joe Bloggs — not a recognised conveyancing document type.",
+  "classificationJustification": "",
+  "classificationReason": "Document does not match any recognised conveyancing document type.",
+  "classification_confidence": 0.42,
+  "confidence": "low",
+  "models_agree": false,
+  "confirmed": false,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "attention",
+  "parties": "Client",
+  "features_found": [
+    "vehicle_registration",
+    "insurance_policy_number",
+    "premium_amount"
+  ],
+  "limitedAnalysis": false,
+  "interviewees": [],
+  "intervieweeName": "",
+  "intervieweeRole": "",
+  "interviewDate": "",
+  "addedOn": "",
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
+}

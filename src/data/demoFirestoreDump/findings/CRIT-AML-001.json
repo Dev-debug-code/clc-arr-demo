@@ -1,34 +1,35 @@
 {
-  "isGoodPractice": false,
   "id": "CRIT-AML-001",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "01_Client_ID_Verification",
-      "page": 1,
-      "id": "CRIT-AML-001-p1",
-      "section": "Attached Passport Copy",
-      "text": "Certified Copy of Passport",
-      "box_id": "CRIT-AML-001",
-      "file": "01_Client_ID_Verification.pdf"
-    }
-  ],
+  "title": "Identity Document Does Not Match Client",
   "detail": "The verification record marks the certified passport as accepted for client Joe Bloggs, but the attached image shows a passport in the name of Benedict Summers. This is a fundamental customer due diligence failure and does not satisfy lender identity expectations when acting for a lender.",
-  "codeArea": "aml",
   "reference": "Acting for Lenders and Prevention and Detection of Mortgage Fraud, Checking Identity by Original Documents",
-  "evidence_strength": "strong",
+  "codeArea": "acting-for-lenders",
+  "codeAreaLabel": "Acting for Lenders and Prevention and Detection of Mortgage Fraud",
+  "requirementId": "afl-2",
   "documentId": "01_Client_ID_Verification",
+  "boxId": "CRIT-AML-001",
+  "polarity": "non_compliant",
+  "certainty": "finding",
+  "severity": "critical",
+  "isGoodPractice": false,
+  "evidence_strength": "strong",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 1,
     "file": "01_Client_ID_Verification.pdf",
-    "section": "Attached Passport Copy",
-    "text": "Certified Copy of Passport"
+    "section": "Attached Passport Copy"
   },
-  "boxId": "CRIT-AML-001",
-  "requirementId": "aml-1",
-  "polarity": "non_compliant",
-  "title": "Identity Document Does Not Match Client",
-  "severity": "critical",
-  "certainty": "finding",
-  "is_good_practice": false
+  "evidencePassages": [
+    {
+      "id": "CRIT-AML-001-p1",
+      "document_id": "01_Client_ID_Verification",
+      "file": "01_Client_ID_Verification.pdf",
+      "page": 1,
+      "section": "Attached Passport Copy",
+      "box_id": "CRIT-AML-001"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

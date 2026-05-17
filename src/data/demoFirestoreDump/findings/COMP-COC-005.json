@@ -1,34 +1,35 @@
 {
-  "isGoodPractice": false,
   "id": "COMP-COC-005",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "12_Client_Care_Letter",
-      "page": 2,
-      "id": "COMP-COC-005-p1",
-      "section": "Legal Ombudsman",
-      "text": "Legal Ombudsman",
-      "box_id": "COMP-COC-005",
-      "file": "12_Client_Care_Letter.pdf"
-    }
-  ],
+  "title": "Legal Ombudsman Escalation Details Are Provided",
   "detail": "The client care letter gives Legal Ombudsman escalation rights, contact details, and time limits.",
-  "codeArea": "complaints",
   "reference": "Code of Conduct, Specific Requirement 6.k",
-  "evidence_strength": "strong",
+  "codeArea": "code-of-conduct",
+  "codeAreaLabel": "Code of Conduct",
+  "requirementId": "code_of_conduct_6",
   "documentId": "12_Client_Care_Letter",
+  "boxId": "COMP-COC-005",
+  "polarity": "compliant",
+  "certainty": "finding",
+  "severity": "compliant",
+  "isGoodPractice": false,
+  "evidence_strength": "strong",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 2,
     "file": "12_Client_Care_Letter.pdf",
-    "section": "Legal Ombudsman",
-    "text": "Legal Ombudsman"
+    "section": "Legal Ombudsman"
   },
-  "boxId": "COMP-COC-005",
-  "requirementId": "cmp-2",
-  "polarity": "compliant",
-  "title": "Legal Ombudsman Escalation Details Are Provided",
-  "severity": "best_practice",
-  "certainty": "finding",
-  "is_good_practice": false
+  "evidencePassages": [
+    {
+      "id": "COMP-COC-005-p1",
+      "document_id": "12_Client_Care_Letter",
+      "file": "12_Client_Care_Letter.pdf",
+      "page": 2,
+      "section": "Legal Ombudsman",
+      "box_id": "COMP-COC-005"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

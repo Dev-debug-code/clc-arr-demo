@@ -5,7 +5,12 @@ import {
   REVIEW_REASON_OPTIONS,
   STEP_OVERVIEW
 } from '../config.js';
-import { isRequirementExcluded, isRequirementMet } from '../helpers.js';
+import {
+  getFindingDisplayDecisionState,
+  isFindingOverturned,
+  isRequirementExcluded,
+  isRequirementMet
+} from '../helpers.js';
 
 export default function ComplianceCodeAreaSection({
   area,
@@ -17,6 +22,7 @@ export default function ComplianceCodeAreaSection({
   getFindingBucketId,
   expandedCodeAreaIds,
   setExpandedCodeAreaIds,
+  overviewFindingScope,
   overviewRequirementFilter,
   setOverviewRequirementFilter,
   overviewFilterRef,
@@ -29,6 +35,7 @@ export default function ComplianceCodeAreaSection({
   findingDecisions,
   expandedOverviewFindingIds,
   setExpandedOverviewFindingIds,
+  closingOverviewFindingIds,
   findingSeverityBadgeMap,
   findingEvidenceStrengthMap,
   isLeadFindingByTaxonomy,
@@ -84,10 +91,11 @@ export default function ComplianceCodeAreaSection({
   const areaFindings = filteredFindings.filter((finding) => findingMatchesCodeArea(finding, area.id));
   const activeMappedAreaFindings = mappedAreaFindings.filter((finding) => {
     const reviewState = findingDecisions[finding.id] ?? 'unreviewed';
-    return reviewState !== 'rejected' && reviewState !== 'dismissed';
+    return reviewState !== 'dismissed' && (reviewState !== 'rejected' || isFindingOverturned(finding, reviewState));
   });
   const attentionCount = activeMappedAreaFindings.filter((entry) => getFindingBucketId(entry) === 'critical').length;
   const guidanceCount = activeMappedAreaFindings.filter((entry) => getFindingBucketId(entry) === 'warning').length;
+  const compliantCount = activeMappedAreaFindings.filter((entry) => getFindingBucketId(entry) === 'pass').length;
   const goodPracticeCount = activeMappedAreaFindings.filter((entry) => getFindingBucketId(entry) === 'best_practice').length;
   const reviewRequiredCount = mappedAreaFindings.filter(
     (finding) => (findingDecisions[finding.id] ?? 'unreviewed') === 'unreviewed'
@@ -103,11 +111,14 @@ export default function ComplianceCodeAreaSection({
   if (attentionCount > 0) {
     countParts.push({ key: 'non_compliant', label: `${attentionCount} non-compliant`, cls: 'count-non-compliant' });
   }
+  if (compliantCount > 0) {
+    countParts.push({ key: 'compliant', label: `${compliantCount} compliant`, cls: 'count-compliant' });
+  }
   if (goodPracticeCount > 0) {
     countParts.push({ key: 'good-practice', label: `${goodPracticeCount} good practice`, cls: 'count-gp' });
   }
   if (guidanceCount > 0) {
-    countParts.push({ key: 'lead', label: `${guidanceCount} requires review`, cls: 'count-lead' });
+    countParts.push({ key: 'lead', label: `${guidanceCount} inconclusive`, cls: 'count-lead' });
   }
 
   const findingsByRequirement = useMemo(() => {
@@ -145,28 +156,31 @@ export default function ComplianceCodeAreaSection({
   const renderFindingCard = (finding) => {
     const findingBucket = getFindingBucketId(finding);
     const reviewState = findingDecisions[finding.id] ?? 'unreviewed';
+    const displayReviewState = getFindingDisplayDecisionState(finding, reviewState);
+    const overturnedFinding = isFindingOverturned(finding, reviewState);
     const isFindingExpanded = expandedOverviewFindingIds[finding.id] ?? false;
+    const isClosingFinding = Boolean(closingOverviewFindingIds[finding.id]);
     const reviewStatusLabel =
-      reviewState === 'accepted'
+      displayReviewState === 'accepted'
         ? 'Accepted'
-        : reviewState === 'rejected'
-          ? 'Rejected'
-          : reviewState === 'dismissed'
+        : displayReviewState === 'overturned'
+          ? 'Overturned'
+          : displayReviewState === 'rejected'
+            ? 'Rejected'
+            : displayReviewState === 'dismissed'
             ? 'Dismissed'
             : 'Unreviewed';
     const reviewStatusSymbol =
-      reviewState === 'accepted'
+      displayReviewState === 'accepted'
         ? '✓'
-        : reviewState === 'rejected'
-          ? '✕'
-          : reviewState === 'dismissed'
+        : displayReviewState === 'overturned'
+          ? '↺'
+          : displayReviewState === 'rejected'
+            ? '✕'
+            : displayReviewState === 'dismissed'
             ? '–'
             : '!';
     const severityLabel = findingSeverityBadgeMap[findingBucket] ?? 'Finding';
-    const evidenceStrength = findingEvidenceStrengthMap[findingBucket] ?? {
-      key: 'supported',
-      label: 'Supported'
-    };
     const isLeadFinding = isLeadFindingByTaxonomy(finding);
     const isInspectorAdded = isInspectorAddedFinding(finding);
     const showInlineLeadConfirm =
@@ -188,10 +202,16 @@ export default function ComplianceCodeAreaSection({
       <article
         key={`code-area-finding-${area.id}-${finding.id}`}
         className={`finding-card ${
-          findingBucket === 'warning' ? 'lead' : findingBucket === 'best_practice' ? 'compliant' : 'noncompliant'
+          findingBucket === 'warning'
+            ? 'lead'
+            : findingBucket === 'pass'
+              ? 'compliant'
+              : findingBucket === 'best_practice'
+                ? 'goodpractice'
+              : 'noncompliant'
         } ${isInspectorAdded ? 'inspector-added' : ''} ${isFindingExpanded ? 'expanded' : ''} ${
-          reviewState === 'rejected' || reviewState === 'dismissed' ? 'is-muted' : ''
-        }`}
+          displayReviewState === 'rejected' || displayReviewState === 'dismissed' ? 'is-muted' : ''
+        }${isClosingFinding ? ' is-closing' : ''}`}
       >
         <div
           className="finding-card-header"
@@ -222,9 +242,11 @@ export default function ComplianceCodeAreaSection({
             </div>
           </div>
           <div className="finding-header-actions">
-            <span className={`evidence-badge ${evidenceStrength.key}`}>{evidenceStrength.label}</span>
+            {overturnedFinding ? (
+              <span className="finding-state-pill finding-state-pill--overturned">↺ Overturned</span>
+            ) : null}
             <span
-              className={`finding-review-indicator ${reviewState}`}
+              className={`finding-review-indicator ${displayReviewState}`}
               aria-label={reviewStatusLabel}
               title={reviewStatusLabel}
             >
@@ -336,12 +358,6 @@ export default function ComplianceCodeAreaSection({
                 ))
               )}
             </div>
-            <div className="finding-section">
-              <div className="finding-section-label">Evidence strength</div>
-              <p>
-                <span className={`evidence-badge ${evidenceStrength.key}`}>{evidenceStrength.label}</span>
-              </p>
-            </div>
             <div className="action-row finding-actions">
               {isLeadFinding && reviewState === 'unreviewed' ? (
                 <>
@@ -350,7 +366,7 @@ export default function ComplianceCodeAreaSection({
                     className="btn btn-sm btn-primary overview-action-btn"
                     onClick={(event) => {
                       event.stopPropagation();
-                      handleRequestFindingDecision(finding.id, 'accepted');
+                      handleRequestFindingDecision(finding.id, 'accepted', { source: 'overview' });
                     }}
                   >
                     Confirm as finding
@@ -374,7 +390,7 @@ export default function ComplianceCodeAreaSection({
                     disabled={reviewState === 'accepted'}
                     onClick={(event) => {
                       event.stopPropagation();
-                      handleRequestFindingDecision(finding.id, 'accepted');
+                      handleRequestFindingDecision(finding.id, 'accepted', { source: 'overview' });
                     }}
                   >
                     {reviewState === 'accepted' ? '✓ Accepted' : '✓ Accept'}
@@ -388,7 +404,13 @@ export default function ComplianceCodeAreaSection({
                       handleRequestFindingDecision(finding.id, 'rejected');
                     }}
                   >
-                    {reviewState === 'rejected' ? '✕ Rejected' : '✕ Reject'}
+                    {reviewState === 'rejected'
+                      ? overturnedFinding
+                        ? '↺ Overturned'
+                        : '✕ Rejected'
+                      : findingBucket === 'pass'
+                        ? '↺ Overturn'
+                        : '✕ Reject'}
                   </button>
                   {reviewState !== 'unreviewed' ? (
                     <button
@@ -617,9 +639,8 @@ export default function ComplianceCodeAreaSection({
             </div>
             <div className="code-area-met">{requirementProgressLabel}</div>
             <div className="code-area-counts">
-              {countParts.map((part, index) => (
-                <span key={`${area.id}-${part.key}`} className={part.cls}>
-                  {index > 0 ? <span className="sep">·</span> : null}
+              {countParts.map((part) => (
+                <span key={`${area.id}-${part.key}`} className={`code-area-count-pill ${part.cls}`}>
                   {part.label}
                 </span>
               ))}
@@ -686,8 +707,12 @@ export default function ComplianceCodeAreaSection({
                 </h4>
                 <p>
                   {!hasActiveFindingFilters
-                    ? 'As processing evolves, this panel will populate with findings from the assessed evidence.'
-                    : 'Try switching the finding filter back to All to restore the full view.'}
+                    ? overviewFindingScope === 'closed'
+                      ? 'No closed findings have been recorded in this code area yet.'
+                      : overviewFindingScope === 'open'
+                        ? 'No open findings remain in this code area.'
+                        : 'As processing evolves, this panel will populate with findings from the assessed evidence.'
+                    : 'Try broadening the finding filters to restore the full view.'}
                 </p>
               </div>
             ) : (

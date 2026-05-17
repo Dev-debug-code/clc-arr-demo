@@ -1,0 +1,9 @@
+{
+  "requirementId": "aml-7",
+  "codeArea": "anti-money-laundering",
+  "codeAreaLabel": "Anti-Money Laundering",
+  "label": "Deposit and other monies should appear to come from a legitimate source",
+  "status": "good_practice",
+  "createdAt": "2026-05-15T12:25:32.971603+00:00",
+  "updatedAt": "2026-05-15T12:25:32.971603+00:00"
+}

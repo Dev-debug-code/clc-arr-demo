@@ -1,0 +1,33 @@
+{
+  "id": "up14",
+  "filename": "13_Solicitor_Estate_Distribution_Letter.pdf",
+  "name": "13_Solicitor_Estate_Distribution_Letter.pdf",
+  "summary": "Solicitor letter confirming Joe Bloggs received \u00a3100,000 from the estate of his late father, John Bloggs, on 10 October 2024.",
+  "classification": "Legal Correspondence",
+  "classificationL1": "Legal Correspondence",
+  "classificationL2": "Estate Distribution Letter",
+  "classificationDetail": "Solicitor letter confirming Joe Bloggs received \u00a3100,000 from the estate of his late father, John Bloggs, on 10 October 2024.",
+  "classificationJustification": "",
+  "classificationReason": "AI classification reason will appear here after processing.",
+  "classification_confidence": 0.93,
+  "confidence": "high",
+  "confirmed": true,
+  "models_agree": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "parties": "Client; deceased parent; probate solicitor",
+  "features_found": [
+    "solicitor_letterhead",
+    "estate_distribution",
+    "source_of_funds_evidence"
+  ],
+  "limitedAnalysis": false,
+  "interviewees": [],
+  "intervieweeName": "",
+  "intervieweeRole": "",
+  "interviewDate": "",
+  "addedOn": "",
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
+}

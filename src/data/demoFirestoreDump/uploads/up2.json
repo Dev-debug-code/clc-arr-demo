@@ -1,0 +1,32 @@
+{
+  "id": "up2",
+  "filename": "01_Client_ID_Verification.pdf",
+  "name": "01_Client_ID_Verification.pdf",
+  "summary": "Client identity verification record for Joe Bloggs (UK passport).",
+  "classification": "CDD Records",
+  "classificationL1": "CDD Records",
+  "classificationL2": "Identity Verification",
+  "classificationDetail": "Client identity verification record for Joe Bloggs (UK passport).",
+  "classificationJustification": "",
+  "classificationReason": "AI classification reason will appear here after processing.",
+  "classification_confidence": 0.91,
+  "confidence": "high",
+  "confirmed": true,
+  "models_agree": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "parties": "Client",
+  "features_found": [
+    "passport_field",
+    "verification_checklist"
+  ],
+  "limitedAnalysis": false,
+  "interviewees": [],
+  "intervieweeName": "",
+  "intervieweeRole": "",
+  "interviewDate": "",
+  "addedOn": "",
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
+}

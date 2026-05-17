@@ -1,5 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useMemo } from 'react';
 import {
   DISMISS_REASON_OPTIONS,
   RECURRING_FINDING_IDS,
@@ -7,6 +6,7 @@ import {
   STEP_OVERVIEW,
   VIEWER_CODE_AREA_FILTERS
 } from '../config.js';
+import { getFindingDisplayDecisionState, isFindingOverturned } from '../helpers.js';
 
 export default function ViewerFindingsPanel({
   findingsForActiveDocument,
@@ -74,12 +74,6 @@ export default function ViewerFindingsPanel({
   handleViewDocument,
   handleShowGuidance
 }) {
-  const [activeRequirementInfoFindingId, setActiveRequirementInfoFindingId] = useState(null);
-  const [requirementPopoverStyle, setRequirementPopoverStyle] = useState(null);
-  const [requirementPopoverPlacement, setRequirementPopoverPlacement] = useState('above');
-  const requirementInfoButtonRefs = useRef(new Map());
-  const requirementPopoverRef = useRef(null);
-
   const requirementLookup = useMemo(() => {
     const lookup = new Map();
     Object.entries(requirementsByCodeArea ?? {}).forEach(([codeAreaId, rows]) => {
@@ -101,7 +95,7 @@ export default function ViewerFindingsPanel({
         non_compliant: 'Non-compliant',
         compliant: 'Compliant',
         good_practice: 'Good Practice',
-        leads: 'Requires review',
+        leads: 'Inconclusive',
         inspector_added: 'Inspector-added',
         reviewed: 'Reviewed',
         unreviewed: 'Unreviewed'
@@ -110,7 +104,7 @@ export default function ViewerFindingsPanel({
   });
   const viewerSeverityLabels = filterSeverity.map((key) => {
     if (key === 'critical') return 'Non-compliant';
-    if (key === 'warning') return 'Requires review';
+    if (key === 'warning') return 'Inconclusive';
     return severityLabelMap[key] ?? key;
   });
   const activeViewerFilterLabels = [...activeTypeLabels, ...viewerSeverityLabels];
@@ -129,76 +123,6 @@ export default function ViewerFindingsPanel({
     () => findingsForActiveDocument.find((finding) => finding.id === inlineDismissFindingId) ?? null,
     [findingsForActiveDocument, inlineDismissFindingId]
   );
-
-  useEffect(() => {
-    if (!activeRequirementInfoFindingId) {
-      setRequirementPopoverStyle(null);
-      setRequirementPopoverPlacement('above');
-      return undefined;
-    }
-
-    const triggerNode = requirementInfoButtonRefs.current.get(activeRequirementInfoFindingId);
-    const width = Math.min(360, Math.max(260, window.innerWidth - 32));
-    const rect = triggerNode?.getBoundingClientRect?.();
-    const left = rect
-      ? Math.min(Math.max(16, rect.left), Math.max(16, window.innerWidth - width - 16))
-      : 16;
-    const top = rect ? Math.max(16, rect.bottom + 10) : 16;
-    setRequirementPopoverStyle({
-      position: 'fixed',
-      left: `${left}px`,
-      top: `${top}px`,
-      width: `${width}px`,
-      visibility: 'hidden',
-      zIndex: 1600
-    });
-    return undefined;
-  }, [activeRequirementInfoFindingId]);
-
-  useLayoutEffect(() => {
-    if (!activeRequirementInfoFindingId || !requirementPopoverStyle) {
-      return undefined;
-    }
-
-    const updatePopoverPosition = () => {
-      const triggerNode = requirementInfoButtonRefs.current.get(activeRequirementInfoFindingId);
-      const popoverNode = requirementPopoverRef.current;
-      if (!triggerNode || !popoverNode) {
-        return;
-      }
-
-      const rect = triggerNode.getBoundingClientRect();
-      const width = Math.min(360, Math.max(260, window.innerWidth - 32));
-      const popoverHeight = popoverNode.offsetHeight || 180;
-      const availableAbove = rect.top - 16;
-      const availableBelow = window.innerHeight - rect.bottom - 16;
-      const placeAbove = availableAbove >= popoverHeight + 12 || availableAbove >= availableBelow;
-      const left = Math.min(Math.max(16, rect.left), Math.max(16, window.innerWidth - width - 16));
-      const top = placeAbove
-        ? Math.max(16, rect.top - popoverHeight - 12)
-        : Math.min(window.innerHeight - popoverHeight - 16, rect.bottom + 12);
-
-      setRequirementPopoverPlacement(placeAbove ? 'above' : 'below');
-      setRequirementPopoverStyle({
-        position: 'fixed',
-        left: `${left}px`,
-        top: `${top}px`,
-        width: `${width}px`,
-        visibility: 'visible',
-        zIndex: 1600
-      });
-    };
-
-    const rafId = window.requestAnimationFrame(updatePopoverPosition);
-    window.addEventListener('resize', updatePopoverPosition);
-    document.addEventListener('scroll', updatePopoverPosition, true);
-
-    return () => {
-      window.cancelAnimationFrame(rafId);
-      window.removeEventListener('resize', updatePopoverPosition);
-      document.removeEventListener('scroll', updatePopoverPosition, true);
-    };
-  }, [activeRequirementInfoFindingId, requirementPopoverStyle]);
 
   const buildFindingEvidenceTargets = (finding) => {
     const resolvedDocumentId = activeDocId || finding.documentId;
@@ -313,7 +237,7 @@ export default function ViewerFindingsPanel({
                 ['non_compliant', 'Non-compliant'],
                 ['compliant', 'Compliant'],
                 ['good_practice', 'Good Practice'],
-                ['leads', 'Requires review'],
+                ['leads', 'Inconclusive'],
                 ['inspector_added', 'Inspector-added'],
                 ['reviewed', 'Reviewed'],
                 ['unreviewed', 'Unreviewed']
@@ -338,7 +262,7 @@ export default function ViewerFindingsPanel({
                       checked={filterSeverity.includes(item.id)}
                       onChange={() => handleToggleFilter(item.id)}
                     />
-                    <span>{item.id === 'warning' ? 'Requires review' : 'Non-compliant'}</span>
+                    <span>{item.id === 'warning' ? 'Inconclusive' : 'Non-compliant'}</span>
                   </label>
                 ))}
             </div>
@@ -402,30 +326,32 @@ export default function ViewerFindingsPanel({
             expandedViewerFindingIds[finding.id] ??
             (findingBucket === 'critical' || finding.id === findingsForActiveDocument[0]?.id);
           const reviewState = findingDecisions[finding.id] ?? 'unreviewed';
+          const displayReviewState = getFindingDisplayDecisionState(finding, reviewState);
+          const overturnedFinding = isFindingOverturned(finding, reviewState);
           const isLeadFinding = isLeadFindingByTaxonomy(finding);
           const isInspectorAdded = isInspectorAddedFinding(finding);
           const reviewStatusLabel =
-            reviewState === 'accepted'
+            displayReviewState === 'accepted'
               ? 'Accepted'
-              : reviewState === 'rejected'
-                ? 'Rejected'
-                : reviewState === 'dismissed'
+              : displayReviewState === 'overturned'
+                ? 'Overturned'
+                : displayReviewState === 'rejected'
+                  ? 'Rejected'
+                  : displayReviewState === 'dismissed'
                   ? 'Dismissed'
                   : 'Unreviewed';
           const reviewStatusSymbol =
-            reviewState === 'accepted'
+            displayReviewState === 'accepted'
               ? '✓'
-              : reviewState === 'rejected'
-                ? '✕'
-                : reviewState === 'dismissed'
+              : displayReviewState === 'overturned'
+                ? '↺'
+                : displayReviewState === 'rejected'
+                  ? '✕'
+                  : displayReviewState === 'dismissed'
                   ? '◌'
                   : '○';
           const severityLabel = findingSeverityBadgeMap[findingBucket] ?? 'Finding';
           const canDeleteFinding = !finding.reference;
-          const evidenceStrength = findingEvidenceStrengthMap[findingBucket] ?? {
-            key: 'supported',
-            label: 'Supported'
-          };
           const evidencePassages = buildEvidencePassages(finding, relatedDoc?.label ?? 'Case document');
           const evidenceTargets = buildFindingEvidenceTargets(finding);
           const linkedRequirementId = safeText(finding?.requirementId || finding?.requirement_id, '');
@@ -448,7 +374,7 @@ export default function ViewerFindingsPanel({
               className={`finding-item severity-${findingBucket} ${isActive ? 'active' : ''} ${
                 isViewerFindingExpanded ? 'expanded' : ''
               } ${isInspectorAdded ? 'inspector-added' : ''} ${
-                reviewState === 'rejected' || reviewState === 'dismissed' ? 'is-muted' : ''
+                displayReviewState === 'rejected' || displayReviewState === 'dismissed' ? 'is-muted' : ''
               }`}
             >
               <div
@@ -481,7 +407,7 @@ export default function ViewerFindingsPanel({
                     <span className="finding-expand-chev">{isViewerFindingExpanded ? '▾' : '▸'}</span>
                   </div>
                   <div className="review-status-wrap">
-                    <span className={`review-status ${reviewState}`}>
+                    <span className={`review-status ${displayReviewState}`}>
                       {reviewStatusSymbol} {reviewStatusLabel}
                     </span>
                     {RECURRING_FINDING_IDS.has(finding.id) ? (
@@ -495,7 +421,9 @@ export default function ViewerFindingsPanel({
                   </div>
                 </div>
                 <div className="finding-header-actions">
-                  <span className={`evidence-badge ${evidenceStrength.key}`}>{evidenceStrength.label}</span>
+                  {overturnedFinding ? (
+                    <span className="finding-state-pill finding-state-pill--overturned">↺ Overturned</span>
+                  ) : null}
                   {canDeleteFinding ? (
                     <button
                       type="button"
@@ -556,65 +484,6 @@ export default function ViewerFindingsPanel({
                             <span className="jump-link">Show guidance text</span>
                           </button>
                         </div>
-                        <button
-                          type="button"
-                          className="btn btn-sm secondary viewer-requirement-card__trigger"
-                          ref={(node) => {
-                            if (node) {
-                              requirementInfoButtonRefs.current.set(finding.id, node);
-                            } else {
-                              requirementInfoButtonRefs.current.delete(finding.id);
-                            }
-                          }}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setActiveFindingId(finding.id);
-                            setActiveRequirementInfoFindingId((prev) => (prev === finding.id ? null : finding.id));
-                          }}
-                        >
-                          {activeRequirementInfoFindingId === finding.id ? 'Hide requirement info' : 'View requirement info'}
-                        </button>
-                        {activeRequirementInfoFindingId === finding.id && requirementPopoverStyle
-                          ? createPortal(
-                              <div className="viewer-requirement-popover-layer" aria-hidden="true">
-                                <div
-                                  ref={requirementPopoverRef}
-                                  className={`viewer-requirement-popover viewer-requirement-popover--portal is-${requirementPopoverPlacement}`}
-                                  style={{
-                                    ...requirementPopoverStyle,
-                                    position: 'fixed',
-                                    bottom: 'auto',
-                                    right: 'auto',
-                                    background: '#ffffff',
-                                    border: '1px solid rgba(148, 163, 184, 0.24)',
-                                    borderRadius: '12px',
-                                    boxShadow: '0 18px 36px rgba(15, 23, 42, 0.16)',
-                                    padding: '12px 14px',
-                                    display: 'grid',
-                                    gap: '10px',
-                                    color: 'var(--text-primary)',
-                                    pointerEvents: 'auto',
-                                    boxSizing: 'border-box',
-                                    overflow: 'hidden'
-                                  }}
-                                >
-                                  {requirementHeading ? (
-                                    <>
-                                      <p className="viewer-requirement-popover__eyebrow">Requirement</p>
-                                      <strong>{requirementHeading}</strong>
-                                    </>
-                                  ) : null}
-                                  {requirementContent ? (
-                                    <>
-                                      <p className="viewer-requirement-popover__eyebrow">Content</p>
-                                      <div className="finding-quote">{requirementContent}</div>
-                                    </>
-                                  ) : null}
-                                </div>
-                              </div>,
-                              document.body
-                            )
-                          : null}
                       </div>
                     </div>
                   ) : null}
@@ -717,7 +586,13 @@ export default function ViewerFindingsPanel({
                             handleRequestFindingDecision(finding.id, 'rejected');
                           }}
                         >
-                          {reviewState === 'rejected' ? '✕ Rejected' : '✕ Reject'}
+                          {reviewState === 'rejected'
+                            ? overturnedFinding
+                              ? '↺ Overturned'
+                              : '✕ Rejected'
+                            : findingBucket === 'pass'
+                              ? '↺ Overturn'
+                              : '✕ Reject'}
                         </button>
                       </>
                     )}

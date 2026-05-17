@@ -7,6 +7,12 @@ import {
 } from '../config.js';
 import { DEMO_PRACTICE_PROFILES } from '../../../data/demoPracticeProfiles.js';
 
+const FOCUS_AREA_GUIDANCE_PATHS = {
+  aml: '/assets/case-files/CLC_Anti_Money_Laundering_Guidance_Jan2025.pdf',
+  lenders: '/assets/case-files/20240110-Acting-for-Lenders-and-Prevention-and-Detection-of-Mortgage-Fraud-Guidance.pdf',
+  'code-of-conduct': '/assets/case-files/Code-of-Conduct.pdf'
+};
+
 export default function CaseSetupPage({
   caseCreateError,
   caseSetupPracticeName,
@@ -49,6 +55,13 @@ export default function CaseSetupPage({
   const isCreateEnabled =
     caseSetupPracticeName.trim().length > 0 &&
     selectedFocusAreaIds.size > 0;
+
+  const openFocusAreaGuidance = (areaId) => {
+    const path = FOCUS_AREA_GUIDANCE_PATHS[areaId];
+    if (!path || typeof window === 'undefined') return;
+    const targetUrl = new URL(path, window.location.href).toString();
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div className="case-setup-shell">
@@ -191,14 +204,23 @@ export default function CaseSetupPage({
           </p>
           <div className="case-setup-focus-list">
             {FOCUS_AREA_OPTIONS.map((area) => (
-              <label key={area.id} className="case-setup-checkbox">
-                <input
-                  type="checkbox"
-                  checked={selectedFocusAreaIds.has(area.id)}
-                  onChange={() => toggleFocusArea(area.id)}
-                />
-                <span>{area.label}</span>
-              </label>
+              <div key={area.id} className="case-setup-focus-row">
+                <label className="case-setup-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={selectedFocusAreaIds.has(area.id)}
+                    onChange={() => toggleFocusArea(area.id)}
+                  />
+                  <span>{area.label}</span>
+                </label>
+                <button
+                  type="button"
+                  className="jump-link-btn jump-link-btn--secondary case-setup-guidance-btn"
+                  onClick={() => openFocusAreaGuidance(area.id)}
+                >
+                  <span className="jump-link">Jump to guidance</span>
+                </button>
+              </div>
             ))}
           </div>
         </label>

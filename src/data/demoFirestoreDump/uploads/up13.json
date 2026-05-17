@@ -1,0 +1,33 @@
+{
+  "id": "up13",
+  "filename": "12_Client_Care_Letter.pdf",
+  "name": "12_Client_Care_Letter.pdf",
+  "summary": "Client care letter and terms of engagement signed by Joe Bloggs (16 October 2024).",
+  "classification": "Other",
+  "classificationL1": "Other",
+  "classificationL2": "Client Care Letter",
+  "classificationDetail": "Client care letter and terms of engagement signed by Joe Bloggs (16 October 2024).",
+  "classificationJustification": "",
+  "classificationReason": "AI classification reason will appear here after processing.",
+  "classification_confidence": 0.9,
+  "confidence": "high",
+  "confirmed": true,
+  "models_agree": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "parties": "Client",
+  "features_found": [
+    "letterhead",
+    "fee_estimate",
+    "complaints_section"
+  ],
+  "limitedAnalysis": false,
+  "interviewees": [],
+  "intervieweeName": "",
+  "intervieweeRole": "",
+  "interviewDate": "",
+  "addedOn": "",
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
+}

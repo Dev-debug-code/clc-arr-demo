@@ -1,0 +1,31 @@
+{
+  "id": "up12",
+  "filename": "11_MLRO_Interview_Transcript.json",
+  "name": "11_MLRO_Interview_Transcript.json",
+  "summary": "Interview transcript with the firm's MLRO (Jane Smith), 22 October 2024.",
+  "classification": "Other",
+  "classificationL1": "Other",
+  "classificationL2": "Interview Transcript",
+  "classificationDetail": "Interview transcript with the firm's MLRO (Jane Smith), 22 October 2024.",
+  "classificationJustification": "",
+  "classificationReason": "AI classification reason will appear here after processing.",
+  "classification_confidence": 0.99,
+  "confidence": "high",
+  "confirmed": true,
+  "models_agree": true,
+  "processing_status": "complete",
+  "processing_path": "classify_only",
+  "status": "verified",
+  "parties": "Firm personnel",
+  "features_found": [
+    "interview_transcript"
+  ],
+  "limitedAnalysis": false,
+  "interviewees": [],
+  "intervieweeName": "Jane Smith",
+  "intervieweeRole": "MLRO / Compliance Officer",
+  "interviewDate": "2024-10-22",
+  "addedOn": "",
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
+}

@@ -226,6 +226,38 @@ export default function DocumentsUploadPhase({
 
   const getConfirmDecision = (item) => getUploadReviewDecision(item);
 
+  const sortedUploadItems = useMemo(() => {
+    const rankUpload = (item) => {
+      const normalizedItem = prepareUploadDraft(item);
+      const confidenceState = resolveConfidenceState(normalizedItem.confidence);
+      const isUnknown = !isUploadClassificationResolved(normalizedItem);
+      const isClassifying = normalizedItem.status === 'queued';
+
+      if (confidenceState === 'attention') return 0;
+      if (isUnknown) return 1;
+      if (isClassifying) return 2;
+      return 3;
+    };
+
+    return uploadItems
+      .map((item, index) => ({
+        item,
+        originalIndex: index,
+        rank: rankUpload(item)
+      }))
+      .sort((left, right) => {
+        if (left.rank !== right.rank) return left.rank - right.rank;
+        const leftName = String(left.item?.name || left.item?.filename || '').trim();
+        const rightName = String(right.item?.name || right.item?.filename || '').trim();
+        const nameCompare = leftName.localeCompare(rightName, undefined, {
+          numeric: true,
+          sensitivity: 'base'
+        });
+        if (nameCompare !== 0) return nameCompare;
+        return left.originalIndex - right.originalIndex;
+      });
+  }, [isUploadClassificationResolved, prepareUploadDraft, resolveConfidenceState, uploadItems]);
+
   const allDecisionsMade = uploadItems.every((item) => getConfirmDecision(item) !== '');
 
   const generateFindingsBlockedReason = !allDecisionsMade
@@ -297,7 +329,7 @@ export default function DocumentsUploadPhase({
               </tr>
             </thead>
             <tbody>
-              {uploadItems.flatMap((item, index) => {
+              {sortedUploadItems.flatMap(({ item }, index) => {
               const normalizedItem = prepareUploadDraft(item);
               const classification = formatUploadClassificationLabel(normalizedItem);
               const isClassifying = normalizedItem.status === 'queued';
@@ -346,7 +378,7 @@ export default function DocumentsUploadPhase({
                 classificationGroups[0] ||
                 null;
               const isClassificationMenuOpen = activeClassificationMenu === item.id;
-              const shouldOpenMenuUpward = isInterviewTranscript || index >= Math.max(uploadItems.length - 3, 0);
+              const shouldOpenMenuUpward = isInterviewTranscript || index >= Math.max(sortedUploadItems.length - 3, 0);
               const showClassificationDetailInput =
                 normalizedItem.classificationL2 === documentClassificationOtherOption;
 
@@ -354,7 +386,7 @@ export default function DocumentsUploadPhase({
                 <tr
                   key={`upload-row-${item.id}`}
                   className={rowClassName}
-                  ref={index === uploadItems.length - 1 ? uploadTableLastRowRef : null}
+                  ref={index === sortedUploadItems.length - 1 ? uploadTableLastRowRef : null}
                 >
                   <td className="docs-name-cell" style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
                     {linkedDocumentId ? (
@@ -630,8 +662,8 @@ export default function DocumentsUploadPhase({
                 </tr>
               ];
 
-                return rows;
-              })}
+              return rows;
+            })}
             </tbody>
           </table>
         </div>

@@ -1,0 +1,33 @@
+{
+  "id": "up16",
+  "filename": "15_Lender_Disclosure_Note.pdf",
+  "name": "15_Lender_Disclosure_Note.pdf",
+  "summary": "Internal lender disclosure note recording the purchase price, lender, and source-of-funds breakdown without closing outstanding evidence enquiries.",
+  "classification": "Legal Correspondence",
+  "classificationL1": "Legal Correspondence",
+  "classificationL2": "Lender Disclosure File Note",
+  "classificationDetail": "Internal lender disclosure note recording the purchase price, lender, and source-of-funds breakdown without closing outstanding evidence enquiries.",
+  "classificationJustification": "",
+  "classificationReason": "AI classification reason will appear here after processing.",
+  "classification_confidence": 0.9,
+  "confidence": "high",
+  "confirmed": true,
+  "models_agree": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "parties": "Client; lender",
+  "features_found": [
+    "lender_disclosure_note",
+    "purchase_price_check",
+    "sof_breakdown"
+  ],
+  "limitedAnalysis": false,
+  "interviewees": [],
+  "intervieweeName": "",
+  "intervieweeRole": "",
+  "interviewDate": "",
+  "addedOn": "",
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
+}

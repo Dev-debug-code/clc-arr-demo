@@ -1,34 +1,35 @@
 {
-  "isGoodPractice": false,
   "id": "COMP-AML-002",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "02_Proof_of_Address",
-      "page": 1,
-      "id": "COMP-AML-002-p1",
-      "section": "Address Evidence",
-      "text": "Joe Bloggs",
-      "box_id": "COMP-AML-002",
-      "file": "02_Proof_of_Address.pdf"
-    }
-  ],
+  "title": "Address Record Is Held on File",
   "detail": "The file contains separate proof-of-address evidence for Joe Bloggs. This supports the record-keeping requirement for address evidence without treating the defective passport record as compliant identity evidence.",
-  "codeArea": "aml",
   "reference": "Anti-Money Laundering, Procedure 19",
-  "evidence_strength": "strong",
+  "codeArea": "anti-money-laundering",
+  "codeAreaLabel": "Anti-Money Laundering",
+  "requirementId": "aml-8",
   "documentId": "02_Proof_of_Address",
+  "boxId": "COMP-AML-002",
+  "polarity": "compliant",
+  "certainty": "finding",
+  "severity": "compliant",
+  "isGoodPractice": false,
+  "evidence_strength": "strong",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 1,
     "file": "02_Proof_of_Address.pdf",
-    "section": "Address Evidence",
-    "text": "Joe Bloggs"
+    "section": "Address Evidence"
   },
-  "boxId": "COMP-AML-002",
-  "requirementId": "aml-8",
-  "polarity": "compliant",
-  "title": "Address Record Is Held on File",
-  "severity": "best_practice",
-  "certainty": "finding",
-  "is_good_practice": false
+  "evidencePassages": [
+    {
+      "id": "COMP-AML-002-p1",
+      "document_id": "02_Proof_of_Address",
+      "file": "02_Proof_of_Address.pdf",
+      "page": 1,
+      "section": "Address Evidence",
+      "box_id": "COMP-AML-002"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

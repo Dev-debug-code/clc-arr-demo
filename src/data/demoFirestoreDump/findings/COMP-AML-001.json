@@ -1,34 +1,35 @@
 {
-  "isGoodPractice": false,
   "id": "COMP-AML-001",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "02_Proof_of_Address",
-      "page": 1,
-      "id": "COMP-AML-001-p1",
-      "section": "Utility Bill",
-      "text": "Joe Bloggs",
-      "box_id": "COMP-AML-001",
-      "file": "02_Proof_of_Address.pdf"
-    }
-  ],
+  "title": "Proof of Address Is Current and Names the Client",
   "detail": "The utility bill names Joe Bloggs and is dated 1 October 2024, so it provides current address evidence for the client within the period expected by AML guidance.",
-  "codeArea": "aml",
   "reference": "Anti-Money Laundering, Procedure 3.2",
-  "evidence_strength": "strong",
+  "codeArea": "anti-money-laundering",
+  "codeAreaLabel": "Anti-Money Laundering",
+  "requirementId": "aml-6",
   "documentId": "02_Proof_of_Address",
+  "boxId": "COMP-AML-001",
+  "polarity": "compliant",
+  "certainty": "finding",
+  "severity": "compliant",
+  "isGoodPractice": false,
+  "evidence_strength": "strong",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 1,
     "file": "02_Proof_of_Address.pdf",
-    "section": "Utility Bill",
-    "text": "Joe Bloggs"
+    "section": "Utility Bill"
   },
-  "boxId": "COMP-AML-001",
-  "requirementId": "aml-6",
-  "polarity": "compliant",
-  "title": "Proof of Address Is Current and Names the Client",
-  "severity": "best_practice",
-  "certainty": "finding",
-  "is_good_practice": false
+  "evidencePassages": [
+    {
+      "id": "COMP-AML-001-p1",
+      "document_id": "02_Proof_of_Address",
+      "file": "02_Proof_of_Address.pdf",
+      "page": 1,
+      "section": "Utility Bill",
+      "box_id": "COMP-AML-001"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

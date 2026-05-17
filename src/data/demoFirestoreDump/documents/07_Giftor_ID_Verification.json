@@ -1,34 +1,34 @@
 {
-  "parties": "Donor",
-  "confirmed": true,
   "id": "07_Giftor_ID_Verification",
+  "name": "07_Giftor_ID_Verification.pdf",
+  "filename": "07_Giftor_ID_Verification.pdf",
   "summary": "Third-party identity verification for the donor, Jill Withers.",
+  "documentType": "Identity Verification",
+  "classification": "CDD Records",
+  "classification_confidence": 0.9,
   "confidence": "high",
   "models_agree": true,
-  "filename": "07_Giftor_ID_Verification.pdf",
-  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/07_Giftor_ID_Verification.pdf",
-  "documentType": "Identity Verification",
-  "classification_confidence": 0.9,
-  "overlayBoxes": [],
-  "updatedAt": "2026-05-05T20:42:47.911928+00:00",
+  "confirmed": true,
   "processing_status": "complete",
-  "classification": "CDD Records",
-  "createdAt": "2026-05-05T20:42:47.911928+00:00",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "severity": "warning",
+  "parties": "Donor",
+  "parties_found": [
+    "Jill Withers"
+  ],
   "features_found": [
     "passport_field",
     "address_verification"
   ],
-  "parties_found": [
-    "Jill Withers"
-  ],
   "extracted_fields": {
     "subject_name": "Jill Withers",
-    "verifier": "Sarah Example",
+    "document_type": "UK Passport",
     "address": "18 Meadow Close, Guildford GU2 7QH",
-    "document_type": "UK Passport"
+    "verifier": "Sarah Example"
   },
-  "status": "verified",
-  "severity": "warning",
-  "processing_path": "ocr_then_classify_then_extract",
-  "name": "07_Giftor_ID_Verification.pdf"
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/07_Giftor_ID_Verification.pdf",
+  "overlayBoxes": [],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

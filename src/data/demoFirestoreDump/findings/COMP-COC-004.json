@@ -1,34 +1,35 @@
 {
-  "isGoodPractice": false,
   "id": "COMP-COC-004",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "12_Client_Care_Letter",
-      "page": 2,
-      "id": "COMP-COC-004-p1",
-      "section": "Complaints Procedure",
-      "text": "Complaints Procedure",
-      "box_id": "COMP-COC-004",
-      "file": "12_Client_Care_Letter.pdf"
-    }
-  ],
+  "title": "Complaints Procedure Is Given in Writing",
   "detail": "The client care letter explains the client's right to complain, who the complaint should be sent to, and the expected response timeframe.",
-  "codeArea": "complaints",
   "reference": "Code of Conduct, Specific Requirement 6.j",
-  "evidence_strength": "strong",
+  "codeArea": "code-of-conduct",
+  "codeAreaLabel": "Code of Conduct",
+  "requirementId": "code_of_conduct_5",
   "documentId": "12_Client_Care_Letter",
+  "boxId": "COMP-COC-004",
+  "polarity": "compliant",
+  "certainty": "finding",
+  "severity": "compliant",
+  "isGoodPractice": false,
+  "evidence_strength": "strong",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 2,
     "file": "12_Client_Care_Letter.pdf",
-    "section": "Complaints Procedure",
-    "text": "Complaints Procedure"
+    "section": "Complaints Procedure"
   },
-  "boxId": "COMP-COC-004",
-  "requirementId": "cmp-1",
-  "polarity": "compliant",
-  "title": "Complaints Procedure Is Given in Writing",
-  "severity": "best_practice",
-  "certainty": "finding",
-  "is_good_practice": false
+  "evidencePassages": [
+    {
+      "id": "COMP-COC-004-p1",
+      "document_id": "12_Client_Care_Letter",
+      "file": "12_Client_Care_Letter.pdf",
+      "page": 2,
+      "section": "Complaints Procedure",
+      "box_id": "COMP-COC-004"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

@@ -45,7 +45,7 @@ const RESPONSES = [
   {
     triggers: ['source of funds', 'sof', 'sow', 'savings', 'gift', '200,000', '200000', 'donor', 'estate', 'inheritance', 'distribution'],
     answerText:
-      "Source of funds documentation on this matter is incomplete. The client's signed declaration itemises £575,000 personal savings, a £200,000 gift, and a £100,000 estate distribution. The source-of-funds schedule is useful because it separates those streams and records their evidence status: the estate stream is supported, but bank statements only cover about six weeks and the donor source-of-funds review accepts Jill Withers' gift despite no independent evidence of origin or accumulation. [1] [2]",
+      "Source of funds documentation on this matter is incomplete. The client's signed declaration itemises £575,000 personal savings, a £200,000 gift, and a £100,000 estate distribution. The source-of-funds schedule [1] is useful because it separates those streams and records their evidence status, but bank statements only cover about six weeks and the donor source-of-funds review [2] accepts Jill Withers' gift despite no independent evidence of origin or accumulation.",
     citations: [
       {
         n: 1,
@@ -81,7 +81,7 @@ const RESPONSES = [
   {
     triggers: ['pep', 'politically exposed', 'wrong person', 'misfiled'],
     answerText:
-      "The PEP screening report on file, 10_PEP_Screening.pdf, screens John Bloggs, not Joe Bloggs. The estate solicitor's letter identifies John Bloggs as Joe Bloggs' deceased father and confirms Joe received £100,000 from his estate. So John Bloggs is relevant to the source-of-funds story, but he is not the buyer/client. The firm should have screened Joe Bloggs for this matter. [1] [2]",
+      "The PEP screening report on file [1] screens John Bloggs, not Joe Bloggs. The estate solicitor's letter [2] identifies John Bloggs as Joe Bloggs' deceased father and confirms Joe received £100,000 from his estate. So John Bloggs is relevant to the source-of-funds story, but he is not the buyer/client. The firm should have screened Joe Bloggs for this matter.",
     citations: [
       {
         n: 1,
@@ -102,7 +102,7 @@ const RESPONSES = [
   {
     triggers: ['who is john bloggs', 'mentioned in any other documents', 'any other documents'],
     answerText:
-      "John Bloggs is Joe Bloggs' deceased father. I reached that by cross-checking the PEP report against the estate solicitor's letter: the PEP report names John Bloggs as the screened subject, while the solicitor letter says John Bloggs was Joe's late father and that Joe received a £100,000 estate distribution. That means the firm appears to have run PEP screening on John Bloggs rather than on Joe Bloggs, the buyer/client. [1] [2]",
+      "John Bloggs is Joe Bloggs' deceased father. I reached that by cross-checking the PEP report [1] against the estate solicitor's letter [2]: the PEP report names John Bloggs as the screened subject, while the solicitor letter says John Bloggs was Joe's late father and that Joe received a £100,000 estate distribution. That means the firm appears to have run PEP screening on John Bloggs rather than on Joe Bloggs, the buyer/client.",
     citations: [
       {
         n: 1,

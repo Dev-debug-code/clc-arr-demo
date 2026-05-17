@@ -1,32 +1,63 @@
 {
-  "parties": "Client",
-  "confirmed": true,
   "id": "02_Proof_of_Address",
+  "name": "02_Proof_of_Address.pdf",
+  "filename": "02_Proof_of_Address.pdf",
   "summary": "Utility bill (Example Utilities, 1 October 2024) used as proof of address.",
+  "documentType": "Proof of Address",
+  "classification": "CDD Records",
+  "classification_confidence": 0.88,
   "confidence": "high",
   "models_agree": true,
-  "filename": "02_Proof_of_Address.pdf",
-  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/02_Proof_of_Address.pdf",
-  "documentType": "Proof of Address",
-  "classification_confidence": 0.88,
-  "overlayBoxes": [],
-  "updatedAt": "2026-05-05T20:42:47.911928+00:00",
+  "confirmed": true,
   "processing_status": "complete",
-  "classification": "CDD Records",
-  "createdAt": "2026-05-05T20:42:47.911928+00:00",
-  "features_found": [
-    "utility_bill_header"
-  ],
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "severity": "warning",
+  "parties": "Client",
   "parties_found": [
     "Joe Bloggs"
   ],
+  "features_found": [
+    "utility_bill_header"
+  ],
   "extracted_fields": {
     "subject_name": "Joe Bloggs",
-    "issuer": "Example Utilities",
-    "document_date": "01/10/2024"
+    "document_date": "01/10/2024",
+    "issuer": "Example Utilities"
   },
-  "status": "verified",
-  "severity": "warning",
-  "processing_path": "ocr_then_classify_then_extract",
-  "name": "02_Proof_of_Address.pdf"
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/02_Proof_of_Address.pdf",
+  "overlayBoxes": [
+    {
+      "id": "COMP-AML-001",
+      "page": 1,
+      "pageno": 0,
+      "bbox": [
+        40,
+        120,
+        560,
+        380
+      ],
+      "category": "Utility Bill",
+      "title": "Proof of Address Is Current and Names the Client",
+      "details": "The utility bill names Joe Bloggs and is dated 1 October 2024, so it provides current address evidence for the client within the period expected by AML guidance.",
+      "severity": "compliant"
+    },
+    {
+      "id": "COMP-AML-002",
+      "page": 1,
+      "pageno": 0,
+      "bbox": [
+        40,
+        120,
+        560,
+        380
+      ],
+      "category": "Address Evidence",
+      "title": "Address Record Is Held on File",
+      "details": "The file contains separate proof-of-address evidence for Joe Bloggs. This supports the record-keeping requirement for address evidence without treating the defective passport record as compliant identity evidence.",
+      "severity": "compliant"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

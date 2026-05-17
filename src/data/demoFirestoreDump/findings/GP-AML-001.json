@@ -1,34 +1,35 @@
 {
-  "isGoodPractice": true,
   "id": "GP-AML-001",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "14_Source_of_Funds_Schedule",
-      "page": 1,
-      "id": "GP-AML-001-p1",
-      "section": "Source-of-Funds Schedule",
-      "text": "Estate distribution from John Bloggs deceased",
-      "box_id": "GP-AML-001",
-      "file": "14_Source_of_Funds_Schedule.pdf"
-    }
-  ],
+  "title": "Good Practice: Source-of-Funds Schedule Clearly Records Gaps",
   "detail": "The source-of-funds schedule itemises the savings, gift, and estate distribution streams and clearly records which evidence is supported, partial, or outstanding. That is useful file discipline, even though the unresolved gaps still need action.",
-  "codeArea": "aml",
   "reference": "Anti-Money Laundering, Good Practice - Due Diligence",
-  "evidence_strength": "strong",
+  "codeArea": "anti-money-laundering",
+  "codeAreaLabel": "Anti-Money Laundering",
+  "requirementId": "aml-7",
   "documentId": "14_Source_of_Funds_Schedule",
+  "boxId": "GP-AML-001",
+  "polarity": "compliant",
+  "certainty": "finding",
+  "severity": "best_practice",
+  "isGoodPractice": true,
+  "evidence_strength": "strong",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 1,
     "file": "14_Source_of_Funds_Schedule.pdf",
-    "section": "Source-of-Funds Schedule",
-    "text": "Estate distribution from John Bloggs deceased"
+    "section": "Source-of-Funds Schedule"
   },
-  "boxId": "GP-AML-001",
-  "requirementId": "aml-7",
-  "polarity": "compliant",
-  "title": "Good Practice: Source-of-Funds Schedule Clearly Records Gaps",
-  "severity": "best_practice",
-  "certainty": "finding",
-  "is_good_practice": true
+  "evidencePassages": [
+    {
+      "id": "GP-AML-001-p1",
+      "document_id": "14_Source_of_Funds_Schedule",
+      "file": "14_Source_of_Funds_Schedule.pdf",
+      "page": 1,
+      "section": "Source-of-Funds Schedule",
+      "box_id": "GP-AML-001"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

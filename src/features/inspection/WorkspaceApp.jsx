@@ -103,11 +103,13 @@ import {
   formatShortDisplayDate,
   formatSourceDocumentRef,
   formatTimeLabel,
-  getFindingBucketId,
+  getFindingDisplayBucketId,
+  getFindingDisplayDecisionState,
   getFindingEffectiveCertainty,
   getFindingPreferredBoxIdForDocument,
   getRequirementSeverity,
   inferRequirementCodeArea,
+  isFindingOverturned,
   isInspectorAddedFinding,
   isLeadFindingByTaxonomy,
   isRequirementExcluded,
@@ -216,6 +218,7 @@ function matchesDashboardDateFilter(item, activeFilter) {
 const PROCESSING_MODE_CLASSIFICATION = 'classification';
 const PROCESSING_MODE_FINDINGS = 'findings';
 const DEFAULT_FINDING_VIEW_FILTERS = [];
+const DEFAULT_OVERVIEW_FINDING_SCOPE = 'open';
 
 const GUIDANCE_SOURCE_PATHS = {
   amlPolicy: 'assets/case-files/00_Firm_AML_Policy.pdf',
@@ -224,6 +227,21 @@ const GUIDANCE_SOURCE_PATHS = {
   actingForLenders:
     'assets/case-files/20240110-Acting-for-Lenders-and-Prevention-and-Detection-of-Mortgage-Fraud-Guidance.pdf'
 };
+
+let reggieChatSequence = 0;
+
+function createReggieChat(scope = 'all') {
+  reggieChatSequence += 1;
+  return {
+    id: `reggie-chat-${Date.now()}-${reggieChatSequence}`,
+    title: 'New chat',
+    scope,
+    updatedAt: Date.now(),
+    messages: []
+  };
+}
+
+const INITIAL_REGGIE_CHAT = createReggieChat('all');
 
 function resolveCodeOfConductPage(referenceLower, titleLower) {
   if (
@@ -323,6 +341,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [filterSeverity, setFilterSeverity] = useState([]);
   const [severityFilterOpen, setSeverityFilterOpen] = useState(false);
   const [overviewFilterOpen, setOverviewFilterOpen] = useState(false);
+  const [overviewFindingScope, setOverviewFindingScope] = useState(DEFAULT_OVERVIEW_FINDING_SCOPE);
   const [viewerTypeFilterOpen, setViewerTypeFilterOpen] = useState(false);
   const [viewerCodeAreaFilterOpen, setViewerCodeAreaFilterOpen] = useState(false);
   const [findingViewFilters, setFindingViewFilters] = useState(DEFAULT_FINDING_VIEW_FILTERS);
@@ -333,6 +352,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [activeFindingId, setActiveFindingId] = useState(null);
   const [viewerOriginStep, setViewerOriginStep] = useState(STEP_OVERVIEW);
   const [activeGuidanceContext, setActiveGuidanceContext] = useState(null);
+  const [guidanceReturnContext, setGuidanceReturnContext] = useState(null);
   const [viewerSelectionHistory, setViewerSelectionHistory] = useState([]);
   const [docFocusSignal, setDocFocusSignal] = useState(0);
   const [findingDecisions, setFindingDecisions] = useState({});
@@ -368,7 +388,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [reggieScope, setReggieScope] = useState('all');
   const [reggieThinkingLevel, setReggieThinkingLevel] = useState('medium');
   const [reggieInput, setReggieInput] = useState('');
-  const [reggieMessages, setReggieMessages] = useState([]);
+  const [reggieChats, setReggieChats] = useState(() => [INITIAL_REGGIE_CHAT]);
+  const [activeReggieChatId, setActiveReggieChatId] = useState(INITIAL_REGGIE_CHAT.id);
   const [inspectorFindings, setInspectorFindings] = useState([]);
   const [inspectorObservations, setInspectorObservations] = useState([]);
   const [reportSectionIdsByCodeArea, setReportSectionIdsByCodeArea] = useState({});
@@ -394,7 +415,9 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [expandedUploadSummaryId, setExpandedUploadSummaryId] = useState('');
   const [expandedCodeAreaIds, setExpandedCodeAreaIds] = useState({});
   const [expandedOverviewFindingIds, setExpandedOverviewFindingIds] = useState({});
+  const [closingOverviewFindingIds, setClosingOverviewFindingIds] = useState({});
   const acceptedOverviewCollapseTimersRef = useRef({});
+  const reggieTimersRef = useRef({});
   const [expandedViewerFindingIds, setExpandedViewerFindingIds] = useState({});
   const [overviewRequirementFilter, setOverviewRequirementFilter] = useState({ areaId: '', requirementId: '' });
   const [notAssessedExpanded, setNotAssessedExpanded] = useState(false);
@@ -504,6 +527,20 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       setDashboardInspectorFilter('All inspectors');
     }
   }, [hasTeamCaseAccess]);
+
+  useEffect(
+    () => () => {
+      Object.values(acceptedOverviewCollapseTimersRef.current).forEach((timerId) => {
+        window.clearTimeout(timerId);
+      });
+      acceptedOverviewCollapseTimersRef.current = {};
+      Object.values(reggieTimersRef.current).forEach((timerIds) => {
+        timerIds.forEach((timerId) => window.clearTimeout(timerId));
+      });
+      reggieTimersRef.current = {};
+    },
+    []
+  );
 
   const refreshDashboardCases = useCallback(
     async ({ showLoading = false } = {}) => {
@@ -1245,6 +1282,19 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     return next;
   }, [allFindings, findingDecisions]);
 
+  const getFindingBucketId = useCallback(
+    (finding) => getFindingDisplayBucketId(finding, resolvedFindingDecisions[finding?.id]),
+    [resolvedFindingDecisions]
+  );
+  const isOverturnedFinding = useCallback(
+    (finding) => isFindingOverturned(finding, resolvedFindingDecisions[finding?.id]),
+    [resolvedFindingDecisions]
+  );
+  const getFindingReviewDisplayState = useCallback(
+    (finding) => getFindingDisplayDecisionState(finding, resolvedFindingDecisions[finding?.id]),
+    [resolvedFindingDecisions]
+  );
+
   const replaceFindingState = useCallback((findingId, nextFindingState) => {
     if (!findingId || !nextFindingState) return;
 
@@ -1359,6 +1409,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   useEffect(() => {
     if (currentStep !== STEP_VIEWER && activeGuidanceContext) {
       setActiveGuidanceContext(null);
+      setGuidanceReturnContext(null);
     }
   }, [activeGuidanceContext, currentStep]);
   const activeViewerFinding = useMemo(
@@ -1531,7 +1582,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
     return [
       { id: 'critical', label: 'Non-compliant', count: counts.critical },
-      { id: 'warning', label: 'Requires review', count: counts.warning },
+      { id: 'warning', label: 'Inconclusive', count: counts.warning },
       { id: 'pass', label: 'Compliant', count: counts.pass },
       { id: 'best_practice', label: 'Good Practice', count: counts.best_practice }
     ];
@@ -1580,6 +1631,13 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       });
     });
 
+  const overviewFilteredFindings = filteredFindings.filter((finding) => {
+    const reviewState = resolvedFindingDecisions[finding.id] ?? 'unreviewed';
+    if (overviewFindingScope === 'closed') return reviewState !== 'unreviewed';
+    if (overviewFindingScope === 'all') return true;
+    return reviewState === 'unreviewed';
+  });
+
   const reviewedCount = availableFindings.filter((finding) => Boolean(resolvedFindingDecisions[finding.id])).length;
   const pendingReviewCount = Math.max(availableFindings.length - reviewedCount, 0);
   const rejectedCount = useMemo(
@@ -1591,10 +1649,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       availableFindings.length > 0 &&
       availableFindings.every(
         (finding) =>
-          resolvedFindingDecisions[finding.id] === 'rejected' ||
-          resolvedFindingDecisions[finding.id] === 'dismissed'
+          getFindingReviewDisplayState(finding) === 'rejected' ||
+          getFindingReviewDisplayState(finding) === 'dismissed'
       ),
-    [availableFindings, resolvedFindingDecisions]
+    [availableFindings, getFindingReviewDisplayState]
   );
   const metRequirementsCount = useMemo(
     () =>
@@ -1878,7 +1936,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       },
       {
         id: 'review',
-        label: 'Requires review',
+        label: 'Inconclusive',
         value: unresolvedLeadCount,
         detail:
           unresolvedLeadCount > 0
@@ -1893,7 +1951,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         label: 'Compliant',
         value: compliantCount,
         detail: compliantCount > 0 ? `${compliantCount} compliant finding${compliantCount === 1 ? '' : 's'}` : 'none identified',
-        tone: 'good',
+        tone: 'pass',
         active: findingViewFilters.includes('compliant'),
         onClick: () => toggleFindingViewFilter('compliant')
       },
@@ -1967,9 +2025,9 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const reportIncludedFindings = useMemo(() => {
     return availableFindings.filter((finding) => {
       const decision = resolvedFindingDecisions[finding.id] ?? 'unreviewed';
-      return decision !== 'rejected' && decision !== 'dismissed';
+      return decision !== 'dismissed' && (decision !== 'rejected' || isOverturnedFinding(finding));
     });
-  }, [availableFindings, resolvedFindingDecisions]);
+  }, [availableFindings, resolvedFindingDecisions, isOverturnedFinding]);
 
   const reportGoodPracticeFindings = useMemo(
     () => reportIncludedFindings.filter((finding) => getFindingBucketId(finding) === 'best_practice'),
@@ -2070,7 +2128,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       const goodPracticeCount = reportGoodPracticeFindings.length;
       const codeAreaCount = reportCodeAreaSummaries.length;
       const summary = total
-        ? `Of ${total} findings across ${codeAreaCount || 1} code area${codeAreaCount === 1 ? '' : 's'}, ${compliantCount} are compliant, ${goodPracticeCount} identify good practice, and ${criticalCount + leadCount} are non-compliant or require review.`
+        ? `Of ${total} findings across ${codeAreaCount || 1} code area${codeAreaCount === 1 ? '' : 's'}, ${compliantCount} are compliant, ${goodPracticeCount} identify good practice, and ${criticalCount + leadCount} are non-compliant or inconclusive.`
         : 'No findings are currently available for this case.';
 
       const summaryLine = safeText(executiveSummaryValue, '').trim() || summary;
@@ -2295,24 +2353,25 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const historyFindingsRows = useMemo(
     () =>
       reportAttentionFindings.slice(0, 6).map((finding) => {
-        const decision = resolvedFindingDecisions[finding.id] ?? 'unreviewed';
         return {
           id: finding.id,
           title: textOf(finding.title, 'Finding'),
           codeArea: formatCodeAreaLabel(textOf(finding.codeArea || finding.code_area, 'General')),
           severity: REPORT_SEVERITY_LABEL_MAP[getFindingBucketId(finding)] ?? 'Finding',
           resolution:
-            decision === 'accepted'
+            getFindingReviewDisplayState(finding) === 'accepted'
               ? 'Accepted'
-              : decision === 'rejected'
-                ? 'Rejected'
-                : decision === 'dismissed'
+              : getFindingReviewDisplayState(finding) === 'overturned'
+                ? 'Overturned'
+                : getFindingReviewDisplayState(finding) === 'rejected'
+                  ? 'Rejected'
+                  : getFindingReviewDisplayState(finding) === 'dismissed'
                   ? 'Dismissed'
                   : 'Open',
           recurring: RECURRING_FINDING_IDS.has(finding.id)
         };
       }),
-    [formatCodeAreaLabel, reportAttentionFindings, resolvedFindingDecisions]
+    [formatCodeAreaLabel, getFindingReviewDisplayState, reportAttentionFindings]
   );
 
   const hasInspectionHistory = useMemo(
@@ -2840,11 +2899,13 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setFeedbackOpen(false);
     setContextNoteOpen(false);
     setFindingViewFilters(DEFAULT_FINDING_VIEW_FILTERS);
+    setOverviewFindingScope(DEFAULT_OVERVIEW_FINDING_SCOPE);
     setViewerCodeAreaFilter('all');
     setFilterSeverity([]);
     setSeverityFilterOpen(false);
     setExpandedCodeAreaIds({});
     setExpandedOverviewFindingIds({});
+    setClosingOverviewFindingIds({});
     setOverviewRequirementFilter({ areaId: '', requirementId: '' });
     setReportDraftVersion((prev) => prev + 1);
     setReportPendingChanges(false);
@@ -2899,11 +2960,13 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setFeedbackOpen(false);
     setContextNoteOpen(false);
     setFindingViewFilters(DEFAULT_FINDING_VIEW_FILTERS);
+    setOverviewFindingScope(DEFAULT_OVERVIEW_FINDING_SCOPE);
     setViewerCodeAreaFilter('all');
     setFilterSeverity([]);
     setSeverityFilterOpen(false);
     setExpandedCodeAreaIds({});
     setExpandedOverviewFindingIds({});
+    setClosingOverviewFindingIds({});
     setOverviewRequirementFilter({ areaId: '', requirementId: '' });
     setReportDraftVersion((prev) => prev + 1);
     setReportPendingChanges(false);
@@ -3099,6 +3162,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setHasViewedUploadTableEnd(false);
     setExpandedCodeAreaIds({});
     setExpandedOverviewFindingIds({});
+    setClosingOverviewFindingIds({});
+    setOverviewFindingScope(DEFAULT_OVERVIEW_FINDING_SCOPE);
     setOverviewRequirementFilter({ areaId: '', requirementId: '' });
     setPendingScopeChangeCount(0);
     setReportDraftVersion((prev) => prev + 1);
@@ -3190,7 +3255,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     }
   };
 
-  const handleRequestFindingDecision = (findingId, nextDecision) => {
+  const handleRequestFindingDecision = (findingId, nextDecision, { source = 'viewer' } = {}) => {
     const clearAcceptedCollapseTimer = () => {
       const timerId = acceptedOverviewCollapseTimersRef.current[findingId];
       if (!timerId) return;
@@ -3200,6 +3265,25 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
     if (nextDecision === 'accepted' || nextDecision === null || nextDecision === 'unreviewed') {
       clearAcceptedCollapseTimer();
+      if (nextDecision === 'accepted' && source === 'overview' && overviewFindingScope === 'open') {
+        setClosingOverviewFindingIds((prev) => ({ ...prev, [findingId]: true }));
+        acceptedOverviewCollapseTimersRef.current[findingId] = window.setTimeout(() => {
+          setClosingOverviewFindingIds((prev) => {
+            const next = { ...prev };
+            delete next[findingId];
+            return next;
+          });
+          handleFindingDecision(findingId, 'accepted');
+          delete acceptedOverviewCollapseTimersRef.current[findingId];
+        }, 280);
+        return;
+      }
+      setClosingOverviewFindingIds((prev) => {
+        if (!prev[findingId]) return prev;
+        const next = { ...prev };
+        delete next[findingId];
+        return next;
+      });
       handleFindingDecision(findingId, nextDecision === 'unreviewed' ? null : nextDecision);
       return;
     }
@@ -3468,7 +3552,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const handleUploadFileSelection = useCallback(
     (event) => {
       const files = Array.from(event.target.files ?? []).filter((file) =>
-        /\.pdf$/i.test(coerceText(file?.name)) || file?.type === 'application/pdf'
+        /\.(pdf|json)$/i.test(coerceText(file?.name)) ||
+        file?.type === 'application/pdf' ||
+        file?.type === 'application/json' ||
+        file?.type === 'text/json'
       );
       if (files.length > 0) {
         addUploadItems(files);
@@ -3482,7 +3569,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     (event) => {
       event.preventDefault();
       const files = Array.from(event.dataTransfer?.files ?? []).filter((file) =>
-        /\.pdf$/i.test(coerceText(file?.name)) || file?.type === 'application/pdf'
+        /\.(pdf|json)$/i.test(coerceText(file?.name)) ||
+        file?.type === 'application/pdf' ||
+        file?.type === 'application/json' ||
+        file?.type === 'text/json'
       );
       if (files.length > 0) {
         addUploadItems(files);
@@ -4158,7 +4248,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       summaryLines: [
         `Total findings: ${totalFindings}`,
         `Non-compliant: ${criticalCount}`,
-        `Requires review: ${leadCount}`,
+        `Inconclusive: ${leadCount}`,
         `Compliant: ${compliantCount}`,
         `Good practice: ${goodPracticeCount}`
       ],
@@ -4661,6 +4751,86 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setReggieOpen(true);
   };
 
+  const activeReggieChat = useMemo(
+    () => reggieChats.find((chat) => chat.id === activeReggieChatId) ?? reggieChats[0] ?? null,
+    [activeReggieChatId, reggieChats]
+  );
+
+  const reggieMessages = activeReggieChat?.messages ?? [];
+
+  const clearReggieChatTimers = useCallback((chatId) => {
+    const timerIds = reggieTimersRef.current[chatId] ?? [];
+    timerIds.forEach((timerId) => window.clearTimeout(timerId));
+    delete reggieTimersRef.current[chatId];
+  }, []);
+
+  const updateReggieChat = useCallback((chatId, updater) => {
+    setReggieChats((prev) =>
+      prev.map((chat) => {
+        if (chat.id !== chatId) return chat;
+        const nextChat = typeof updater === 'function' ? updater(chat) : { ...chat, ...updater };
+        return {
+          ...nextChat,
+          updatedAt: Date.now()
+        };
+      })
+    );
+  }, []);
+
+  const appendReggieMessage = useCallback(
+    (chatId, message, { scope = reggieScope } = {}) => {
+      updateReggieChat(chatId, (chat) => {
+        const nextMessages = [...(chat.messages ?? []), message];
+        const nextTitle =
+          chat.title === 'New chat' && message.role === 'user'
+            ? message.text.trim().slice(0, 48) || 'New chat'
+            : chat.title;
+        return {
+          ...chat,
+          title: nextTitle,
+          scope,
+          messages: nextMessages
+        };
+      });
+    },
+    [reggieScope, updateReggieChat]
+  );
+
+  const scheduleReggieChatMessage = useCallback(
+    (chatId, message, delayMs, options = {}) => {
+      const timerId = window.setTimeout(() => {
+        appendReggieMessage(chatId, message, options);
+        reggieTimersRef.current[chatId] = (reggieTimersRef.current[chatId] ?? []).filter(
+          (entry) => entry !== timerId
+        );
+      }, delayMs);
+      reggieTimersRef.current[chatId] = [...(reggieTimersRef.current[chatId] ?? []), timerId];
+    },
+    [appendReggieMessage]
+  );
+
+  const handleCreateNewReggieChat = useCallback(
+    (scope = reggieScope) => {
+      const nextChat = createReggieChat(scope);
+      setReggieChats((prev) => [nextChat, ...prev]);
+      setActiveReggieChatId(nextChat.id);
+      setReggieScope(scope);
+      setReggieInput('');
+    },
+    [reggieScope]
+  );
+
+  const handleSelectReggieChat = useCallback(
+    (chatId) => {
+      const selectedChat = reggieChats.find((chat) => chat.id === chatId);
+      if (!selectedChat) return;
+      setActiveReggieChatId(chatId);
+      setReggieScope(selectedChat.scope || 'all');
+      setReggieInput('');
+    },
+    [reggieChats]
+  );
+
   const toggleFocusArea = (areaId) => {
     setSelectedFocusAreaIds((prev) => {
       const next = new Set(prev);
@@ -5036,9 +5206,9 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       });
 
       return {
-        answerText: `I found the strongest linked material for "${query}" in the current case. ${citations
+        answerText: `I found the strongest linked material for "${query}" in the current case, particularly ${citations
           .map((citation) => citation.label)
-          .join(' ')}`,
+          .join(' and ')}.`,
         citations,
         sourceMode: 'fallback'
       };
@@ -5052,14 +5222,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
     const findingMatch = allFindings.find((finding) => textOf(finding?.id, '') === source);
     if (findingMatch?.documentId) {
-      handleViewDocument(findingMatch.documentId, findingMatch.boxId || null, findingMatch.id, STEP_OVERVIEW);
+      handleViewDocument(findingMatch.documentId, null, null, STEP_DOCUMENTS);
       setReggieOpen(false);
       return;
     }
 
     const normalizedSourceId = source.replace(/\.(pdf|json)$/i, '');
     if (normalizedSourceId && documentsById.has(normalizedSourceId)) {
-      handleViewDocument(normalizedSourceId, null, null, STEP_VIEWER);
+      handleViewDocument(normalizedSourceId, null, null, STEP_DOCUMENTS);
       setReggieOpen(false);
       return;
     }
@@ -5071,7 +5241,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     });
 
     if (documentMatch?.id) {
-      handleViewDocument(documentMatch.id, null, null, STEP_VIEWER);
+      handleViewDocument(documentMatch.id, null, null, STEP_DOCUMENTS);
       setReggieOpen(false);
     }
   };
@@ -5079,6 +5249,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const handleSendReggie = (manualQuery) => {
     const query = (manualQuery ?? reggieInput).trim();
     if (!query) return;
+
+    let activeChatId = activeReggieChat?.id ?? activeReggieChatId ?? '';
+    if (!activeReggieChat || !activeChatId) {
+      const bootstrapChat = createReggieChat(reggieScope);
+      setReggieChats((prev) => [bootstrapChat, ...prev]);
+      setActiveReggieChatId(bootstrapChat.id);
+      activeChatId = bootstrapChat.id;
+    }
 
     const timestamp = Date.now();
     const userMessage = { id: `r${timestamp}-u`, role: 'user', text: query };
@@ -5091,25 +5269,33 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       sourceMode: reggieThinkingLevel === 'high' ? 'mock-high' : response.sourceMode
     };
     setReggieInput('');
+    appendReggieMessage(activeChatId, userMessage, { scope: reggieScope });
+    clearReggieChatTimers(activeChatId);
 
-    if (reggieThinkingLevel === 'high') {
-      const planningMessage = {
-        id: `r${timestamp}-p`,
-        role: 'assistant',
-        text:
-          'Okay, let me plan my approach.\n1. Check the most relevant document.\n2. Cross-reference any linked evidence or guidance.\n3. Return the strongest grounded answer with citations.'
-      };
+    const planningMessage = {
+      id: `r${timestamp}-p`,
+      role: 'assistant',
+      text:
+        'Okay, let me plan my approach.\n1. Check the most relevant document.\n2. Cross-reference any linked evidence.\n3. Return the strongest grounded answer with citations.'
+    };
+    const crossCheckMessage = {
+      id: `r${timestamp}-c`,
+      role: 'assistant',
+      text:
+        reggieScope === 'document'
+          ? 'I am checking this document first, then looking for any linked references elsewhere in the case.'
+          : 'I am scanning the linked documents now and cross-checking for the strongest grounded answer.'
+    };
 
-      setReggieMessages((prev) => [...prev, userMessage, planningMessage]);
-      setTimeout(() => {
-        setReggieMessages((prev) => [...prev, assistantMessage]);
-      }, 1400);
-      return;
-    }
-
-    setTimeout(() => {
-      setReggieMessages((prev) => [...prev, userMessage, assistantMessage]);
-    }, 220);
+    scheduleReggieChatMessage(activeChatId, planningMessage, reggieThinkingLevel === 'high' ? 900 : 700, {
+      scope: reggieScope
+    });
+    scheduleReggieChatMessage(activeChatId, crossCheckMessage, reggieThinkingLevel === 'high' ? 2700 : 2200, {
+      scope: reggieScope
+    });
+    scheduleReggieChatMessage(activeChatId, assistantMessage, reggieThinkingLevel === 'high' ? 6400 : 4800, {
+      scope: reggieScope
+    });
   };
 
   const handleQuickReggiePrompt = (prompt) => {
@@ -5733,7 +5919,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       getFindingBucketId={getFindingBucketId}
       expandedCodeAreaIds={expandedCodeAreaIds}
       setExpandedCodeAreaIds={setExpandedCodeAreaIds}
-      filteredFindings={filteredFindings}
+      filteredFindings={overviewFilteredFindings}
+      overviewFindingScope={overviewFindingScope}
       overviewRequirementFilter={overviewRequirementFilter}
       setOverviewRequirementFilter={setOverviewRequirementFilter}
       overviewFilterRef={overviewFilterRef}
@@ -5746,6 +5933,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       findingDecisions={resolvedFindingDecisions}
       expandedOverviewFindingIds={expandedOverviewFindingIds}
       setExpandedOverviewFindingIds={setExpandedOverviewFindingIds}
+      closingOverviewFindingIds={closingOverviewFindingIds}
       findingSeverityBadgeMap={FINDING_SEVERITY_BADGE_MAP}
       findingEvidenceStrengthMap={FINDING_EVIDENCE_STRENGTH_MAP}
       isLeadFindingByTaxonomy={isLeadFindingByTaxonomy}
@@ -6032,6 +6220,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         setCurrentStep(STEP_DOCUMENTS);
       }}
       onGoToReport={handleAttemptOverviewReport}
+      findingVisibilityScope={overviewFindingScope}
+      onSetFindingVisibilityScope={setOverviewFindingScope}
       onClearFindingFilters={clearFindingViewFilters}
       onResetFindingFilters={resetFindingViewFiltersToDefault}
       reportBlockedMessage={reportAccessNotice}
@@ -6135,11 +6325,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
             <GuidanceContextLayout
               embedded
               guidance={activeGuidanceContext}
-              backLabel="Back to Findings"
-              onBack={() => {
-                setActiveGuidanceContext(null);
-                setCurrentStep(STEP_OVERVIEW);
-              }}
+              backLabel={guidanceReturnContext?.step === STEP_VIEWER ? 'Back to Document Viewer' : 'Back to Findings'}
+              onBack={handleExitGuidanceContext}
             />
           </div>
         ) : (
@@ -6190,6 +6377,27 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       : appMode === 'caseSetup' || (appMode === 'inspection' && currentStep === STEP_CASE_SETUP)
         ? 'Set the inspection scope and case properties before uploading evidence.'
         : '';
+  const handleExitGuidanceContext = useCallback(() => {
+    const returnContext = guidanceReturnContext;
+    setActiveGuidanceContext(null);
+    setGuidanceReturnContext(null);
+    if (returnContext?.step === STEP_VIEWER && returnContext?.selection?.documentId) {
+      setViewerOriginStep(returnContext.viewerOriginStep ?? STEP_OVERVIEW);
+      setShowDocBoxes(returnContext.showDocBoxes ?? true);
+      setIsViewerFocusMode(returnContext.isViewerFocusMode ?? false);
+      applyViewerSelection(
+        {
+          ...returnContext.selection,
+          originStep: returnContext.viewerOriginStep ?? STEP_OVERVIEW
+        },
+        { pushHistory: false, scrollViewer: false }
+      );
+      setCurrentStep(STEP_VIEWER);
+      return;
+    }
+    setCurrentStep(STEP_OVERVIEW);
+  }, [applyViewerSelection, guidanceReturnContext]);
+
   const handleShowGuidance = useCallback(
     (finding) => {
       const areaId = normalizeCodeAreaId(safeText(finding?.codeArea || finding?.code_area, ''));
@@ -6240,10 +6448,29 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         page: linkedDocumentPath ? String(linkedDocumentPage) : '',
         pdf: linkedDocumentUrl
       });
-      setViewerOriginStep(STEP_OVERVIEW);
+      if (currentStep === STEP_VIEWER) {
+        setGuidanceReturnContext({
+          step: STEP_VIEWER,
+          selection: captureViewerSelection(),
+          viewerOriginStep,
+          showDocBoxes,
+          isViewerFocusMode
+        });
+      } else {
+        setGuidanceReturnContext({ step: STEP_OVERVIEW });
+        setViewerOriginStep(STEP_OVERVIEW);
+      }
       setCurrentStep(STEP_VIEWER);
     },
-    [normalizeCodeAreaId, safeText]
+    [
+      captureViewerSelection,
+      currentStep,
+      isViewerFocusMode,
+      normalizeCodeAreaId,
+      safeText,
+      showDocBoxes,
+      viewerOriginStep
+    ]
   );
   const handleJumpToRequirement = useCallback(
     (finding) => {
@@ -6423,6 +6650,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
             reggieThinkingLevel={reggieThinkingLevel}
             setReggieThinkingLevel={setReggieThinkingLevel}
             suggestions={REGGIE_SUGGESTIONS}
+            reggieChats={reggieChats}
+            activeReggieChatId={activeReggieChat?.id ?? activeReggieChatId}
+            onCreateNewChat={() => handleCreateNewReggieChat(reggieScope)}
+            onSelectChat={handleSelectReggieChat}
             reggieMessages={reggieMessages}
             onQuickPrompt={handleQuickReggiePrompt}
             onOpenCitation={handleOpenReggieCitation}

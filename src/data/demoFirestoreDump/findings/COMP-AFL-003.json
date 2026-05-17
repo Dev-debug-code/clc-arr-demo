@@ -1,34 +1,35 @@
 {
-  "isGoodPractice": false,
   "id": "COMP-AFL-003",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "15_Lender_Disclosure_Note",
-      "page": 1,
-      "id": "COMP-AFL-003-p1",
-      "section": "Lender Disclosure File Note",
-      "text": "No discrepancy has been identified between the purchase price in the contract and the price reported to the lender.",
-      "box_id": "COMP-AFL-003",
-      "file": "15_Lender_Disclosure_Note.pdf"
-    }
-  ],
-  "detail": "The lender disclosure note records that the purchase price reported to Example Building Society is £875,000 and that no discrepancy has been identified against the contract price.",
-  "codeArea": "lenders",
+  "title": "Purchase Price Consistency Is Recorded for Lender Disclosure",
+  "detail": "The lender disclosure note records that the purchase price reported to Example Building Society is \u00a3875,000 and that no discrepancy has been identified against the contract price.",
   "reference": "Acting for Lenders and Prevention and Detection of Mortgage Fraud, Section 8(ii)",
-  "evidence_strength": "strong",
+  "codeArea": "acting-for-lenders",
+  "codeAreaLabel": "Acting for Lenders and Prevention and Detection of Mortgage Fraud",
+  "requirementId": "afl-3",
   "documentId": "15_Lender_Disclosure_Note",
+  "boxId": "COMP-AFL-003",
+  "polarity": "compliant",
+  "certainty": "finding",
+  "severity": "compliant",
+  "isGoodPractice": false,
+  "evidence_strength": "strong",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 1,
     "file": "15_Lender_Disclosure_Note.pdf",
-    "section": "Lender Disclosure File Note",
-    "text": "No discrepancy has been identified between the purchase price in the contract and the price reported to the lender."
+    "section": "Lender Disclosure File Note"
   },
-  "boxId": "COMP-AFL-003",
-  "requirementId": "afl-3",
-  "polarity": "compliant",
-  "title": "Purchase Price Consistency Is Recorded for Lender Disclosure",
-  "severity": "best_practice",
-  "certainty": "finding",
-  "is_good_practice": false
+  "evidencePassages": [
+    {
+      "id": "COMP-AFL-003-p1",
+      "document_id": "15_Lender_Disclosure_Note",
+      "file": "15_Lender_Disclosure_Note.pdf",
+      "page": 1,
+      "section": "Lender Disclosure File Note",
+      "box_id": "COMP-AFL-003"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

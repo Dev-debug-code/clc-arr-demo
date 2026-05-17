@@ -14,7 +14,7 @@ function toCanonicalFilenameKey(value) {
   const text = coerceText(value).trim().toLowerCase();
   if (!text) return '';
   const base = text.replace(/\\/g, '/').split('/').pop() ?? '';
-  const stem = base.replace(/\.pdf$/i, '');
+  const stem = base.replace(/\.[^.]+$/u, '');
   return stem.replace(/[^a-z0-9]/g, '');
 }
 

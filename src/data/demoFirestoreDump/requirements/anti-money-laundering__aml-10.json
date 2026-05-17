@@ -1,0 +1,9 @@
+{
+  "requirementId": "aml-10",
+  "codeArea": "anti-money-laundering",
+  "codeAreaLabel": "Anti-Money Laundering",
+  "label": "Electronic identity checks show what was checked, the results, and the certainty level",
+  "status": "compliant",
+  "createdAt": "2026-05-15T12:25:32.972699+00:00",
+  "updatedAt": "2026-05-15T12:25:32.972699+00:00"
+}

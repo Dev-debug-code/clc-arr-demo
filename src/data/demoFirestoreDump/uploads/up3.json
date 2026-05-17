@@ -1,0 +1,31 @@
+{
+  "id": "up3",
+  "filename": "02_Proof_of_Address.pdf",
+  "name": "02_Proof_of_Address.pdf",
+  "summary": "Utility bill (Example Utilities, 1 October 2024) used as proof of address.",
+  "classification": "CDD Records",
+  "classificationL1": "CDD Records",
+  "classificationL2": "Proof of Address",
+  "classificationDetail": "Utility bill (Example Utilities, 1 October 2024) used as proof of address.",
+  "classificationJustification": "",
+  "classificationReason": "AI classification reason will appear here after processing.",
+  "classification_confidence": 0.88,
+  "confidence": "high",
+  "confirmed": true,
+  "models_agree": true,
+  "processing_status": "complete",
+  "processing_path": "ocr_then_classify_then_extract",
+  "status": "verified",
+  "parties": "Client",
+  "features_found": [
+    "utility_bill_header"
+  ],
+  "limitedAnalysis": false,
+  "interviewees": [],
+  "intervieweeName": "",
+  "intervieweeRole": "",
+  "interviewDate": "",
+  "addedOn": "",
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
+}

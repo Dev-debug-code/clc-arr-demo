@@ -14,8 +14,16 @@
   "status": "verified",
   "severity": "warning",
   "parties": "Client; donor; deceased parent",
-  "parties_found": ["Joe Bloggs", "Jill Withers", "John Bloggs"],
-  "features_found": ["sof_breakdown", "evidence_status_table", "outstanding_enquiries"],
+  "parties_found": [
+    "Joe Bloggs",
+    "Jill Withers",
+    "John Bloggs"
+  ],
+  "features_found": [
+    "sof_breakdown",
+    "evidence_status_table",
+    "outstanding_enquiries"
+  ],
   "extracted_fields": {
     "client": "Joe Bloggs",
     "purchase_price": "875000",
@@ -27,5 +35,39 @@
     "estate_evidence_status": "supported",
     "schedule_date": "16/10/2024"
   },
-  "overlayBoxes": []
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/14_Source_of_Funds_Schedule.pdf",
+  "overlayBoxes": [
+    {
+      "id": "CRIT-AML-006",
+      "page": 1,
+      "pageno": 0,
+      "bbox": [
+        438,
+        362,
+        815,
+        402
+      ],
+      "category": "Evidence Status Summary",
+      "title": "Source-of-Funds Schedule Records Unresolved Evidence Gaps",
+      "details": "The source-of-funds schedule records that savings evidence is only partial and that the donor source-of-funds documentation has not been obtained. It also states that the schedule is not a final approval of source-of-funds evidence.",
+      "severity": "critical"
+    },
+    {
+      "id": "GP-AML-001",
+      "page": 1,
+      "pageno": 0,
+      "bbox": [
+        35,
+        150,
+        820,
+        310
+      ],
+      "category": "Source-of-Funds Schedule",
+      "title": "Good Practice: Source-of-Funds Schedule Clearly Records Gaps",
+      "details": "The source-of-funds schedule itemises the savings, gift, and estate distribution streams and clearly records which evidence is supported, partial, or outstanding. That is useful file discipline, even though the unresolved gaps still need action.",
+      "severity": "best_practice"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

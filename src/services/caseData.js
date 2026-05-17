@@ -98,6 +98,7 @@ function deriveLegacyFindingSeverity({ severity, certainty, polarity, isGoodPrac
   const normalizedPolarity = String(polarity || '').trim().toLowerCase();
 
   if (isGoodPractice === true) return 'best_practice';
+  if (normalizedPolarity === 'compliant' && normalizedReviewStatus === 'rejected') return 'critical';
   if (normalizedPolarity === 'compliant') return 'pass';
   if (normalizedCertainty === 'lead') return 'warning';
 
@@ -984,7 +985,7 @@ export async function exportCaseReport({ caseId, format = 'pdf' }) {
       severity === 'critical'
         ? 'Non-compliant'
         : severity === 'warning'
-          ? 'Requires review'
+          ? 'Inconclusive'
           : severity === 'best_practice'
             ? 'Good practice'
             : 'Compliant';
@@ -1004,7 +1005,7 @@ export async function exportCaseReport({ caseId, format = 'pdf' }) {
     summaryLines: [
       `Total findings: ${findings.length}`,
       `Non-compliant: ${totals.critical}`,
-      `Requires review: ${totals.warning}`,
+      `Inconclusive: ${totals.warning}`,
       `Compliant: ${totals.pass}`,
       `Good practice: ${totals.bestPractice}`
     ],

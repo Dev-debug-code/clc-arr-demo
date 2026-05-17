@@ -1,0 +1,13 @@
+{
+  "sectionId": "section_acting-for-lenders",
+  "codeAreaId": "acting-for-lenders",
+  "narrative": "The borrower identity record is non-compliant because the accepted passport image does not match Joe Bloggs.\nThe client care letter explains that the firm acts for Example Building Society as lender and that relevant information may be disclosed to the lender where required.\nThe lender disclosure note records that the purchase price reported to the lender matches the contract price and that no price discrepancy has been identified.",
+  "original_narrative": "The borrower identity record is non-compliant because the accepted passport image does not match Joe Bloggs.\nThe client care letter explains that the firm acts for Example Building Society as lender and that relevant information may be disclosed to the lender where required.\nThe lender disclosure note records that the purchase price reported to the lender matches the contract price and that no price discrepancy has been identified.",
+  "lines": [
+    "The borrower identity record is non-compliant because the accepted passport image does not match Joe Bloggs.",
+    "The client care letter explains that the firm acts for Example Building Society as lender and that relevant information may be disclosed to the lender where required.",
+    "The lender disclosure note records that the purchase price reported to the lender matches the contract price and that no price discrepancy has been identified."
+  ],
+  "is_edited": false,
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
+}

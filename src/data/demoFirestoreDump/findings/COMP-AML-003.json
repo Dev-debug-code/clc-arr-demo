@@ -1,34 +1,35 @@
 {
-  "isGoodPractice": false,
   "id": "COMP-AML-003",
-  "reviewStatus": "unreviewed",
-  "evidencePassages": [
-    {
-      "document_id": "13_Solicitor_Estate_Distribution_Letter",
-      "page": 1,
-      "id": "COMP-AML-003-p1",
-      "section": "Estate Distribution Confirmation",
-      "text": "distribution of £100,000 from the estate of his late father, John Bloggs",
-      "box_id": "COMP-AML-003",
-      "file": "13_Solicitor_Estate_Distribution_Letter.pdf"
-    }
-  ],
-  "detail": "The probate solicitor's letter confirms that Joe Bloggs received £100,000 from the estate of his late father, John Bloggs. That gives clear documentary support for one source-of-funds stream.",
-  "codeArea": "aml",
+  "title": "Estate Distribution Stream Is Supported by Solicitor Evidence",
+  "detail": "The probate solicitor's letter confirms that Joe Bloggs received \u00a3100,000 from the estate of his late father, John Bloggs. That gives clear documentary support for one source-of-funds stream.",
   "reference": "Anti-Money Laundering, Procedure 20",
-  "evidence_strength": "strong",
+  "codeArea": "anti-money-laundering",
+  "codeAreaLabel": "Anti-Money Laundering",
+  "requirementId": "aml-9",
   "documentId": "13_Solicitor_Estate_Distribution_Letter",
+  "boxId": "COMP-AML-003",
+  "polarity": "compliant",
+  "certainty": "finding",
+  "severity": "compliant",
+  "isGoodPractice": false,
+  "evidence_strength": "strong",
+  "origin": "backend",
+  "reviewStatus": "unreviewed",
   "source": {
     "page": 1,
     "file": "13_Solicitor_Estate_Distribution_Letter.pdf",
-    "section": "Estate Distribution Confirmation",
-    "text": "distribution of £100,000 from the estate of his late father, John Bloggs"
+    "section": "Estate Distribution Confirmation"
   },
-  "boxId": "COMP-AML-003",
-  "requirementId": "aml-9",
-  "polarity": "compliant",
-  "title": "Estate Distribution Stream Is Supported by Solicitor Evidence",
-  "severity": "best_practice",
-  "certainty": "finding",
-  "is_good_practice": false
+  "evidencePassages": [
+    {
+      "id": "COMP-AML-003-p1",
+      "document_id": "13_Solicitor_Estate_Distribution_Letter",
+      "file": "13_Solicitor_Estate_Distribution_Letter.pdf",
+      "page": 1,
+      "section": "Estate Distribution Confirmation",
+      "box_id": "COMP-AML-003"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }

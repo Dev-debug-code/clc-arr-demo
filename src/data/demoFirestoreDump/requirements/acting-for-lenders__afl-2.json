@@ -1,0 +1,9 @@
+{
+  "requirementId": "afl-2",
+  "codeArea": "acting-for-lenders",
+  "codeAreaLabel": "Acting for Lenders and Prevention and Detection of Mortgage Fraud",
+  "label": "Borrower identity must be checked against appropriate original documents",
+  "status": "non_compliant",
+  "createdAt": "2026-05-15T12:25:32.969559+00:00",
+  "updatedAt": "2026-05-15T12:25:32.969559+00:00"
+}

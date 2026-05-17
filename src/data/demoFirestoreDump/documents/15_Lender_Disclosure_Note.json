@@ -5,7 +5,7 @@
   "summary": "Internal lender disclosure note recording the purchase price, lender, and source-of-funds breakdown without closing outstanding evidence enquiries.",
   "documentType": "Lender Disclosure File Note",
   "classification": "Legal Correspondence",
-  "classification_confidence": 0.90,
+  "classification_confidence": 0.9,
   "confidence": "high",
   "models_agree": true,
   "confirmed": true,
@@ -14,8 +14,15 @@
   "status": "verified",
   "severity": "info",
   "parties": "Client; lender",
-  "parties_found": ["Joe Bloggs", "Example Building Society"],
-  "features_found": ["lender_disclosure_note", "purchase_price_check", "sof_breakdown"],
+  "parties_found": [
+    "Joe Bloggs",
+    "Example Building Society"
+  ],
+  "features_found": [
+    "lender_disclosure_note",
+    "purchase_price_check",
+    "sof_breakdown"
+  ],
   "extracted_fields": {
     "borrower": "Joe Bloggs",
     "lender": "Example Building Society",
@@ -24,5 +31,24 @@
     "lender_approval_recorded": "no",
     "note_date": "17/10/2024"
   },
-  "overlayBoxes": []
+  "storagePath": "gs://case_documents_sumplexity_clc/cases/DEMO-12345/documents/15_Lender_Disclosure_Note.pdf",
+  "overlayBoxes": [
+    {
+      "id": "COMP-AFL-003",
+      "page": 1,
+      "pageno": 0,
+      "bbox": [
+        0.08727295527699311,
+        0.3745257027013958,
+        0.9019428943321094,
+        0.4145257027013958
+      ],
+      "category": "Lender Disclosure File Note",
+      "title": "Purchase Price Consistency Is Recorded for Lender Disclosure",
+      "details": "The lender disclosure note records that the purchase price reported to Example Building Society is \u00a3875,000 and that no discrepancy has been identified against the contract price.",
+      "severity": "compliant"
+    }
+  ],
+  "createdAt": "2026-05-15T12:25:32.924897+00:00",
+  "updatedAt": "2026-05-15T12:25:32.924897+00:00"
 }
