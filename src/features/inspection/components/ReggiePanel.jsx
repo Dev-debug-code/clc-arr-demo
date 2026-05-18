@@ -304,7 +304,7 @@ export default function ReggiePanel({
               <p>
                 {hasReggieRuntimeKey
                   ? 'High mode is ready to call the deployed Reggie runtime.'
-                  : 'High mode needs a Reggie access key. Medium mode still uses the canned demo flow.'}
+                  : 'High mode needs a Reggie access key. Medium mode remains available without it.'}
               </p>
             </div>
             <div className="reggie-runtime-status__actions">

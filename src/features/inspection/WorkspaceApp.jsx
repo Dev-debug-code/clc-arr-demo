@@ -306,6 +306,9 @@ const CLASSIFICATION_PROCESSING_MESSAGES = [
   'Preparing the classification review table...'
 ];
 
+const CLASSIFICATION_PROCESSING_DURATION_MS = 20_000;
+const FINDINGS_PROCESSING_DURATION_MS = 40_000;
+
 const buildClassificationReason = (filename, classification) => {
   const cleanFilename = coerceText(filename).trim() || 'document';
   const cleanClassification = coerceText(classification).trim() || 'Unknown';
@@ -339,6 +342,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [isDashboardLoading, setIsDashboardLoading] = useState(false);
   const [dashboardError, setDashboardError] = useState('');
   const previousStepRef = useRef(STEP_DOCUMENTS);
+  const processingStartedAtRef = useRef(0);
   const [showCompletedCases, setShowCompletedCases] = useState(false);
   const [showRecentlyCompleted, setShowRecentlyCompleted] = useState(false);
   const [contextNoteOpen, setContextNoteOpen] = useState(false);
@@ -1030,6 +1034,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   }, [currentCaseMeta.caseId, currentUser, isActiveCasePersisted, uploadItems]);
 
   const startProcessingRun = useCallback((mode) => {
+    processingStartedAtRef.current = Date.now();
     setAnalysisMode(mode);
     setAnalysisProgress(8);
     setAnalysisRunning(true);
@@ -1087,12 +1092,15 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     }
 
     const timer = setTimeout(() => {
-      const jitter = 0.96 + Math.random() * 0.08;
+      const durationMs =
+        analysisMode === PROCESSING_MODE_CLASSIFICATION
+          ? CLASSIFICATION_PROCESSING_DURATION_MS
+          : FINDINGS_PROCESSING_DURATION_MS;
       setAnalysisProgress((prev) => {
-        const remaining = 100 - prev;
-        if (remaining <= 0) return 100;
-        const increment = Math.max(0.8, remaining * 0.08) * jitter;
-        return Math.min(100, prev + increment);
+        const startedAt = processingStartedAtRef.current || Date.now();
+        const elapsedMs = Math.max(0, Date.now() - startedAt);
+        const progress = 8 + (elapsedMs / durationMs) * 92;
+        return Math.max(prev, Math.min(100, progress));
       });
     }, Math.max(140, Math.floor(ANALYSIS_TICK_INTERVAL_MS / 8)));
 
