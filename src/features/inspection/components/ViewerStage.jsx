@@ -6,6 +6,8 @@ export default function ViewerStage({
   caseDocuments,
   setCurrentStep,
   viewerOriginStep,
+  customViewerBackLabel,
+  onViewerBreadcrumbBack,
   activeViewerFinding,
   activeViewerFindingDocumentIds,
   viewerDocumentSequence,
@@ -128,7 +130,7 @@ export default function ViewerStage({
   }
 
   const viewerBackStep = viewerOriginStep === STEP_DOCUMENTS ? STEP_DOCUMENTS : STEP_OVERVIEW;
-  const viewerBackLabel = viewerOriginStep === STEP_DOCUMENTS ? 'Documents' : 'Findings';
+  const viewerBackLabel = customViewerBackLabel ?? (viewerOriginStep === STEP_DOCUMENTS ? 'Documents' : 'Findings');
   const viewerHasFindingFocus = Boolean(activeViewerFinding && activeViewerFindingDocumentIds.length > 0);
   const isDocumentOnlyViewer = viewerOriginStep === STEP_DOCUMENTS && !viewerHasFindingFocus;
   const viewerDocumentCount = Math.max(viewerDocumentSequence.length, 1);
@@ -151,6 +153,7 @@ export default function ViewerStage({
           setCurrentStep={setCurrentStep}
           viewerBackStep={viewerBackStep}
           viewerBackLabel={viewerBackLabel}
+          onViewerBreadcrumbBack={onViewerBreadcrumbBack}
           viewerSelectionHistory={viewerSelectionHistory}
           handleViewerBack={handleViewerBack}
           activeDocument={activeDocument}

@@ -1,6 +1,46 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import PdfOverlayViewer from '../../../components/PdfOverlayViewer.jsx';
 
+function formatJsonPreviewValue(value, { dateOnly = false } = {}) {
+  if (value == null) return '';
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+
+  let candidateDate = null;
+  if (value instanceof Date) {
+    candidateDate = value;
+  } else if (typeof value?.toDate === 'function') {
+    candidateDate = value.toDate();
+  } else if (typeof value?.seconds === 'number') {
+    const milliseconds =
+      value.seconds * 1000 + (typeof value?.nanoseconds === 'number' ? value.nanoseconds / 1e6 : 0);
+    candidateDate = new Date(milliseconds);
+  }
+
+  if (candidateDate instanceof Date && !Number.isNaN(candidateDate.getTime())) {
+    return dateOnly
+      ? candidateDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      : candidateDate.toLocaleString('en-GB');
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => formatJsonPreviewValue(entry, { dateOnly }))
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '';
+    }
+  }
+
+  return '';
+}
+
 function JsonDocumentPreview({ documentUrl, documentName, documentMeta, selectedEvidence, focusSignal }) {
   const [content, setContent] = useState('');
   const [parsedContent, setParsedContent] = useState(null);
@@ -99,47 +139,49 @@ function JsonDocumentPreview({ documentUrl, documentName, documentMeta, selected
       {
         label: 'Filename',
         key: 'filename',
-        value: documentName
+        value: formatJsonPreviewValue(documentName)
       },
       {
         label: 'Interviewee',
         key: 'interviewee',
-        value:
-          extractedFields.interviewee
-          || transcriptFields.interviewee
-          || transcriptMetadata.interviewee
-          || documentMeta?.intervieweeName
-          || '—'
+        value: formatJsonPreviewValue(
+          extractedFields.interviewee ||
+            transcriptFields.interviewee ||
+            transcriptMetadata.interviewee ||
+            documentMeta?.intervieweeName ||
+            '—'
+        )
       },
       {
         label: 'Interviewer',
         key: 'interviewer',
-        value:
-          extractedFields.interviewer
-          || transcriptFields.interviewer
-          || transcriptMetadata.interviewer
-          || '—'
+        value: formatJsonPreviewValue(
+          extractedFields.interviewer || transcriptFields.interviewer || transcriptMetadata.interviewer || '—'
+        )
       },
       {
         label: 'Interview date',
         key: 'interview-date',
-        value:
-          extractedFields.interview_date
-          || transcriptFields.interview_date
-          || transcriptMetadata.interview_date
-          || transcriptMetadata.date
-          || documentMeta?.interviewDate
-          || '—'
+        value: formatJsonPreviewValue(
+          extractedFields.interview_date ||
+            transcriptFields.interview_date ||
+            transcriptMetadata.interview_date ||
+            transcriptMetadata.date ||
+            documentMeta?.interviewDate ||
+            '—',
+          { dateOnly: true }
+        )
       },
       {
         label: 'Role',
         key: 'role',
-        value:
-          extractedFields.interviewee_role
-          || transcriptFields.interviewee_role
-          || transcriptMetadata.interviewee_role
-          || documentMeta?.intervieweeRole
-          || '—'
+        value: formatJsonPreviewValue(
+          extractedFields.interviewee_role ||
+            transcriptFields.interviewee_role ||
+            transcriptMetadata.interviewee_role ||
+            documentMeta?.intervieweeRole ||
+            '—'
+        )
       }
     ];
     return rows.filter((row) => String(row.value || '').trim() !== '');
@@ -186,10 +228,10 @@ function JsonDocumentPreview({ documentUrl, documentName, documentMeta, selected
                   className={`json-doc-viewer__transcript-entry ${isActive ? 'is-active' : ''}`}
                 >
                   <div className="json-doc-viewer__transcript-meta">
-                    <strong>{entry?.speaker || 'Speaker'}</strong>
-                    <span>{entry?.timestamp || 'Unknown time'}</span>
+                    <strong>{formatJsonPreviewValue(entry?.speaker) || 'Speaker'}</strong>
+                    <span>{formatJsonPreviewValue(entry?.timestamp) || 'Unknown time'}</span>
                   </div>
-                  <p>{entry?.text || ''}</p>
+                  <p>{formatJsonPreviewValue(entry?.text) || ''}</p>
                 </article>
               );
             })}
@@ -211,6 +253,7 @@ export default function ViewerDocumentPanel({
   setCurrentStep,
   viewerBackStep,
   viewerBackLabel,
+  onViewerBreadcrumbBack,
   viewerSelectionHistory,
   handleViewerBack,
   activeDocument,
@@ -259,7 +302,15 @@ export default function ViewerDocumentPanel({
         <div className="doc-panel-header-main">
           <div className="doc-top-nav">
             <div className="doc-top-nav-left">
-              <button type="button" className="doc-breadcrumb-link" onClick={() => setCurrentStep(viewerBackStep)}>
+              <button
+                type="button"
+                className="doc-breadcrumb-link"
+                onClick={() =>
+                  typeof onViewerBreadcrumbBack === 'function'
+                    ? onViewerBreadcrumbBack()
+                    : setCurrentStep(viewerBackStep)
+                }
+              >
                 <span aria-hidden="true">←</span>
                 <span>{`Back to ${viewerBackLabel}`}</span>
               </button>

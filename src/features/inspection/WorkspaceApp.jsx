@@ -146,6 +146,16 @@ import ViewerStage from './components/ViewerStage.jsx';
 import WorkspaceShell from './components/WorkspaceShell.jsx';
 import { GuidanceContextLayout } from '../../pages/GuidanceContextPage.jsx';
 import { findCannedReggieResponse } from '../../data/reggieDemoResponses.js';
+import {
+  clearStoredReggieRuntimeApiKey,
+  createReggieRuntimeSession,
+  getStoredReggieRuntimeApiKey,
+  isReggieAckText,
+  normalizeReggieCitations,
+  parseReggieTextAndCitations,
+  setStoredReggieRuntimeApiKey,
+  streamReggieRuntimeQuery
+} from '../../utils/reggieRuntime.js';
 
 function toDashboardCaseDateMs(value) {
   if (!value) return null;
@@ -229,6 +239,12 @@ const GUIDANCE_SOURCE_PATHS = {
 };
 
 let reggieChatSequence = 0;
+let reggieMessageSequence = 0;
+
+function nextReggieMessageId(prefix = 'reggie') {
+  reggieMessageSequence += 1;
+  return `${prefix}-${Date.now()}-${reggieMessageSequence}`;
+}
 
 function createReggieChat(scope = 'all') {
   reggieChatSequence += 1;
@@ -237,7 +253,9 @@ function createReggieChat(scope = 'all') {
     title: 'New chat',
     scope,
     updatedAt: Date.now(),
-    messages: []
+    messages: [],
+    sessionId: '',
+    isStreaming: false
   };
 }
 
@@ -353,6 +371,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [viewerOriginStep, setViewerOriginStep] = useState(STEP_OVERVIEW);
   const [activeGuidanceContext, setActiveGuidanceContext] = useState(null);
   const [guidanceReturnContext, setGuidanceReturnContext] = useState(null);
+  const [reggieViewerReturnContext, setReggieViewerReturnContext] = useState(null);
   const [viewerSelectionHistory, setViewerSelectionHistory] = useState([]);
   const [docFocusSignal, setDocFocusSignal] = useState(0);
   const [findingDecisions, setFindingDecisions] = useState({});
@@ -388,6 +407,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [reggieScope, setReggieScope] = useState('all');
   const [reggieThinkingLevel, setReggieThinkingLevel] = useState('medium');
   const [reggieInput, setReggieInput] = useState('');
+  const [reggieRuntimeApiKey, setReggieRuntimeApiKey] = useState(() => getStoredReggieRuntimeApiKey());
   const [reggieChats, setReggieChats] = useState(() => [INITIAL_REGGIE_CHAT]);
   const [activeReggieChatId, setActiveReggieChatId] = useState(INITIAL_REGGIE_CHAT.id);
   const [inspectorFindings, setInspectorFindings] = useState([]);
@@ -3670,13 +3690,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       prev.map((entry) => {
         if (entry.id !== uploadId) return entry;
 
+        const hasDetail = String(value || '').trim().length > 0;
         const nextEntry = prepareUploadDraft({
           ...entry,
           confirmed: false,
           classificationDetail: value,
           confidence: 'low',
           classification_confidence: null,
-          limitedAnalysis: true,
+          limitedAnalysis: !hasDetail,
           status: isUploadClassificationResolved(entry) ? 'classified' : 'queued'
         });
         updatedItem = nextEntry;
@@ -4757,6 +4778,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   );
 
   const reggieMessages = activeReggieChat?.messages ?? [];
+  const reggieBusy = Boolean(activeReggieChat?.isStreaming);
 
   const clearReggieChatTimers = useCallback((chatId) => {
     const timerIds = reggieTimersRef.current[chatId] ?? [];
@@ -4776,6 +4798,22 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       })
     );
   }, []);
+
+  const updateReggieChatMessage = useCallback(
+    (chatId, messageId, updater) => {
+      updateReggieChat(chatId, (chat) => ({
+        ...chat,
+        messages: (chat.messages ?? []).map((message) =>
+          message.id === messageId
+            ? typeof updater === 'function'
+              ? updater(message)
+              : { ...message, ...updater }
+            : message
+        )
+      }));
+    },
+    [updateReggieChat]
+  );
 
   const appendReggieMessage = useCallback(
     (chatId, message, { scope = reggieScope } = {}) => {
@@ -5216,21 +5254,55 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     [documentsById, filteredCrossDocResults, safeText]
   );
 
+  const hasReggieRuntimeKey = Boolean(textOf(reggieRuntimeApiKey, ''));
+
+  const handleManageReggieAccessKey = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const nextValue = window.prompt(
+      'Enter the Reggie access key for live High mode.',
+      reggieRuntimeApiKey || ''
+    );
+    if (nextValue === null) return;
+    setReggieRuntimeApiKey(setStoredReggieRuntimeApiKey(nextValue));
+  }, [reggieRuntimeApiKey]);
+
+  const handleClearReggieAccessKey = useCallback(() => {
+    clearStoredReggieRuntimeApiKey();
+    setReggieRuntimeApiKey('');
+  }, []);
+
   const handleOpenReggieCitation = (citation) => {
     const source = textOf(citation?.source, '').trim();
     if (!source) return;
+    const returnContext =
+      currentStep === STEP_VIEWER && captureViewerSelection().documentId
+        ? {
+            step: STEP_VIEWER,
+            selection: captureViewerSelection(),
+            viewerOriginStep,
+            showDocBoxes,
+            isViewerFocusMode
+          }
+        : currentStep === STEP_DOCUMENTS
+          ? { step: STEP_DOCUMENTS }
+          : { step: STEP_OVERVIEW };
+    const openRawReggieDocument = (documentId) => {
+      handleViewDocument(documentId, null, null, STEP_DOCUMENTS);
+      setReggieViewerReturnContext(returnContext);
+      setShowDocBoxes(false);
+      setIsViewerFocusMode(false);
+      setReggieOpen(false);
+    };
 
     const findingMatch = allFindings.find((finding) => textOf(finding?.id, '') === source);
     if (findingMatch?.documentId) {
-      handleViewDocument(findingMatch.documentId, null, null, STEP_DOCUMENTS);
-      setReggieOpen(false);
+      openRawReggieDocument(findingMatch.documentId);
       return;
     }
 
     const normalizedSourceId = source.replace(/\.(pdf|json)$/i, '');
     if (normalizedSourceId && documentsById.has(normalizedSourceId)) {
-      handleViewDocument(normalizedSourceId, null, null, STEP_DOCUMENTS);
-      setReggieOpen(false);
+      openRawReggieDocument(normalizedSourceId);
       return;
     }
 
@@ -5241,66 +5313,480 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     });
 
     if (documentMatch?.id) {
-      handleViewDocument(documentMatch.id, null, null, STEP_DOCUMENTS);
-      setReggieOpen(false);
+      openRawReggieDocument(documentMatch.id);
     }
   };
 
-  const handleSendReggie = (manualQuery) => {
-    const query = (manualQuery ?? reggieInput).trim();
-    if (!query) return;
+  const buildLiveReggieInspectionMessage = useCallback((inspection) => ({
+    id: nextReggieMessageId('reggie-inspection'),
+    kind: 'inspection_card',
+    role: 'assistant',
+    topic: textOf(inspection?.topic, 'Investigation'),
+    answerText: textOf(inspection?.answerText, ''),
+    citations: normalizeReggieCitations(inspection?.citations),
+    sourceMode: 'live-high'
+  }), []);
 
-    let activeChatId = activeReggieChat?.id ?? activeReggieChatId ?? '';
-    if (!activeReggieChat || !activeChatId) {
-      const bootstrapChat = createReggieChat(reggieScope);
-      setReggieChats((prev) => [bootstrapChat, ...prev]);
-      setActiveReggieChatId(bootstrapChat.id);
-      activeChatId = bootstrapChat.id;
+  const buildLiveReggieFindingProposalMessage = useCallback((finding) => ({
+    id: nextReggieMessageId('reggie-proposal'),
+    kind: 'finding_proposal',
+    role: 'assistant',
+    proposalStatus: 'pending',
+    rejectionReason: '',
+    citations: normalizeReggieCitations(finding?.citations),
+    sourceMode: 'live-high',
+    finding: {
+      title: textOf(finding?.title, 'Proposed finding'),
+      polarity: textOf(finding?.polarity, 'non_compliant'),
+      certainty: textOf(finding?.certainty, 'finding'),
+      isGoodPractice: Boolean(finding?.isGoodPractice),
+      severity: textOf(finding?.severity, 'warning'),
+      codeArea: textOf(finding?.codeArea, ''),
+      requirementId: textOf(finding?.requirementId, ''),
+      documentId: textOf(finding?.documentId, ''),
+      summary: textOf(finding?.summary, ''),
+      evidence: textOf(finding?.evidence, '')
     }
+  }), []);
 
-    const timestamp = Date.now();
-    const userMessage = { id: `r${timestamp}-u`, role: 'user', text: query };
-    const response = findCannedReggieResponse(query) ?? buildFallbackReggieResponse(query);
-    const assistantMessage = {
-      id: `r${timestamp}-a`,
-      role: 'assistant',
-      answerText: response.answerText,
-      citations: response.citations,
-      sourceMode: reggieThinkingLevel === 'high' ? 'mock-high' : response.sourceMode
-    };
-    setReggieInput('');
-    appendReggieMessage(activeChatId, userMessage, { scope: reggieScope });
-    clearReggieChatTimers(activeChatId);
+  const buildAcceptedReggieInspectorFinding = useCallback(
+    (message) => {
+      const proposedFinding = message?.finding ?? {};
+      const proposedCitations = Array.isArray(message?.citations) ? message.citations : [];
+      const requirementId = textOf(proposedFinding?.requirementId, '').trim();
+      const rawDocumentCandidates = [
+        textOf(proposedFinding?.documentId, ''),
+        ...proposedCitations.map((citation) => textOf(citation?.source, ''))
+      ].filter(Boolean);
 
-    const planningMessage = {
-      id: `r${timestamp}-p`,
-      role: 'assistant',
-      text:
-        'Okay, let me plan my approach.\n1. Check the most relevant document.\n2. Cross-reference any linked evidence.\n3. Return the strongest grounded answer with citations.'
-    };
-    const crossCheckMessage = {
-      id: `r${timestamp}-c`,
-      role: 'assistant',
-      text:
-        reggieScope === 'document'
-          ? 'I am checking this document first, then looking for any linked references elsewhere in the case.'
-          : 'I am scanning the linked documents now and cross-checking for the strongest grounded answer.'
-    };
+      let resolvedDocumentId = rawDocumentCandidates.find((candidate) => documentsById.has(candidate)) ?? '';
 
-    scheduleReggieChatMessage(activeChatId, planningMessage, reggieThinkingLevel === 'high' ? 900 : 700, {
-      scope: reggieScope
-    });
-    scheduleReggieChatMessage(activeChatId, crossCheckMessage, reggieThinkingLevel === 'high' ? 2700 : 2200, {
-      scope: reggieScope
-    });
-    scheduleReggieChatMessage(activeChatId, assistantMessage, reggieThinkingLevel === 'high' ? 6400 : 4800, {
-      scope: reggieScope
-    });
-  };
+      if (!resolvedDocumentId && rawDocumentCandidates.length > 0) {
+        const candidateKeys = buildFilenameKeySet(rawDocumentCandidates);
+        const matchedDocument = caseDocuments.find((documentRow) => {
+          const documentKeys = buildDocumentLookupKeys(documentRow);
+          return [...documentKeys].some((key) => candidateKeys.has(key));
+        });
+        resolvedDocumentId = matchedDocument?.id ?? '';
+      }
 
-  const handleQuickReggiePrompt = (prompt) => {
-    handleSendReggie(prompt);
-  };
+      const linkedDocument = resolvedDocumentId ? documentsById.get(resolvedDocumentId) : null;
+      const rawCodeArea = textOf(proposedFinding?.codeArea, '');
+      const normalizedCodeArea =
+        normalizeCodeAreaId(rawCodeArea) ||
+        normalizeCodeAreaId(inferRequirementCodeArea(requirementId)) ||
+        'aml';
+      const polarity = textOf(proposedFinding?.polarity, '').trim().toLowerCase() === 'compliant'
+        ? 'compliant'
+        : 'non_compliant';
+      const severity = textOf(proposedFinding?.severity, '').trim().toLowerCase() || 'warning';
+      const certainty = textOf(proposedFinding?.certainty, '').trim().toLowerCase() === 'lead' ? 'lead' : 'finding';
+      const isGoodPractice = Boolean(proposedFinding?.isGoodPractice) || severity === 'best_practice';
+      const summary = textOf(proposedFinding?.summary, '').trim();
+      const evidence = textOf(proposedFinding?.evidence, summary).trim();
+      const baseFinding = {
+        id: `inspector-reggie-${Date.now()}`,
+        severity,
+        title: textOf(proposedFinding?.title, 'Reggie proposed finding'),
+        detail: summary || evidence || 'Reggie proposed finding',
+        documentId: resolvedDocumentId,
+        boxId: null,
+        codeArea: normalizedCodeArea,
+        requirementId: requirementId || null,
+        certainty,
+        polarity,
+        isGoodPractice,
+        requirementSeverity: requirementId
+          ? getRequirementSeverity(requirementId)
+          : severity === 'best_practice'
+            ? 'best_practice'
+            : severity === 'compliant'
+              ? 'pass'
+              : severity === 'warning'
+                ? 'warning'
+                : 'critical',
+        observationSource: resolvedDocumentId ? 'Document evidence' : 'Cross-document review',
+        reviewStatus: 'unreviewed',
+        evidencePassages: [],
+        evidence_passages: [],
+        source: {
+          file:
+            linkedDocument?.filename ||
+            linkedDocument?.label ||
+            textOf(proposedCitations[0]?.source, '') ||
+            'Reggie',
+          page: null,
+          section: 'Reggie proposed finding',
+          text: evidence || summary || 'Reggie proposed finding'
+        },
+        reference: `${requirementId || 'Reggie'} · Reggie proposed finding`,
+        origin: 'inspector',
+        isInspectorAdded: true
+      };
+
+      return buildNextFindingStateForDecision(baseFinding, 'accepted') ?? baseFinding;
+    },
+    [
+      buildNextFindingStateForDecision,
+      caseDocuments,
+      documentsById,
+      getRequirementSeverity,
+      inferRequirementCodeArea,
+      normalizeCodeAreaId
+    ]
+  );
+
+  const sendMockReggieMessage = useCallback(
+    (chatId, query, { scope = reggieScope } = {}) => {
+      const userMessage = { id: nextReggieMessageId('reggie-user'), role: 'user', text: query };
+      const response = findCannedReggieResponse(query) ?? buildFallbackReggieResponse(query);
+      const assistantMessage = {
+        id: nextReggieMessageId('reggie-answer'),
+        role: 'assistant',
+        answerText: response.answerText,
+        citations: response.citations,
+        sourceMode: response.sourceMode
+      };
+
+      appendReggieMessage(chatId, userMessage, { scope });
+      clearReggieChatTimers(chatId);
+
+      const planningMessage = {
+        id: nextReggieMessageId('reggie-plan'),
+        role: 'assistant',
+        text:
+          'Okay, let me plan my approach.\n1. Check the most relevant document.\n2. Cross-reference any linked evidence.\n3. Return the strongest grounded answer with citations.'
+      };
+      const crossCheckMessage = {
+        id: nextReggieMessageId('reggie-crosscheck'),
+        role: 'assistant',
+        text:
+          scope === 'document'
+            ? 'I am checking this document first, then looking for any linked references elsewhere in the case.'
+            : 'I am scanning the linked documents now and cross-checking for the strongest grounded answer.'
+      };
+
+      scheduleReggieChatMessage(chatId, planningMessage, 700, { scope });
+      scheduleReggieChatMessage(chatId, crossCheckMessage, 2200, { scope });
+      scheduleReggieChatMessage(chatId, assistantMessage, 4800, { scope });
+    },
+    [
+      appendReggieMessage,
+      buildFallbackReggieResponse,
+      clearReggieChatTimers,
+      findCannedReggieResponse,
+      reggieScope,
+      scheduleReggieChatMessage
+    ]
+  );
+
+  const sendLiveReggieMessage = useCallback(
+    async (chatId, query, { appendUserMessage = true, scope = reggieScope } = {}) => {
+      const cleanQuery = textOf(query, '');
+      const apiKey = textOf(reggieRuntimeApiKey, '');
+      if (!cleanQuery || !apiKey) return;
+
+      if (appendUserMessage) {
+        appendReggieMessage(
+          chatId,
+          { id: nextReggieMessageId('reggie-user'), role: 'user', text: cleanQuery },
+          { scope }
+        );
+      }
+
+      clearReggieChatTimers(chatId);
+      updateReggieChat(chatId, { isStreaming: true, scope });
+
+      try {
+        const existingChat = reggieChats.find((chat) => chat.id === chatId);
+        let sessionId = textOf(existingChat?.sessionId, '');
+        if (!sessionId) {
+          sessionId = await createReggieRuntimeSession({
+            apiKey,
+            userId: currentUserEmail || 'demo-user'
+          });
+          updateReggieChat(chatId, { sessionId, scope });
+        }
+
+        const seenToolCallIds = new Set();
+        let lastVisibleText = '';
+        let emittedVisibleAssistantPayload = false;
+
+        for await (const event of streamReggieRuntimeQuery({
+          apiKey,
+          userId: currentUserEmail || 'demo-user',
+          sessionId,
+          message: cleanQuery
+        })) {
+          const parts = Array.isArray(event?.content?.parts) ? event.content.parts : [];
+
+          parts.forEach((part) => {
+            if (!part || part.function_response) return;
+
+            const functionCall = part.function_call;
+            if (functionCall?.id && seenToolCallIds.has(functionCall.id)) return;
+
+            if (functionCall?.name === 'present_inspection') {
+              appendReggieMessage(chatId, buildLiveReggieInspectionMessage(functionCall.args?.inspection), {
+                scope
+              });
+              emittedVisibleAssistantPayload = true;
+              if (functionCall.id) seenToolCallIds.add(functionCall.id);
+              return;
+            }
+
+            if (functionCall?.name === 'propose_finding') {
+              appendReggieMessage(chatId, buildLiveReggieFindingProposalMessage(functionCall.args?.finding), {
+                scope
+              });
+              emittedVisibleAssistantPayload = true;
+              if (functionCall.id) seenToolCallIds.add(functionCall.id);
+              return;
+            }
+
+            const text = textOf(part?.text, '');
+            if (!text || isReggieAckText(text)) return;
+            lastVisibleText = text;
+            if (event?.partial) return;
+
+            const parsed = parseReggieTextAndCitations(text);
+            appendReggieMessage(
+              chatId,
+              {
+                id: nextReggieMessageId('reggie-answer'),
+                role: 'assistant',
+                answerText: parsed.answerText || text,
+                citations: parsed.citations,
+                sourceMode: 'live-high'
+              },
+              { scope }
+            );
+            emittedVisibleAssistantPayload = true;
+          });
+        }
+
+        if (!emittedVisibleAssistantPayload && lastVisibleText) {
+          const parsed = parseReggieTextAndCitations(lastVisibleText);
+          appendReggieMessage(
+            chatId,
+            {
+              id: nextReggieMessageId('reggie-answer'),
+              role: 'assistant',
+              answerText: parsed.answerText || lastVisibleText,
+              citations: parsed.citations,
+              sourceMode: 'live-high'
+            },
+            { scope }
+          );
+        }
+      } catch (error) {
+        appendReggieMessage(
+          chatId,
+          {
+            id: nextReggieMessageId('reggie-error'),
+            role: 'assistant',
+            text: error instanceof Error ? error.message : 'Reggie is unavailable right now.'
+          },
+          { scope }
+        );
+      } finally {
+        updateReggieChat(chatId, { isStreaming: false, scope });
+      }
+    },
+    [
+      appendReggieMessage,
+      buildLiveReggieFindingProposalMessage,
+      buildLiveReggieInspectionMessage,
+      clearReggieChatTimers,
+      currentUserEmail,
+      reggieChats,
+      reggieRuntimeApiKey,
+      reggieScope,
+      updateReggieChat
+    ]
+  );
+
+  const handleAcceptFindingProposal = useCallback(
+    async (message) => {
+      const chatId = activeReggieChat?.id ?? activeReggieChatId;
+      if (!chatId || !message?.id) return;
+
+      if (!isActiveCasePersisted || !currentCaseMeta.caseId) {
+        updateReggieChatMessage(chatId, message.id, {
+          proposalStatus: 'pending',
+          rejectionReason: ''
+        });
+        appendReggieMessage(
+          chatId,
+          {
+            id: nextReggieMessageId('reggie-error'),
+            role: 'assistant',
+            text: 'This proposed finding cannot be saved because the current case is not persisted yet.'
+          },
+          { scope: activeReggieChat?.scope || reggieScope }
+        );
+        return;
+      }
+
+      updateReggieChatMessage(chatId, message.id, {
+        proposalStatus: 'saving',
+        rejectionReason: ''
+      });
+
+      try {
+        const acceptedFinding = buildAcceptedReggieInspectorFinding(message);
+        const persisted = await persistInspectorFinding({
+          caseId: currentCaseMeta.caseId,
+          finding: acceptedFinding,
+          user: currentUser
+        });
+        const persistedFinding = {
+          ...acceptedFinding,
+          id: persisted?.id || acceptedFinding.id,
+          origin: 'inspector',
+          isInspectorAdded: true
+        };
+
+        setInspectorFindings((prev) => [persistedFinding, ...prev]);
+        setReportNeedsRegeneration(true);
+        setHistoryItems((items) => [
+          {
+            id: `h${Date.now()}`,
+            ts: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            detail: `Accepted Reggie finding: ${persistedFinding.title}`,
+            actor: currentUserEmail || 'Inspector'
+          },
+          ...items
+        ]);
+
+        updateReggieChatMessage(chatId, message.id, {
+          proposalStatus: 'accepted',
+          rejectionReason: ''
+        });
+
+        void refreshDashboardCases();
+        void sendLiveReggieMessage(
+          chatId,
+          `Accepted proposed finding: ${textOf(message?.finding?.title, 'Proposed finding')}`,
+          {
+            appendUserMessage: false,
+            scope: activeReggieChat?.scope || reggieScope
+          }
+        );
+      } catch (error) {
+        updateReggieChatMessage(chatId, message.id, {
+          proposalStatus: 'pending',
+          rejectionReason: ''
+        });
+        appendReggieMessage(
+          chatId,
+          {
+            id: nextReggieMessageId('reggie-error'),
+            role: 'assistant',
+            text:
+              error instanceof Error
+                ? `The proposed finding could not be saved: ${error.message}`
+                : 'The proposed finding could not be saved.'
+          },
+          { scope: activeReggieChat?.scope || reggieScope }
+        );
+      }
+    },
+    [
+      activeReggieChat,
+      activeReggieChatId,
+      appendReggieMessage,
+      buildAcceptedReggieInspectorFinding,
+      currentCaseMeta.caseId,
+      currentUser,
+      currentUserEmail,
+      isActiveCasePersisted,
+      refreshDashboardCases,
+      reggieScope,
+      sendLiveReggieMessage,
+      updateReggieChatMessage
+    ]
+  );
+
+  const handleRejectFindingProposal = useCallback(
+    (message, reason) => {
+      const chatId = activeReggieChat?.id ?? activeReggieChatId;
+      const cleanReason = textOf(reason, '');
+      if (!chatId || !message?.id || !cleanReason) return;
+      updateReggieChatMessage(chatId, message.id, {
+        proposalStatus: 'rejected',
+        rejectionReason: cleanReason
+      });
+      void sendLiveReggieMessage(
+        chatId,
+        `Rejected proposed finding: ${textOf(message?.finding?.title, 'Proposed finding')}\nReason: ${cleanReason}`,
+        {
+          appendUserMessage: false,
+          scope: activeReggieChat?.scope || reggieScope
+        }
+      );
+    },
+    [activeReggieChat, activeReggieChatId, reggieScope, sendLiveReggieMessage, updateReggieChatMessage]
+  );
+
+  const handleSendReggie = useCallback(
+    (manualQuery) => {
+      const query = textOf(manualQuery ?? reggieInput, '');
+      if (!query) return;
+
+      let chatId = activeReggieChat?.id ?? activeReggieChatId ?? '';
+      if (!activeReggieChat || !chatId) {
+        const bootstrapChat = createReggieChat(reggieScope);
+        setReggieChats((prev) => [bootstrapChat, ...prev]);
+        setActiveReggieChatId(bootstrapChat.id);
+        chatId = bootstrapChat.id;
+      }
+
+      setReggieInput('');
+
+      if (reggieThinkingLevel === 'high') {
+        if (activeReggieChat?.isStreaming) {
+          return;
+        }
+
+        if (!hasReggieRuntimeKey) {
+          appendReggieMessage(
+            chatId,
+            {
+              id: nextReggieMessageId('reggie-key-required'),
+              role: 'assistant',
+              text: 'High mode needs a Reggie access key. Add it in the panel controls and try again.'
+            },
+            { scope: reggieScope }
+          );
+          return;
+        }
+
+        void sendLiveReggieMessage(chatId, query, { appendUserMessage: true, scope: reggieScope });
+        return;
+      }
+
+      sendMockReggieMessage(chatId, query, { scope: reggieScope });
+    },
+    [
+      activeReggieChat,
+      activeReggieChatId,
+      appendReggieMessage,
+      hasReggieRuntimeKey,
+      reggieInput,
+      reggieScope,
+      reggieThinkingLevel,
+      sendLiveReggieMessage,
+      sendMockReggieMessage
+    ]
+  );
+
+  const handleQuickReggiePrompt = useCallback(
+    (prompt) => {
+      handleSendReggie(prompt);
+    },
+    [handleSendReggie]
+  );
 
   const handleUndoDecision = () => {
     if (!undoDecision) return;
@@ -5496,6 +5982,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         setOverviewRequirementFilter({ areaId: '', requirementId: '' });
       }
       setActiveGuidanceContext(null);
+      setReggieViewerReturnContext(null);
       setShowDocBoxes(!(originStep === STEP_DOCUMENTS && !findingId));
       applyViewerSelection(
         { documentId, boxId, findingId, originStep },
@@ -5504,6 +5991,30 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     },
     [applyViewerSelection, currentStep, setOverviewRequirementFilter, viewerOriginStep]
   );
+
+  const handleExitReggieViewerContext = useCallback(() => {
+    const returnContext = reggieViewerReturnContext;
+    setReggieViewerReturnContext(null);
+    if (returnContext?.step === STEP_VIEWER && returnContext?.selection?.documentId) {
+      setViewerOriginStep(returnContext.viewerOriginStep ?? STEP_OVERVIEW);
+      setShowDocBoxes(returnContext.showDocBoxes ?? true);
+      setIsViewerFocusMode(returnContext.isViewerFocusMode ?? false);
+      applyViewerSelection(
+        {
+          ...returnContext.selection,
+          originStep: returnContext.viewerOriginStep ?? STEP_OVERVIEW
+        },
+        { pushHistory: false, scrollViewer: false }
+      );
+      setCurrentStep(STEP_VIEWER);
+      return;
+    }
+    if (returnContext?.step === STEP_DOCUMENTS) {
+      setCurrentStep(STEP_DOCUMENTS);
+      return;
+    }
+    setCurrentStep(STEP_OVERVIEW);
+  }, [applyViewerSelection, reggieViewerReturnContext]);
 
   const handleViewerBack = useCallback(() => {
     if (viewerSelectionHistory.length === 0) return;
@@ -5984,6 +6495,16 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       caseDocuments={caseDocuments}
       setCurrentStep={setCurrentStep}
       viewerOriginStep={viewerOriginStep}
+      customViewerBackLabel={
+        reggieViewerReturnContext
+          ? reggieViewerReturnContext.step === STEP_DOCUMENTS
+            ? 'Documents'
+            : reggieViewerReturnContext.step === STEP_VIEWER
+              ? 'Document Viewer'
+              : 'Findings'
+          : null
+      }
+      onViewerBreadcrumbBack={reggieViewerReturnContext ? handleExitReggieViewerContext : null}
       activeViewerFinding={activeViewerFinding}
       activeViewerFindingDocumentIds={activeViewerFindingDocumentIds}
       viewerDocumentSequence={viewerDocumentSequence}
@@ -6660,6 +7181,12 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
             reggieInput={reggieInput}
             setReggieInput={setReggieInput}
             onSend={handleSendReggie}
+            hasReggieRuntimeKey={hasReggieRuntimeKey}
+            onManageReggieAccessKey={handleManageReggieAccessKey}
+            onClearReggieAccessKey={handleClearReggieAccessKey}
+            reggieBusy={reggieBusy}
+            onAcceptFindingProposal={handleAcceptFindingProposal}
+            onRejectFindingProposal={handleRejectFindingProposal}
           />
           <ConfirmAllUploadsModal
             isOpen={confirmAllUploadsGateOpen}

@@ -2,6 +2,10 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
 import { applyAuthPersistence, getFirebaseAuth } from '../../config/firebase.js';
+import {
+  getStoredReggieRuntimeApiKey,
+  setStoredReggieRuntimeApiKey
+} from '../../utils/reggieRuntime.js';
 
 const DEFAULT_CONFIG = Object.freeze({
   heading: 'CLC Inspection Intelligence',
@@ -16,6 +20,7 @@ const CLC_LOGO_SRC = `${publicBaseUrl}assets/clc_logo.png`;
 export default function AccessGate({ config = DEFAULT_CONFIG, onUnlock }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [reggieAccessKey, setReggieAccessKey] = useState(() => getStoredReggieRuntimeApiKey());
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,6 +61,7 @@ export default function AccessGate({ config = DEFAULT_CONFIG, onUnlock }) {
       await applyAuthPersistence(false);
       const auth = getFirebaseAuth();
       await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPassword);
+      setStoredReggieRuntimeApiKey(reggieAccessKey);
       onUnlock?.();
     } catch (firebaseError) {
       handleAuthError(firebaseError);
@@ -158,6 +164,23 @@ export default function AccessGate({ config = DEFAULT_CONFIG, onUnlock }) {
                   </svg>
                 </button>
               </div>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="accessGateReggieKey" className="form-label">
+                Reggie access key
+              </label>
+              <input
+                id="accessGateReggieKey"
+                type="password"
+                autoComplete="off"
+                value={reggieAccessKey}
+                onChange={(event) => setReggieAccessKey(event.target.value)}
+                className="form-control"
+                placeholder="Optional for live Reggie queries"
+                disabled={isSubmitting}
+              />
+              <p className="access-gate__field-note">Optional. Stored only in this browser for live Reggie use.</p>
             </div>
 
             <button type="submit" className="btn-sumplexity btn-primary w-100 btn-sign-in" disabled={isSubmitting}>

@@ -189,11 +189,15 @@ const resolveClassificationParts = (uploadItem) => {
     }
   }
 
+  const explicitLimitedAnalysis =
+    uploadItem?.limitedAnalysis === true || uploadItem?.limited_analysis === true;
+  const isOtherCatchAll =
+    Boolean(classificationL2) &&
+    classificationL2.toLowerCase() === DOCUMENT_CLASSIFICATION_OTHER_OPTION.toLowerCase();
   const limitedAnalysis =
-    uploadItem?.limitedAnalysis === true ||
-    uploadItem?.limited_analysis === true ||
-    (Boolean(classificationL1) &&
-      (!classificationL2 || classificationL2.toLowerCase() === DOCUMENT_CLASSIFICATION_OTHER_OPTION.toLowerCase()));
+    explicitLimitedAnalysis ||
+    (Boolean(classificationL1) && !classificationL2) ||
+    (Boolean(classificationL1) && isOtherCatchAll && !classificationDetail);
 
   if (limitedAnalysis && classificationL1 && !classificationL2) {
     classificationL2 = DOCUMENT_CLASSIFICATION_OTHER_OPTION;
@@ -236,6 +240,9 @@ export const formatUploadClassificationLabel = (uploadItem) => {
   }
 
   if (classificationL1) {
+    if (classificationL2 && classificationL2.toLowerCase() === DOCUMENT_CLASSIFICATION_OTHER_OPTION.toLowerCase()) {
+      return classificationL1;
+    }
     if (classificationDetail) {
       return `${classificationL1} - ${classificationDetail}`;
     }
