@@ -226,8 +226,6 @@ export default function ReggiePanel({
   setReggieInput,
   onSend,
   hasReggieRuntimeKey,
-  onManageReggieAccessKey,
-  onClearReggieAccessKey,
   reggieBusy,
   onAcceptFindingProposal,
   onRejectFindingProposal
@@ -298,32 +296,28 @@ export default function ReggiePanel({
             </div>
           </div>
 
-          <div className={`reggie-runtime-status${hasReggieRuntimeKey ? ' is-ready' : ' is-missing'}`}>
-            <div>
-              <span className="reggie-section-label">Live access</span>
-              <p>
-                {hasReggieRuntimeKey
-                  ? 'High mode is ready to call the deployed Reggie runtime.'
-                  : 'High mode needs a Reggie access key. Medium mode remains available without it.'}
-              </p>
-            </div>
-            <div className="reggie-runtime-status__actions">
-              <button type="button" className="btn btn-xs secondary" onClick={onManageReggieAccessKey}>
-                {hasReggieRuntimeKey ? 'Update key' : 'Set key'}
-              </button>
-              {hasReggieRuntimeKey ? (
-                <button type="button" className="btn btn-xs ghost" onClick={onClearReggieAccessKey}>
-                  Clear
-                </button>
-              ) : null}
-            </div>
-          </div>
-
           <div className="reggie-panel__chats">
             <div className="reggie-panel__chats-head">
               <span className="reggie-section-label">Chats</span>
-              <button type="button" className="btn btn-xs secondary" onClick={onCreateNewChat}>
-                New chat
+              <button
+                type="button"
+                className="reggie-new-chat-btn"
+                onClick={onCreateNewChat}
+                aria-label="Start a new Reggie chat"
+                title="New chat"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M7 2v10M2 7h10" />
+                </svg>
               </button>
             </div>
             <div className="reggie-chat-list">
@@ -342,7 +336,7 @@ export default function ReggiePanel({
 
           {reggieBusy ? <p className="reggie-panel__hint">Reggie is working through the current high-mode query.</p> : null}
           {highModeBlocked ? (
-            <p className="reggie-panel__hint">Add the Reggie access key to use live high mode from this hosted site.</p>
+            <p className="reggie-panel__hint">Sign in with the Reggie access key to use live high mode.</p>
           ) : null}
         </div>
 

@@ -3113,7 +3113,7 @@ body.access-gate-active {
     right: 0;
     top: 0;
     height: 100vh;
-    width: min(420px, 100%);
+    width: min(540px, calc(100vw - 24px));
     z-index: 1260;
     background:
         radial-gradient(circle at top right, rgba(33, 129, 87, 0.12), transparent 34%),
@@ -7858,12 +7858,21 @@ footer {
 
 .overview-filter-actions {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 12px;
     margin: 0;
     flex-wrap: wrap;
     width: 100%;
+}
+
+.overview-type-filter {
+    margin-left: 0;
+}
+
+.overview-type-filter .filter-dropdown-panel {
+    right: 0;
+    left: auto;
 }
 
 .overview-filter-actions__secondary {
@@ -8397,7 +8406,7 @@ footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: 14px;
     margin-bottom: 12px;
     padding-bottom: 10px;
     border-bottom: 1px solid var(--border-light);
@@ -9664,6 +9673,17 @@ footer {
     background: #fff0f3;
     color: #b4233f;
     border: 1px solid rgba(201, 46, 68, 0.22);
+}
+
+.finding-overturned-note {
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    border: 1px solid rgba(201, 46, 68, 0.18);
+    border-radius: 8px;
+    background: #fff7f8;
+    color: #8f1d35;
+    font-size: 0.82rem;
+    font-weight: 600;
 }
 
 .source-tag.system {
@@ -14131,6 +14151,39 @@ body.access-gate-active .access-gate {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+}
+
+.reggie-new-chat-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(21, 116, 230, 0.18);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--brand-ink);
+    display: inline-grid;
+    place-items: center;
+    cursor: pointer;
+    flex: 0 0 auto;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+    transition:
+        background var(--transition-fast),
+        border-color var(--transition-fast),
+        color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        transform var(--transition-fast);
+}
+
+.reggie-new-chat-btn:hover {
+    background: #e9f2ff;
+    border-color: rgba(21, 116, 230, 0.28);
+    color: #0f5fbf;
+    box-shadow: 0 6px 12px rgba(15, 23, 42, 0.1);
+    transform: translateY(-1px);
+}
+
+.reggie-new-chat-btn:focus-visible {
+    outline: 2px solid rgba(21, 116, 230, 0.45);
+    outline-offset: 2px;
 }
 
 .reggie-chat-list {

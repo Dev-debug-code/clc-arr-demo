@@ -60,6 +60,14 @@ const buildClassificationGroups = (documentClassificationGroups, otherOption, cu
     };
   });
 
+  if (otherOption && !normalizedGroups.some((group) => group.label === otherOption)) {
+    normalizedGroups.push({
+      id: 'other',
+      label: otherOption,
+      options: [otherOption]
+    });
+  }
+
   if (
     currentGroupLabel &&
     !normalizedGroups.some((group) => group.label === currentGroupLabel)
@@ -367,7 +375,9 @@ export default function DocumentsUploadPhase({
                 normalizedItem.classificationL2
               );
               const fallbackGroupLabel =
-                normalizedItem.classificationL1 ||
+                normalizedItem.classification === documentClassificationOtherOption
+                  ? documentClassificationOtherOption
+                  : normalizedItem.classificationL1 ||
                 sourceEntryLookup.get(classification) ||
                 classificationEntries[0]?.groupLabel ||
                 classificationGroups[0]?.label ||

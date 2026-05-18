@@ -5,7 +5,7 @@
   "summary": "Source of funds declaration signed by Joe Bloggs (16 October 2024).",
   "documentType": "Source of Funds Declaration",
   "classification": "Source of Funds Declaration",
-  "classification_confidence": 0.95,
+  "classification_confidence": 0.94,
   "confidence": "high",
   "models_agree": true,
   "confirmed": true,

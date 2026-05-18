@@ -1,7 +1,7 @@
 {
   "id": "CRIT-AML-002",
   "title": "Insufficient Source-of-Funds Evidence for Gift",
-  "detail": "The \u00a3200,000 gift from Jill Withers remains unsupported by documentary source-of-funds evidence. The donor review records that no independent evidence was provided to evidence the origin or accumulation of the funds, but the file nevertheless accepts the gift funds for completion without requesting further donor source-of-funds evidence.",
+  "detail": "The £200,000 gift from Jill Withers remains unsupported by documentary source-of-funds evidence. The donor review records that no independent evidence was provided to evidence the origin or accumulation of the funds, but the file nevertheless accepts the gift funds for completion without requesting further donor source-of-funds evidence.",
   "reference": "Anti-Money Laundering, Procedure 20",
   "codeArea": "anti-money-laundering",
   "codeAreaLabel": "Anti-Money Laundering",
@@ -12,6 +12,7 @@
   "certainty": "finding",
   "severity": "critical",
   "isGoodPractice": false,
+  "is_good_practice": false,
   "evidence_strength": "strong",
   "origin": "backend",
   "reviewStatus": "unreviewed",

@@ -5,7 +5,7 @@
   "summary": "Third-party identity verification for the donor, Jill Withers.",
   "documentType": "Identity Verification",
   "classification": "CDD Records",
-  "classification_confidence": 0.9,
+  "classification_confidence": 0.94,
   "confidence": "high",
   "models_agree": true,
   "confirmed": true,

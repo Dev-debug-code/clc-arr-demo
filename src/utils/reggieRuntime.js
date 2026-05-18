@@ -140,11 +140,23 @@ export function normalizeReggieCitations(citations = []) {
       const n = Number(citation?.n);
       const fallbackNumber = index + 1;
       const nextNumber = Number.isFinite(n) && n > 0 ? n : fallbackNumber;
+      const source = safeText(
+        citation?.source ??
+          citation?.document ??
+          citation?.documentName ??
+          citation?.document_name ??
+          citation?.file ??
+          citation?.filename ??
+          citation?.findingId ??
+          citation?.finding_id
+      );
       return {
         n: nextNumber,
         label: `[${nextNumber}]`,
-        source: safeText(citation?.source),
-        quote: safeText(citation?.quote)
+        source,
+        quote: safeText(citation?.quote),
+        documentId: safeText(citation?.documentId ?? citation?.document_id),
+        findingId: safeText(citation?.findingId ?? citation?.finding_id)
       };
     })
     .filter((citation) => citation.source || citation.quote);

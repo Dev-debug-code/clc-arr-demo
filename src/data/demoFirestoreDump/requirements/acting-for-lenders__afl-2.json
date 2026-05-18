@@ -2,7 +2,7 @@
   "requirementId": "afl-2",
   "codeArea": "acting-for-lenders",
   "codeAreaLabel": "Acting for Lenders and Prevention and Detection of Mortgage Fraud",
-  "label": "Borrower identity must be checked against appropriate original documents",
+  "label": "The identity of a Borrower can be verified by checking their identity against appropriate original documents provided to you which appear to be authentic, are current and, where applicable, have been signed in the relevant place",
   "status": "non_compliant",
   "createdAt": "2026-05-15T12:25:32.969559+00:00",
   "updatedAt": "2026-05-15T12:25:32.969559+00:00"

@@ -25,13 +25,6 @@ export default function ComplianceCodeAreaSection({
   overviewFindingScope,
   overviewRequirementFilter,
   setOverviewRequirementFilter,
-  overviewFilterRef,
-  findingViewFilters,
-  setOverviewFilterOpen,
-  overviewFilterOpen,
-  findingFilterLabelMap,
-  toggleFindingViewFilter,
-  clearFindingViewFilters,
   findingDecisions,
   expandedOverviewFindingIds,
   setExpandedOverviewFindingIds,
@@ -75,15 +68,6 @@ export default function ComplianceCodeAreaSection({
 }) {
   const codeAreaRowRef = useRef(null);
 
-  const hasActiveFindingFilters = findingViewFilters.length > 0;
-  const activeFindingFilterLabels = findingViewFilters
-    .map((filterKey) => findingFilterLabelMap[filterKey] ?? filterKey)
-    .filter(Boolean);
-  const findingFilterButtonLabel = !hasActiveFindingFilters
-    ? 'All findings'
-    : activeFindingFilterLabels.length <= 2
-      ? activeFindingFilterLabels.join(', ')
-      : `${activeFindingFilterLabels.length} filters`;
   const isExpanded = Boolean(expandedCodeAreaIds?.[area.id]);
   const requirementRows = requirementsByCodeArea[area.id] ?? [];
   const assessableRequirementRows = requirementRows.filter((entry) => !isRequirementExcluded(entry.status));
@@ -93,6 +77,7 @@ export default function ComplianceCodeAreaSection({
     const reviewState = findingDecisions[finding.id] ?? 'unreviewed';
     return reviewState !== 'dismissed' && (reviewState !== 'rejected' || isFindingOverturned(finding, reviewState));
   });
+  const hasActiveFindingFilters = mappedAreaFindings.length > 0 && areaFindings.length === 0;
   const attentionCount = activeMappedAreaFindings.filter((entry) => getFindingBucketId(entry) === 'critical').length;
   const guidanceCount = activeMappedAreaFindings.filter((entry) => getFindingBucketId(entry) === 'warning').length;
   const compliantCount = activeMappedAreaFindings.filter((entry) => getFindingBucketId(entry) === 'pass').length;
@@ -317,6 +302,11 @@ export default function ComplianceCodeAreaSection({
             ) : null}
             <div className="finding-section">
               <div className="finding-section-label">What was found</div>
+              {overturnedFinding ? (
+                <p className="finding-overturned-note">
+                  Reviewer overturned this compliant finding. Treat the evidence below as supporting a non-compliant outcome.
+                </p>
+              ) : null}
               <p>{safeText(finding.detail, 'No detailed description available yet.')}</p>
             </div>
             <div className="finding-section">
@@ -655,49 +645,6 @@ export default function ComplianceCodeAreaSection({
         aria-hidden={!isExpanded}
       >
           <div className="overview-requirements-area__content">
-            <div className="overview-requirement-toolbar">
-              <div className="filter-dropdown-wrap" ref={overviewFilterRef}>
-                <button
-                  type="button"
-                  className={`filter-dropdown-btn ${hasActiveFindingFilters ? 'has-filter' : ''}`}
-                  onClick={() => setOverviewFilterOpen((prev) => !prev)}
-                  aria-expanded={overviewFilterOpen}
-                  aria-haspopup="menu"
-                >
-                  Findings: {findingFilterButtonLabel}
-                  <span className="dropdown-chevron">▼</span>
-                </button>
-                <div className={`filter-dropdown-panel ${overviewFilterOpen ? 'open' : ''}`} role="menu">
-                  <label className="filter-checkbox">
-                    <input type="checkbox" checked={!hasActiveFindingFilters} onChange={() => clearFindingViewFilters()} />
-                    <span>{findingFilterLabelMap.all}</span>
-                  </label>
-                  <div className="filter-dropdown-divider" />
-                  {['unreviewed', 'leads', 'non_compliant', 'compliant', 'good_practice', 'inspector_added'].map((filterKey) => (
-                    <label key={`overview-filter-option-${filterKey}`} className="filter-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={findingViewFilters.includes(filterKey)}
-                        onChange={() => toggleFindingViewFilter(filterKey)}
-                      />
-                      <span>{findingFilterLabelMap[filterKey]}</span>
-                    </label>
-                  ))}
-                  <div className="filter-dropdown-divider" />
-                  {['strong', 'supported', 'indicative'].map((filterKey) => (
-                    <label key={`overview-filter-option-${filterKey}`} className="filter-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={findingViewFilters.includes(filterKey)}
-                        onChange={() => toggleFindingViewFilter(filterKey)}
-                      />
-                      <span>{findingFilterLabelMap[filterKey]}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-
             {areaFindings.length === 0 ? (
               <div className="empty-state-inline">
                 <h4>

@@ -145,15 +145,13 @@ import UndoToast from './components/UndoToast.jsx';
 import ViewerStage from './components/ViewerStage.jsx';
 import WorkspaceShell from './components/WorkspaceShell.jsx';
 import { GuidanceContextLayout } from '../../pages/GuidanceContextPage.jsx';
-import { findCannedReggieResponse } from '../../data/reggieDemoResponses.js';
+import { findMediumReggieResponse } from '../../data/reggieDemoResponses.js';
 import {
-  clearStoredReggieRuntimeApiKey,
   createReggieRuntimeSession,
   getStoredReggieRuntimeApiKey,
   isReggieAckText,
   normalizeReggieCitations,
   parseReggieTextAndCitations,
-  setStoredReggieRuntimeApiKey,
   streamReggieRuntimeQuery
 } from '../../utils/reggieRuntime.js';
 
@@ -411,7 +409,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [reggieScope, setReggieScope] = useState('all');
   const [reggieThinkingLevel, setReggieThinkingLevel] = useState('medium');
   const [reggieInput, setReggieInput] = useState('');
-  const [reggieRuntimeApiKey, setReggieRuntimeApiKey] = useState(() => getStoredReggieRuntimeApiKey());
+  const [reggieRuntimeApiKey] = useState(() => getStoredReggieRuntimeApiKey());
   const [reggieChats, setReggieChats] = useState(() => [INITIAL_REGGIE_CHAT]);
   const [activeReggieChatId, setActiveReggieChatId] = useState(INITIAL_REGGIE_CHAT.id);
   const [inspectorFindings, setInspectorFindings] = useState([]);
@@ -1290,7 +1288,40 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     return new Map(entries);
   }, [caseDocuments]);
 
-  const allFindings = useMemo(() => [...baseFindings, ...inspectorFindings], [baseFindings, inspectorFindings]);
+  const allFindings = useMemo(() => {
+    const seenIds = new Set();
+    const seenSemanticKeys = new Set();
+
+    return [...baseFindings, ...inspectorFindings].filter((finding) => {
+      const idKey = coerceText(finding?.id).trim().toLowerCase();
+      if (idKey) {
+        if (seenIds.has(idKey)) return false;
+        seenIds.add(idKey);
+      }
+
+      if (isInspectorAddedFinding(finding)) return true;
+
+      const titleKey = coerceText(finding?.title)
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ');
+      const documentKey = [...buildFilenameKeySet([
+        finding?.documentId,
+        finding?.document_id,
+        finding?.source?.file
+      ])][0] ?? '';
+      const scopeKey =
+        coerceText(finding?.requirementId || finding?.requirement_id).trim().toLowerCase() ||
+        coerceText(finding?.codeArea || finding?.code_area).trim().toLowerCase();
+      const semanticKey = titleKey && documentKey ? `${titleKey}|${documentKey}|${scopeKey}` : '';
+
+      if (semanticKey) {
+        if (seenSemanticKeys.has(semanticKey)) return false;
+        seenSemanticKeys.add(semanticKey);
+      }
+      return true;
+    });
+  }, [baseFindings, inspectorFindings]);
   const resolvedFindingDecisions = useMemo(() => {
     const next = { ...findingDecisions };
     allFindings.forEach((finding) => {
@@ -3664,6 +3695,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           classificationL2: optionLabel,
           classificationDetail:
             optionLabel === DOCUMENT_CLASSIFICATION_OTHER_OPTION ? entry.classificationDetail ?? '' : '',
+          reviewDecision: '',
           limitedAnalysis: optionLabel === DOCUMENT_CLASSIFICATION_OTHER_OPTION,
           confidence: optionLabel === DOCUMENT_CLASSIFICATION_OTHER_OPTION ? 'low' : 'high',
           classification_confidence: optionLabel === DOCUMENT_CLASSIFICATION_OTHER_OPTION ? null : 0.98,
@@ -3702,6 +3734,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         const nextEntry = prepareUploadDraft({
           ...entry,
           confirmed: false,
+          reviewDecision: '',
           classificationDetail: value,
           confidence: 'low',
           classification_confidence: null,
@@ -3724,6 +3757,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
         const nextEntry = prepareUploadDraft({
           ...entry,
+          confirmed: false,
+          reviewDecision: '',
           interviewees: [...normalizeUploadInterviewees(entry), createIntervieweeDraft(`interviewee-${uploadId}`)],
           status: 'classified'
         });
@@ -3746,6 +3781,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         );
         const nextEntry = prepareUploadDraft({
           ...entry,
+          confirmed: false,
+          reviewDecision: '',
           interviewees: nextInterviewees,
           status: 'classified'
         });
@@ -3765,6 +3802,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
         const nextEntry = prepareUploadDraft({
           ...entry,
+          confirmed: false,
+          reviewDecision: '',
           interviewees: normalizeUploadInterviewees(entry).filter((interviewee) => interviewee.id !== intervieweeId),
           status: 'classified'
         });
@@ -3823,12 +3862,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           ? 'queued'
           : nextDecision === 'remove'
             ? 'removed'
-            : 'classified';
+            : nextDecision === 'confirm'
+              ? 'verified'
+              : 'classified';
         const nextEntry = prepareUploadDraft({
           ...entry,
           reviewDecision: nextDecision,
           status: nextStatus,
-          confirmed: false
+          confirmed: nextDecision === 'confirm'
         });
         updatedItem = nextEntry;
         return nextEntry;
@@ -5264,24 +5305,70 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
   const hasReggieRuntimeKey = Boolean(textOf(reggieRuntimeApiKey, ''));
 
-  const handleManageReggieAccessKey = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const nextValue = window.prompt(
-      'Enter the Reggie access key for live High mode.',
-      reggieRuntimeApiKey || ''
-    );
-    if (nextValue === null) return;
-    setReggieRuntimeApiKey(setStoredReggieRuntimeApiKey(nextValue));
-  }, [reggieRuntimeApiKey]);
+  const buildReggieGuidanceCitationContext = (source, quote = '') => {
+    const sourceText = textOf(source, '').trim();
+    if (!sourceText) return null;
 
-  const handleClearReggieAccessKey = useCallback(() => {
-    clearStoredReggieRuntimeApiKey();
-    setReggieRuntimeApiKey('');
-  }, []);
+    const sourceLower = sourceText.toLowerCase();
+    const quoteText = textOf(quote, '').trim();
+    const quoteLower = quoteText.toLowerCase();
+    let linkedDocumentLabel = '';
+    let linkedDocumentPath = '';
+    let linkedDocumentPage = 1;
+
+    if (sourceLower.includes('anti-money laundering') || sourceLower.includes('aml guidance')) {
+      linkedDocumentLabel = 'CLC Anti-Money Laundering Guidance';
+      linkedDocumentPath = GUIDANCE_SOURCE_PATHS.amlGuidance;
+      linkedDocumentPage = 1;
+    } else if (sourceLower.includes('acting for lenders') || sourceLower.includes('mortgage fraud')) {
+      linkedDocumentLabel = 'Acting for Lenders and Prevention and Detection of Mortgage Fraud';
+      linkedDocumentPath = GUIDANCE_SOURCE_PATHS.actingForLenders;
+      linkedDocumentPage = resolveActingForLendersPage(sourceLower, quoteLower);
+    } else if (sourceLower.includes('code of conduct')) {
+      linkedDocumentLabel = 'CLC Code of Conduct';
+      linkedDocumentPath = GUIDANCE_SOURCE_PATHS.codeOfConduct;
+      linkedDocumentPage = resolveCodeOfConductPage(sourceLower, quoteLower);
+    } else if (sourceLower.includes('firm aml policy')) {
+      linkedDocumentLabel = 'Firm AML Policy';
+      linkedDocumentPath = GUIDANCE_SOURCE_PATHS.amlPolicy;
+      linkedDocumentPage = 1;
+    }
+
+    if (!linkedDocumentPath) return null;
+
+    const linkedDocumentUrl =
+      typeof window !== 'undefined'
+        ? new URL(linkedDocumentPath, window.location.href).toString()
+        : '';
+
+    return {
+      title: sourceText,
+      reference: sourceText,
+      detail: quoteText || 'Citation source opened from Reggie.',
+      documentLabel: linkedDocumentLabel,
+      page: String(linkedDocumentPage),
+      pdf: linkedDocumentUrl
+    };
+  };
 
   const handleOpenReggieCitation = (citation) => {
-    const source = textOf(citation?.source, '').trim();
+    const sourceCandidates = [
+      citation?.source,
+      citation?.documentId,
+      citation?.document_id,
+      citation?.documentName,
+      citation?.document_name,
+      citation?.file,
+      citation?.filename,
+      citation?.findingId,
+      citation?.finding_id
+    ]
+      .map((entry) => textOf(entry, '').trim())
+      .filter(Boolean);
+    const uniqueSources = Array.from(new Set(sourceCandidates));
+    const source = uniqueSources[0] ?? '';
     if (!source) return;
+
     const returnContext =
       currentStep === STEP_VIEWER && captureViewerSelection().documentId
         ? {
@@ -5302,19 +5389,30 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       setReggieOpen(false);
     };
 
-    const findingMatch = allFindings.find((finding) => textOf(finding?.id, '') === source);
-    if (findingMatch?.documentId) {
-      openRawReggieDocument(findingMatch.documentId);
+    const sourceLowerSet = new Set(uniqueSources.map((entry) => entry.toLowerCase()));
+    const findingMatch = allFindings.find((finding) => sourceLowerSet.has(textOf(finding?.id, '').toLowerCase()));
+    const findingDocumentId = textOf(findingMatch?.documentId ?? findingMatch?.document_id, '');
+    if (findingDocumentId) {
+      openRawReggieDocument(findingDocumentId);
       return;
     }
 
-    const normalizedSourceId = source.replace(/\.(pdf|json)$/i, '');
-    if (normalizedSourceId && documentsById.has(normalizedSourceId)) {
-      openRawReggieDocument(normalizedSourceId);
+    const normalizedSourceIds = uniqueSources.map((entry) => entry.replace(/\.(pdf|json)$/i, ''));
+    const directDocumentId = normalizedSourceIds.find((candidate) => documentsById.has(candidate));
+    if (directDocumentId) {
+      openRawReggieDocument(directDocumentId);
       return;
     }
 
-    const sourceKeys = buildFilenameKeySet([source, normalizedSourceId]);
+    const directDocumentMatch = caseDocuments.find((documentRow) =>
+      normalizedSourceIds.some((candidate) => textOf(documentRow?.id, '').toLowerCase() === candidate.toLowerCase())
+    );
+    if (directDocumentMatch?.id) {
+      openRawReggieDocument(directDocumentMatch.id);
+      return;
+    }
+
+    const sourceKeys = buildFilenameKeySet([...uniqueSources, ...normalizedSourceIds]);
     const documentMatch = caseDocuments.find((documentRow) => {
       const documentKeys = buildDocumentLookupKeys(documentRow);
       return [...documentKeys].some((key) => sourceKeys.has(key));
@@ -5322,6 +5420,18 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
     if (documentMatch?.id) {
       openRawReggieDocument(documentMatch.id);
+      return;
+    }
+
+    const guidanceContext = uniqueSources
+      .map((candidate) => buildReggieGuidanceCitationContext(candidate, citation?.quote))
+      .find(Boolean);
+    if (guidanceContext) {
+      setActiveGuidanceContext(guidanceContext);
+      setGuidanceReturnContext(returnContext);
+      setViewerOriginStep(returnContext.viewerOriginStep ?? STEP_OVERVIEW);
+      setReggieOpen(false);
+      setCurrentStep(STEP_VIEWER);
     }
   };
 
@@ -5447,7 +5557,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const sendMockReggieMessage = useCallback(
     (chatId, query, { scope = reggieScope } = {}) => {
       const userMessage = { id: nextReggieMessageId('reggie-user'), role: 'user', text: query };
-      const response = findCannedReggieResponse(query) ?? buildFallbackReggieResponse(query);
+      const response = findMediumReggieResponse(query) ?? buildFallbackReggieResponse(query);
       const assistantMessage = {
         id: nextReggieMessageId('reggie-answer'),
         role: 'assistant',
@@ -5474,15 +5584,15 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
             : 'I am scanning the linked documents now and cross-checking for the strongest grounded answer.'
       };
 
-      scheduleReggieChatMessage(chatId, planningMessage, 700, { scope });
-      scheduleReggieChatMessage(chatId, crossCheckMessage, 2200, { scope });
-      scheduleReggieChatMessage(chatId, assistantMessage, 4800, { scope });
+      scheduleReggieChatMessage(chatId, planningMessage, 1200, { scope });
+      scheduleReggieChatMessage(chatId, crossCheckMessage, 3600, { scope });
+      scheduleReggieChatMessage(chatId, assistantMessage, 7200, { scope });
     },
     [
       appendReggieMessage,
       buildFallbackReggieResponse,
       clearReggieChatTimers,
-      findCannedReggieResponse,
+      findMediumReggieResponse,
       reggieScope,
       scheduleReggieChatMessage
     ]
@@ -5504,6 +5614,11 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
       clearReggieChatTimers(chatId);
       updateReggieChat(chatId, { isStreaming: true, scope });
+      let liveMessageDelayMs = 900;
+      const queueLiveAssistantMessage = (message) => {
+        scheduleReggieChatMessage(chatId, message, liveMessageDelayMs, { scope });
+        liveMessageDelayMs += 1600;
+      };
 
       try {
         const existingChat = reggieChats.find((chat) => chat.id === chatId);
@@ -5535,18 +5650,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
             if (functionCall?.id && seenToolCallIds.has(functionCall.id)) return;
 
             if (functionCall?.name === 'present_inspection') {
-              appendReggieMessage(chatId, buildLiveReggieInspectionMessage(functionCall.args?.inspection), {
-                scope
-              });
+              queueLiveAssistantMessage(buildLiveReggieInspectionMessage(functionCall.args?.inspection));
               emittedVisibleAssistantPayload = true;
               if (functionCall.id) seenToolCallIds.add(functionCall.id);
               return;
             }
 
             if (functionCall?.name === 'propose_finding') {
-              appendReggieMessage(chatId, buildLiveReggieFindingProposalMessage(functionCall.args?.finding), {
-                scope
-              });
+              queueLiveAssistantMessage(buildLiveReggieFindingProposalMessage(functionCall.args?.finding));
               emittedVisibleAssistantPayload = true;
               if (functionCall.id) seenToolCallIds.add(functionCall.id);
               return;
@@ -5558,16 +5669,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
             if (event?.partial) return;
 
             const parsed = parseReggieTextAndCitations(text);
-            appendReggieMessage(
-              chatId,
+            queueLiveAssistantMessage(
               {
                 id: nextReggieMessageId('reggie-answer'),
                 role: 'assistant',
                 answerText: parsed.answerText || text,
                 citations: parsed.citations,
                 sourceMode: 'live-high'
-              },
-              { scope }
+              }
             );
             emittedVisibleAssistantPayload = true;
           });
@@ -5575,16 +5684,14 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
         if (!emittedVisibleAssistantPayload && lastVisibleText) {
           const parsed = parseReggieTextAndCitations(lastVisibleText);
-          appendReggieMessage(
-            chatId,
+          queueLiveAssistantMessage(
             {
               id: nextReggieMessageId('reggie-answer'),
               role: 'assistant',
               answerText: parsed.answerText || lastVisibleText,
               citations: parsed.citations,
               sourceMode: 'live-high'
-            },
-            { scope }
+            }
           );
         }
       } catch (error) {
@@ -5610,6 +5717,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       reggieChats,
       reggieRuntimeApiKey,
       reggieScope,
+      scheduleReggieChatMessage,
       updateReggieChat
     ]
   );
@@ -6442,13 +6550,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       overviewFindingScope={overviewFindingScope}
       overviewRequirementFilter={overviewRequirementFilter}
       setOverviewRequirementFilter={setOverviewRequirementFilter}
-      overviewFilterRef={overviewFilterRef}
-      findingViewFilters={findingViewFilters}
-      setOverviewFilterOpen={setOverviewFilterOpen}
-      overviewFilterOpen={overviewFilterOpen}
-      findingFilterLabelMap={FINDING_FILTER_LABEL_MAP}
-      toggleFindingViewFilter={toggleFindingViewFilter}
-      clearFindingViewFilters={clearFindingViewFilters}
       findingDecisions={resolvedFindingDecisions}
       expandedOverviewFindingIds={expandedOverviewFindingIds}
       setExpandedOverviewFindingIds={setExpandedOverviewFindingIds}
@@ -6751,6 +6852,12 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       onGoToReport={handleAttemptOverviewReport}
       findingVisibilityScope={overviewFindingScope}
       onSetFindingVisibilityScope={setOverviewFindingScope}
+      overviewFilterRef={overviewFilterRef}
+      findingViewFilters={findingViewFilters}
+      overviewFilterOpen={overviewFilterOpen}
+      setOverviewFilterOpen={setOverviewFilterOpen}
+      findingFilterLabelMap={FINDING_FILTER_LABEL_MAP}
+      toggleFindingViewFilter={toggleFindingViewFilter}
       onClearFindingFilters={clearFindingViewFilters}
       onResetFindingFilters={resetFindingViewFiltersToDefault}
       reportBlockedMessage={reportAccessNotice}
@@ -7190,8 +7297,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
             setReggieInput={setReggieInput}
             onSend={handleSendReggie}
             hasReggieRuntimeKey={hasReggieRuntimeKey}
-            onManageReggieAccessKey={handleManageReggieAccessKey}
-            onClearReggieAccessKey={handleClearReggieAccessKey}
             reggieBusy={reggieBusy}
             onAcceptFindingProposal={handleAcceptFindingProposal}
             onRejectFindingProposal={handleRejectFindingProposal}

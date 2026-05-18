@@ -1,13 +1,13 @@
 {
-  "id": "COMP-COC-003",
-  "title": "Client Is Told About Changes to Costs",
-  "detail": "The client care letter says the firm will advise promptly if estimated costs change before additional fees are incurred.",
-  "reference": "Code of Conduct, Overriding Principle 3.m",
+  "id": "COMP-COC-006",
+  "title": "Payment Arrangements Are Explained to the Client",
+  "detail": "The client care letter records that fees and disbursements will be paid from completion monies on completion, or directly by the client within 28 days if the transaction does not proceed.",
+  "reference": "Code of Conduct, Specific Requirement 3.u",
   "codeArea": "code-of-conduct",
   "codeAreaLabel": "Code of Conduct",
-  "requirementId": "code_of_conduct_3",
+  "requirementId": "code_of_conduct_4",
   "documentId": "12_Client_Care_Letter",
-  "boxId": "COMP-COC-003",
+  "boxId": "COMP-COC-006",
   "polarity": "compliant",
   "certainty": "finding",
   "severity": "compliant",
@@ -23,12 +23,12 @@
   },
   "evidencePassages": [
     {
-      "id": "COMP-COC-003-p1",
+      "id": "COMP-COC-006-p1",
       "document_id": "12_Client_Care_Letter",
       "file": "12_Client_Care_Letter.pdf",
       "page": 1,
       "section": "Fees and Disbursements",
-      "box_id": "COMP-COC-003"
+      "box_id": "COMP-COC-006"
     }
   ],
   "createdAt": "2026-05-15T12:25:32.924897+00:00",

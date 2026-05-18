@@ -4,6 +4,12 @@ export default function OverviewStage({
   onGoToReport,
   findingVisibilityScope,
   onSetFindingVisibilityScope,
+  overviewFilterRef,
+  findingViewFilters,
+  overviewFilterOpen,
+  setOverviewFilterOpen,
+  findingFilterLabelMap,
+  toggleFindingViewFilter,
   onClearFindingFilters,
   onResetFindingFilters,
   reportBlockedMessage,
@@ -18,6 +24,15 @@ export default function OverviewStage({
 }) {
   const hasActiveFindingFilter = overviewSummaryCards.some((item) => item.active);
   const showFindingFilterControls = hasActiveFindingFilter || !hasDefaultFindingViewFilters;
+  const hasActiveTypeFilters = findingViewFilters.length > 0;
+  const activeFindingFilterLabels = findingViewFilters
+    .map((filterKey) => findingFilterLabelMap[filterKey] ?? filterKey)
+    .filter(Boolean);
+  const findingFilterButtonLabel = !hasActiveTypeFilters
+    ? 'All findings'
+    : activeFindingFilterLabels.length <= 2
+      ? activeFindingFilterLabels.join(', ')
+      : `${activeFindingFilterLabels.length} filters`;
 
   return (
     <div className="stage-card">
@@ -92,6 +107,46 @@ export default function OverviewStage({
                   {label}
                 </button>
               ))}
+            </div>
+            <div className="filter-dropdown-wrap overview-type-filter" ref={overviewFilterRef}>
+              <button
+                type="button"
+                className={`filter-dropdown-btn ${hasActiveTypeFilters ? 'has-filter' : ''}`}
+                onClick={() => setOverviewFilterOpen((prev) => !prev)}
+                aria-expanded={overviewFilterOpen}
+                aria-haspopup="menu"
+              >
+                Findings: {findingFilterButtonLabel}
+                <span className="dropdown-chevron">▼</span>
+              </button>
+              <div className={`filter-dropdown-panel ${overviewFilterOpen ? 'open' : ''}`} role="menu">
+                <label className="filter-checkbox">
+                  <input type="checkbox" checked={!hasActiveTypeFilters} onChange={() => onClearFindingFilters()} />
+                  <span>{findingFilterLabelMap.all}</span>
+                </label>
+                <div className="filter-dropdown-divider" />
+                {['unreviewed', 'leads', 'non_compliant', 'compliant', 'good_practice', 'inspector_added'].map((filterKey) => (
+                  <label key={`overview-filter-option-${filterKey}`} className="filter-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={findingViewFilters.includes(filterKey)}
+                      onChange={() => toggleFindingViewFilter(filterKey)}
+                    />
+                    <span>{findingFilterLabelMap[filterKey]}</span>
+                  </label>
+                ))}
+                <div className="filter-dropdown-divider" />
+                {['strong', 'supported', 'indicative'].map((filterKey) => (
+                  <label key={`overview-filter-option-${filterKey}`} className="filter-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={findingViewFilters.includes(filterKey)}
+                      onChange={() => toggleFindingViewFilter(filterKey)}
+                    />
+                    <span>{findingFilterLabelMap[filterKey]}</span>
+                  </label>
+                ))}
+              </div>
             </div>
             {showFindingFilterControls ? (
               <div className="overview-filter-actions__secondary">

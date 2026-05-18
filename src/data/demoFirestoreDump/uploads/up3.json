@@ -9,7 +9,7 @@
   "classificationDetail": "Utility bill (Example Utilities, 1 October 2024) used as proof of address.",
   "classificationJustification": "",
   "classificationReason": "AI classification reason will appear here after processing.",
-  "classification_confidence": 0.88,
+  "classification_confidence": 0.94,
   "confidence": "high",
   "confirmed": true,
   "models_agree": true,

@@ -112,10 +112,11 @@ const normalizeInterviewee = (entry, index) => {
       entry?.intervieweeContextNote
   );
 
-  if (!name && !role && !date && !contextNote) return null;
+  const id = normalizeText(entry?.id);
+  if (!name && !role && !date && !contextNote && !id) return null;
 
   return {
-    id: normalizeText(entry?.id) || `interviewee-${index + 1}`,
+    id: id || `interviewee-${index + 1}`,
     name,
     role,
     date,
@@ -440,8 +441,9 @@ export const getUploadReviewDecision = (uploadItem) => {
   }
   if (!isUploadClassificationResolved(normalized)) return '';
   if (hasIncompleteUploadInterviewees(normalized)) return '';
+  if (normalized.status === 'removed') return 'remove';
+  if (normalized.confirmed === true || normalized.status === 'verified') return 'confirm';
   const lowConfidenceFlag =
-    normalized.confirmed !== true &&
     normalizeConfidenceLabel(normalized.confidence) === 'low';
   return lowConfidenceFlag ? '' : 'confirm';
 };

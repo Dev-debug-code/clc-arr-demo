@@ -2,10 +2,10 @@
   "id": "13_Solicitor_Estate_Distribution_Letter",
   "name": "13_Solicitor_Estate_Distribution_Letter.pdf",
   "filename": "13_Solicitor_Estate_Distribution_Letter.pdf",
-  "summary": "Solicitor letter confirming Joe Bloggs received \u00a3100,000 from the estate of his late father, John Bloggs, on 10 October 2024.",
+  "summary": "Solicitor letter confirming Joe Bloggs received £100,000 from the estate of his late father, John Bloggs, on 10 October 2024.",
   "documentType": "Estate Distribution Letter",
   "classification": "Legal Correspondence",
-  "classification_confidence": 0.93,
+  "classification_confidence": 0.94,
   "confidence": "high",
   "models_agree": true,
   "confirmed": true,
@@ -46,7 +46,7 @@
       ],
       "category": "Estate Distribution Confirmation",
       "title": "Estate Distribution Stream Is Supported by Solicitor Evidence",
-      "details": "The probate solicitor's letter confirms that Joe Bloggs received \u00a3100,000 from the estate of his late father, John Bloggs. That gives clear documentary support for one source-of-funds stream.",
+      "details": "The probate solicitor's letter confirms that Joe Bloggs received £100,000 from the estate of his late father, John Bloggs. That gives clear documentary support for one source-of-funds stream.",
       "severity": "compliant"
     }
   ],

@@ -5,7 +5,7 @@
   "summary": "Client care letter and terms of engagement signed by Joe Bloggs (16 October 2024).",
   "documentType": "Client Care Letter",
   "classification": "Other",
-  "classification_confidence": 0.9,
+  "classification_confidence": 0.94,
   "confidence": "high",
   "models_agree": true,
   "confirmed": true,
@@ -118,6 +118,21 @@
       "category": "Legal Ombudsman",
       "title": "Legal Ombudsman Escalation Details Are Provided",
       "details": "The client care letter gives Legal Ombudsman escalation rights, contact details, and time limits.",
+      "severity": "compliant"
+    },
+    {
+      "id": "COMP-COC-006",
+      "page": 1,
+      "pageno": 0,
+      "bbox": [
+        40,
+        220,
+        560,
+        510
+      ],
+      "category": "Fees and Disbursements",
+      "title": "Payment Arrangements Are Explained to the Client",
+      "details": "The client care letter records that fees and disbursements will be paid from completion monies on completion, or directly by the client within 28 days if the transaction does not proceed.",
       "severity": "compliant"
     }
   ],

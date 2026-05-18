@@ -9,7 +9,7 @@
   "classificationDetail": "Third-party identity verification for the donor, Jill Withers.",
   "classificationJustification": "",
   "classificationReason": "AI classification reason will appear here after processing.",
-  "classification_confidence": 0.9,
+  "classification_confidence": 0.94,
   "confidence": "high",
   "confirmed": true,
   "models_agree": true,

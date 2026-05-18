@@ -12,7 +12,8 @@
   "certainty": "finding",
   "severity": "warning",
   "isGoodPractice": false,
-  "evidence_strength": "indicative",
+  "is_good_practice": false,
+  "evidence_strength": "strong",
   "origin": "backend",
   "reviewStatus": "unreviewed",
   "source": {

@@ -144,7 +144,7 @@ const RESPONSES = [
   }
 ];
 
-export function findCannedReggieResponse(question) {
+export function findMediumReggieResponse(question) {
   const query = String(question || '').trim().toLowerCase();
   if (!query) return null;
   const match = RESPONSES.find((entry) => entry.triggers.some((trigger) => query.includes(trigger)));
@@ -158,6 +158,6 @@ export function findCannedReggieResponse(question) {
       page: Number.isFinite(citation.page) ? citation.page : null,
       quote: citation.quote
     })),
-    sourceMode: 'canned'
+    sourceMode: 'medium'
   };
 }

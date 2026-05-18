@@ -8,9 +8,9 @@
   "amlTier": "standard",
   "outcome": "in_progress",
   "status": "active",
-  "progress": 71,
-  "progressLabel": "13/18 requirements met",
-  "unreviewed": 19,
+  "progress": 67,
+  "progressLabel": "12/18 requirements met",
+  "unreviewed": 21,
   "leads": 1,
   "goodPractice": 1,
   "focusAreas": [
@@ -36,7 +36,7 @@
       "name": "Example Building Society"
     }
   ],
-  "preInspectionConcerns": "Risk tool annual audit (June 2025) flagged heightened risk across three areas:\n\n- Anti-Money Laundering: firm acts for overseas clients and accepts third-party gifts without clear source-of-funds evidence or enhanced due diligence\n- Acting for Lenders: identity verification and disclosure practices not fully aligned with CLC Mortgage Fraud Guidance\n- Code of Conduct: terms of engagement and fee disclosure incomplete in two sampled files\n\nCurrent matter engages all three: UAE-resident buyer, £200,000 third-party gift, £100,000 estate distribution, lender involvement.",
+  "preInspectionConcerns": "Risk tool annual audit (June 2025) flagged heightened risk across three areas:\n\n- Anti-Money Laundering: firm acts for overseas clients and accepts third-party gifts without clear source-of-funds evidence or enhanced due diligence\n- Acting for Lenders: identity verification and disclosure practices not fully aligned with CLC Mortgage Fraud Guidance\n- Code of Conduct: terms of engagement and fee disclosure incomplete in two sampled files.",
   "previousInspection": "June 2022",
   "started": "29 April 2026",
   "lastActivity": "Just now",

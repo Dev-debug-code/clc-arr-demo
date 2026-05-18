@@ -5,7 +5,7 @@
   "summary": "Utility bill (Example Utilities, 1 October 2024) used as proof of address.",
   "documentType": "Proof of Address",
   "classification": "CDD Records",
-  "classification_confidence": 0.88,
+  "classification_confidence": 0.94,
   "confidence": "high",
   "models_agree": true,
   "confirmed": true,

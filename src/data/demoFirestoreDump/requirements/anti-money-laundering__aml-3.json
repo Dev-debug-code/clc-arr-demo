@@ -2,7 +2,7 @@
   "requirementId": "aml-3",
   "codeArea": "anti-money-laundering",
   "codeAreaLabel": "Anti-Money Laundering",
-  "label": "Enhanced due diligence must be applied to higher-risk clients",
+  "label": "You must not act or continue to act for a client until all requirements for Customer Due Diligence (CDD) or Enhanced Customer Due Diligence (EDD) have been met.",
   "status": "non_compliant",
   "createdAt": "2026-05-15T12:25:32.970153+00:00",
   "updatedAt": "2026-05-15T12:25:32.970153+00:00"

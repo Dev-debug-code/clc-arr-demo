@@ -5,7 +5,7 @@
   "summary": "Client identity verification record for Joe Bloggs (UK passport).",
   "documentType": "Identity Verification",
   "classification": "CDD Records",
-  "classification_confidence": 0.91,
+  "classification_confidence": 0.94,
   "confidence": "high",
   "models_agree": true,
   "confirmed": true,

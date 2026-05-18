@@ -1,8 +1,8 @@
 {
   "id": "CRIT-AML-003",
   "title": "Bank Statements Cover Six Weeks, Not the Six Months Required",
-  "detail": "Bank statements provided cover only about six weeks for an \u00a3875,000 transaction by an overseas client. Firm policy requires a minimum of six months' statements for high-value transactions exceeding \u00a3500,000 or for overseas clients.",
-  "reference": "Firm AML Policy \u00a74.1.1",
+  "detail": "Bank statements provided cover only about six weeks for an £875,000 transaction by an overseas client. Firm policy requires a minimum of six months' statements for high-value transactions exceeding £500,000 or for overseas clients.",
+  "reference": "Firm AML Policy §4.1.1",
   "codeArea": "anti-money-laundering",
   "codeAreaLabel": "Anti-Money Laundering",
   "requirementId": "aml-2",
@@ -12,6 +12,7 @@
   "certainty": "finding",
   "severity": "critical",
   "isGoodPractice": false,
+  "is_good_practice": false,
   "evidence_strength": "strong",
   "origin": "backend",
   "reviewStatus": "unreviewed",

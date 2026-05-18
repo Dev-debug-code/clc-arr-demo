@@ -1,7 +1,7 @@
 {
   "id": "COMP-AFL-003",
   "title": "Purchase Price Consistency Is Recorded for Lender Disclosure",
-  "detail": "The lender disclosure note records that the purchase price reported to Example Building Society is \u00a3875,000 and that no discrepancy has been identified against the contract price.",
+  "detail": "The lender disclosure note records that the purchase price reported to Example Building Society is £875,000 and that no discrepancy has been identified against the contract price.",
   "reference": "Acting for Lenders and Prevention and Detection of Mortgage Fraud, Section 8(ii)",
   "codeArea": "acting-for-lenders",
   "codeAreaLabel": "Acting for Lenders and Prevention and Detection of Mortgage Fraud",
@@ -12,6 +12,7 @@
   "certainty": "finding",
   "severity": "compliant",
   "isGoodPractice": false,
+  "is_good_practice": false,
   "evidence_strength": "strong",
   "origin": "backend",
   "reviewStatus": "unreviewed",

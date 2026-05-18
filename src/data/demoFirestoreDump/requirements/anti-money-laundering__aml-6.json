@@ -2,8 +2,8 @@
   "requirementId": "aml-6",
   "codeArea": "anti-money-laundering",
   "codeAreaLabel": "Anti-Money Laundering",
-  "label": "Address evidence must show that the client lives at the address given",
-  "status": "compliant",
+  "label": "Evidence must be obtained that a person of that name lives at the address given, for example, by a utility bill less than 3 months old or mortgage statement",
+  "status": "non_compliant",
   "createdAt": "2026-05-15T12:25:32.971241+00:00",
   "updatedAt": "2026-05-15T12:25:32.971241+00:00"
 }

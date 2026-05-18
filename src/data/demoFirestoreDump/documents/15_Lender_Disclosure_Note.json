@@ -5,7 +5,7 @@
   "summary": "Internal lender disclosure note recording the purchase price, lender, and source-of-funds breakdown without closing outstanding evidence enquiries.",
   "documentType": "Lender Disclosure File Note",
   "classification": "Legal Correspondence",
-  "classification_confidence": 0.9,
+  "classification_confidence": 0.94,
   "confidence": "high",
   "models_agree": true,
   "confirmed": true,
@@ -45,7 +45,7 @@
       ],
       "category": "Lender Disclosure File Note",
       "title": "Purchase Price Consistency Is Recorded for Lender Disclosure",
-      "details": "The lender disclosure note records that the purchase price reported to Example Building Society is \u00a3875,000 and that no discrepancy has been identified against the contract price.",
+      "details": "The lender disclosure note records that the purchase price reported to Example Building Society is £875,000 and that no discrepancy has been identified against the contract price.",
       "severity": "compliant"
     }
   ],

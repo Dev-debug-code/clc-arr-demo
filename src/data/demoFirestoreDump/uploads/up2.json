@@ -9,7 +9,7 @@
   "classificationDetail": "Client identity verification record for Joe Bloggs (UK passport).",
   "classificationJustification": "",
   "classificationReason": "AI classification reason will appear here after processing.",
-  "classification_confidence": 0.91,
+  "classification_confidence": 0.94,
   "confidence": "high",
   "confirmed": true,
   "models_agree": true,

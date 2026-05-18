@@ -15,13 +15,6 @@ export default function ComplianceByCodeAreaPanel({
   overviewFindingScope,
   overviewRequirementFilter,
   setOverviewRequirementFilter,
-  overviewFilterRef,
-  findingViewFilters,
-  setOverviewFilterOpen,
-  overviewFilterOpen,
-  findingFilterLabelMap,
-  toggleFindingViewFilter,
-  clearFindingViewFilters,
   findingDecisions,
   expandedOverviewFindingIds,
   setExpandedOverviewFindingIds,
@@ -92,13 +85,6 @@ export default function ComplianceByCodeAreaPanel({
               overviewRequirementFilter={overviewRequirementFilter}
               overviewFindingScope={overviewFindingScope}
               setOverviewRequirementFilter={setOverviewRequirementFilter}
-              overviewFilterRef={overviewFilterRef}
-              findingViewFilters={findingViewFilters}
-              setOverviewFilterOpen={setOverviewFilterOpen}
-              overviewFilterOpen={overviewFilterOpen}
-              findingFilterLabelMap={findingFilterLabelMap}
-              toggleFindingViewFilter={toggleFindingViewFilter}
-              clearFindingViewFilters={clearFindingViewFilters}
               findingDecisions={findingDecisions}
               expandedOverviewFindingIds={expandedOverviewFindingIds}
               setExpandedOverviewFindingIds={setExpandedOverviewFindingIds}

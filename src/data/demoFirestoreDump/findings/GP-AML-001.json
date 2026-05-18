@@ -12,6 +12,7 @@
   "certainty": "finding",
   "severity": "best_practice",
   "isGoodPractice": true,
+  "is_good_practice": true,
   "evidence_strength": "strong",
   "origin": "backend",
   "reviewStatus": "unreviewed",

@@ -1,7 +1,7 @@
 {
   "id": "COMP-AML-003",
   "title": "Estate Distribution Stream Is Supported by Solicitor Evidence",
-  "detail": "The probate solicitor's letter confirms that Joe Bloggs received \u00a3100,000 from the estate of his late father, John Bloggs. That gives clear documentary support for one source-of-funds stream.",
+  "detail": "The probate solicitor's letter confirms that Joe Bloggs received £100,000 from the estate of his late father, John Bloggs. That gives clear documentary support for one source-of-funds stream.",
   "reference": "Anti-Money Laundering, Procedure 20",
   "codeArea": "anti-money-laundering",
   "codeAreaLabel": "Anti-Money Laundering",
@@ -12,6 +12,7 @@
   "certainty": "finding",
   "severity": "compliant",
   "isGoodPractice": false,
+  "is_good_practice": false,
   "evidence_strength": "strong",
   "origin": "backend",
   "reviewStatus": "unreviewed",

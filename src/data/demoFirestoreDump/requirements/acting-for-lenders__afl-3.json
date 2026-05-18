@@ -2,7 +2,7 @@
   "requirementId": "afl-3",
   "codeArea": "acting-for-lenders",
   "codeAreaLabel": "Acting for Lenders and Prevention and Detection of Mortgage Fraud",
-  "label": "The lender must be informed of the true or underlying purchase price",
+  "label": "The price shown in the Contract and Transfer documentation must not differ from the amount actually being paid for the property",
   "status": "compliant",
   "createdAt": "2026-05-15T12:25:32.973349+00:00",
   "updatedAt": "2026-05-15T12:25:32.973349+00:00"
