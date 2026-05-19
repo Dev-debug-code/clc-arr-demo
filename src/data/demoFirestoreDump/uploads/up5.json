@@ -8,7 +8,7 @@
   "classificationL2": "Source of Funds Declaration",
   "classificationDetail": "Source of funds declaration signed by Joe Bloggs (16 October 2024).",
   "classificationJustification": "",
-  "classificationReason": "AI classification reason will appear here after processing.",
+  "classificationReason": "Classification reason will appear here after processing.",
   "classification_confidence": 0.94,
   "confidence": "high",
   "confirmed": true,

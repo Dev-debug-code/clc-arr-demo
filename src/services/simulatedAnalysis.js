@@ -76,10 +76,10 @@ export function buildClassificationReason(filename, classification) {
   const cleanClassification = coerceText(classification) || 'Unknown';
 
   if (cleanClassification === 'Other' || cleanClassification === 'Unknown') {
-    return `The AI could not map ${cleanFilename} confidently to a known document type.`;
+    return `The classifier could not map ${cleanFilename} confidently to a known document type.`;
   }
 
-  return `The AI matched ${cleanFilename} to ${cleanClassification} using document-name and content cues.`;
+  return `The classifier matched ${cleanFilename} to ${cleanClassification} using document-name and content cues.`;
 }
 
 export function buildSimulatedClassifiedUploads(uploadItems = []) {
@@ -114,7 +114,7 @@ export function buildSimulatedClassifiedUploads(uploadItems = []) {
       summary:
         item.summary ||
         coerceText(sampleDocument?.summary) ||
-        `AI classification suggests ${suggestedClassification}. Review and confirm before generating findings.`
+        `Classification suggests ${suggestedClassification}. Review and confirm before generating findings.`
     });
   });
 

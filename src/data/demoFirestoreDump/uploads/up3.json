@@ -8,7 +8,7 @@
   "classificationL2": "Proof of Address",
   "classificationDetail": "Utility bill (Example Utilities, 1 October 2024) used as proof of address.",
   "classificationJustification": "",
-  "classificationReason": "AI classification reason will appear here after processing.",
+  "classificationReason": "Classification reason will appear here after processing.",
   "classification_confidence": 0.94,
   "confidence": "high",
   "confirmed": true,

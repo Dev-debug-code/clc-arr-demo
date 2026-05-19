@@ -8,7 +8,7 @@
   "classificationL2": "Bank Statement",
   "classificationDetail": "Client bank statements covering 1 September – 15 October 2024 (~6 weeks).",
   "classificationJustification": "",
-  "classificationReason": "AI classification reason will appear here after processing.",
+  "classificationReason": "Classification reason will appear here after processing.",
   "classification_confidence": 0.94,
   "confidence": "high",
   "confirmed": true,

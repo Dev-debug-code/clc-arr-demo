@@ -8,7 +8,7 @@
   "classificationL2": "Sanctions Screening",
   "classificationDetail": "Sanctions screening report for Joe Bloggs with no matches identified.",
   "classificationJustification": "",
-  "classificationReason": "AI classification reason will appear here after processing.",
+  "classificationReason": "Classification reason will appear here after processing.",
   "classification_confidence": 0.94,
   "confidence": "high",
   "confirmed": true,

@@ -8,7 +8,7 @@
   "classificationL2": "Gift Letter",
   "classificationDetail": "Gift letter from Jill Withers confirming £200,000 gift to Joe Bloggs.",
   "classificationJustification": "",
-  "classificationReason": "AI classification reason will appear here after processing.",
+  "classificationReason": "Classification reason will appear here after processing.",
   "classification_confidence": 0.94,
   "confidence": "high",
   "confirmed": true,

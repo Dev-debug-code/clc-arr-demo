@@ -21,7 +21,7 @@ export default function DocumentsIntakePhase({
       </div>
 
       <p className="panel-subtitle docs-phase-intro">
-        Select all case documents first. Once they are loaded, run AI classification across the full set.
+        Select all case documents first. Once they are loaded, run classification across the full set.
       </p>
 
       {uploadAreaCollapsed ? (
@@ -70,7 +70,7 @@ export default function DocumentsIntakePhase({
       {uploadItems.length === 0 ? (
         <div className="empty-state-inline">
           <h4>No documents selected yet</h4>
-          <p>Add the case files first, then run AI classification.</p>
+          <p>Add the case files first, then run classification.</p>
         </div>
       ) : (
         <div className="docs-wire-table-wrap">
@@ -114,15 +114,9 @@ export default function DocumentsIntakePhase({
         </div>
       )}
 
-      <div className="warning-messages">
-        <div className="warning-line muted">
-          AI classification runs across all selected documents together before the reviewer checks the results.
-        </div>
-      </div>
-
       <div className="bottom-actions">
         <button type="button" className="btn primary" disabled={uploadItems.length === 0} onClick={handleRunClassification}>
-          Run AI classification
+          Run classification
         </button>
       </div>
     </div>

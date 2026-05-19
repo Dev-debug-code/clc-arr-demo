@@ -4,6 +4,13 @@ const normalizeText = (value) => {
   return '';
 };
 
+const cleanWorkflowCopy = (value) =>
+  normalizeText(value)
+    .replace(/\bA\u0049 classification reason will appear here after processing\./gi, 'Classification reason will appear here after processing.')
+    .replace(/\bA\u0049 classification suggests\b/gi, 'Classification suggests')
+    .replace(/\bThe A\u0049 could not map\b/gi, 'The classifier could not map')
+    .replace(/\bThe A\u0049 matched\b/gi, 'The classifier matched');
+
 const BACKEND_PROCESSING_STATUSES = new Set([
   'uploaded',
   'classifying',
@@ -396,6 +403,9 @@ export const normalizeUploadDraft = (uploadItem) => {
     classificationL1,
     classificationL2,
     classificationDetail,
+    classificationReason: cleanWorkflowCopy(safeUploadItem?.classificationReason ?? safeUploadItem?.classification_reason),
+    classification_reason: cleanWorkflowCopy(safeUploadItem?.classification_reason ?? safeUploadItem?.classificationReason),
+    summary: cleanWorkflowCopy(safeUploadItem?.summary),
     limitedAnalysis,
     processingPath,
     processing_path: processingPath,

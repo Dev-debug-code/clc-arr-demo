@@ -313,10 +313,10 @@ const buildClassificationReason = (filename, classification) => {
   const cleanClassification = coerceText(classification).trim() || 'Unknown';
 
   if (cleanClassification === 'Other' || cleanClassification === 'Unknown') {
-    return `The AI could not map ${cleanFilename} confidently to a known document type.`;
+    return `The classifier could not map ${cleanFilename} confidently to a known document type.`;
   }
 
-  return `The AI matched ${cleanFilename} to ${cleanClassification} using document-name and content cues.`;
+  return `The classifier matched ${cleanFilename} to ${cleanClassification} using document-name and content cues.`;
 };
 
 export default function WorkspaceApp({ currentUser, onSignOut }) {
@@ -3957,7 +3957,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setProcessingLog((prev) => [
       {
         id: `p${Date.now()}-classification`,
-        detail: 'AI document classification triggered by inspector',
+        detail: 'Document classification triggered by inspector',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       },
       ...prev
@@ -3985,7 +3985,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setProcessingLog((prev) => [
       {
         id: `p${Date.now()}-reclassify`,
-        detail: 'AI document reclassification triggered by inspector',
+        detail: 'Document reclassification triggered by inspector',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       },
       ...prev

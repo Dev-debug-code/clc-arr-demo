@@ -8,7 +8,7 @@
   "classificationL2": "AML Policy",
   "classificationDetail": "Firm's written AML policy and procedures (v3.2, January 2024).",
   "classificationJustification": "",
-  "classificationReason": "AI classification reason will appear here after processing.",
+  "classificationReason": "Classification reason will appear here after processing.",
   "classification_confidence": 0.94,
   "confidence": "high",
   "confirmed": true,

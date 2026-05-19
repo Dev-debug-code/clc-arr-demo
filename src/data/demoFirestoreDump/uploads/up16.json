@@ -8,7 +8,7 @@
   "classificationL2": "Lender Disclosure File Note",
   "classificationDetail": "Internal lender disclosure note recording the purchase price, lender, and source-of-funds breakdown without closing outstanding evidence enquiries.",
   "classificationJustification": "",
-  "classificationReason": "AI classification reason will appear here after processing.",
+  "classificationReason": "Classification reason will appear here after processing.",
   "classification_confidence": 0.94,
   "confidence": "high",
   "confirmed": true,

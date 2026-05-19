@@ -300,20 +300,20 @@ export default function DocumentsUploadPhase({
             Back to document intake
           </button>
           <button type="button" className="btn btn-secondary btn-sm" onClick={handleRerunClassification}>
-            Re-run AI classification
+            Re-run classification
           </button>
         </div>
       </div>
 
       <p className="panel-subtitle docs-phase-intro">
-        Review the AI classifications, override anything that looks wrong, and confirm the rows you want used before
+        Review the classifications, override anything that looks wrong, and confirm the rows you want used before
         generating findings.
       </p>
 
       {uploadItems.length === 0 ? (
         <div className="empty-state-inline">
           <h4>No classified documents yet</h4>
-          <p>Go back to document intake to add files and run AI classification first.</p>
+          <p>Go back to document intake to add files and run classification first.</p>
         </div>
       ) : (
         <div className="docs-wire-table-wrap">
