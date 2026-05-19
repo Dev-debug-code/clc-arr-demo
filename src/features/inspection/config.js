@@ -114,6 +114,37 @@ export const MANUAL_CASE_LEVEL_SOURCE_OPTIONS = [
 ];
 
 export const FOCUS_AREA_OPTIONS = DEMO_FOCUS_AREAS;
+export const CORE_DEMO_FOCUS_AREA_IDS = ['aml', 'lenders', 'code-of-conduct'];
+const FOCUS_AREA_ID_SET = new Set(FOCUS_AREA_OPTIONS.map((area) => area.id));
+const FOCUS_AREA_OPTION_ALIASES = {
+  aml: 'aml',
+  'anti money laundering': 'aml',
+  'anti-money laundering': 'aml',
+  'acting for lenders': 'lenders',
+  'acting-for-lenders': 'lenders',
+  lenders: 'lenders',
+  'mortgage fraud': 'lenders',
+  'code of conduct': 'code-of-conduct',
+  'code-of-conduct': 'code-of-conduct',
+  accounts: 'accounts',
+  'accounts code': 'accounts',
+  'client care': 'client-care',
+  'client-care': 'client-care',
+  complaints: 'complaints',
+  'complaints code': 'complaints',
+  management: 'management',
+  'management supervision': 'management',
+  'management & supervision': 'management',
+  undertakings: 'undertakings'
+};
+
+export function normalizeFocusAreaOptionId(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return '';
+  if (FOCUS_AREA_ID_SET.has(raw)) return raw;
+  const normalized = raw.replace(/[^a-z0-9]+/g, ' ').trim();
+  return FOCUS_AREA_OPTION_ALIASES[raw] || FOCUS_AREA_OPTION_ALIASES[normalized] || raw;
+}
 
 export const CASE_TRANSACTION_TYPE_OPTIONS = [
   { value: 'purchase', label: 'Purchase' },
@@ -134,7 +165,7 @@ export const CASE_AML_TIER_OPTIONS = [
   { value: 'simplified', label: 'Simplified' }
 ];
 
-export const RISK_REGISTER_PRESET = DEMO_FOCUS_AREAS.map((area) => area.id);
+export const RISK_REGISTER_PRESET = CORE_DEMO_FOCUS_AREA_IDS;
 
 export const REGGIE_SUGGESTIONS = [
   'What should I be worried about with this risk assessment?',

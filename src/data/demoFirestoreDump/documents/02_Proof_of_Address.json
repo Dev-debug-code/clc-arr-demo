@@ -33,9 +33,9 @@
       "pageno": 0,
       "bbox": [
         40,
-        120,
-        560,
-        380
+        640,
+        570,
+        730
       ],
       "category": "Utility Bill",
       "title": "Proof of Address Is Current and Names the Client",
@@ -47,10 +47,10 @@
       "page": 1,
       "pageno": 0,
       "bbox": [
-        40,
-        120,
-        560,
-        380
+        370,
+        645,
+        570,
+        709
       ],
       "category": "Address Evidence",
       "title": "Address Record Is Held on File",

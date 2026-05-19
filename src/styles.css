@@ -12752,25 +12752,33 @@ body.access-gate-active .access-gate {
 
 .classification-justification-input,
 .interviewee-inline-input {
-    min-height: 24px;
-    height: 24px;
-    border-radius: 8px !important;
-    border: 1px solid rgba(148, 163, 184, 0.28) !important;
+    min-height: 30px;
+    height: 30px;
+    border-radius: 10px !important;
+    border: 1px solid var(--border-light) !important;
     background: var(--bg-white) !important;
     box-shadow: none !important;
-    padding: 2px 8px;
-    font-size: 0.72rem;
-    line-height: 1;
+    padding: 5px 9px;
+    font: inherit;
+    font-size: 0.76rem;
+    line-height: 1.2;
+    color: var(--text-primary);
     appearance: none;
     -webkit-appearance: none;
 }
 
 .classification-justification-input.form-control,
 .interviewee-inline-input.form-control {
-    border-radius: 8px !important;
-    border: 1px solid rgba(148, 163, 184, 0.28) !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--border-light) !important;
     background: var(--bg-white) !important;
     box-shadow: none !important;
+}
+
+.classification-justification-input::placeholder,
+.interviewee-inline-input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.72;
 }
 
 .classification-justification-input:focus,
@@ -12781,12 +12789,15 @@ body.access-gate-active .access-gate {
 }
 
 .interviewee-inline-card {
-    border: 1px solid rgba(226, 232, 240, 0.7);
+    width: min(100%, 520px);
+    border: 1px solid var(--border-light);
     border-radius: 12px;
-    background: #ffffff;
-    padding: 7px 8px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    padding: 10px;
     display: grid;
-    gap: 7px;
+    gap: 9px;
+    font: inherit;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .interviewee-inline-card__head {
@@ -12798,50 +12809,55 @@ body.access-gate-active .access-gate {
 }
 
 .interviewee-inline-card__head strong {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.2;
     color: var(--text-primary);
 }
 
 .interviewee-inline-card__head span {
-    font-size: 0.68rem;
+    font-size: 0.7rem;
+    line-height: 1.2;
     color: var(--text-muted);
 }
 
 .interviewee-inline-group {
     display: grid;
-    gap: 6px;
+    gap: 8px;
 }
 
 .interviewee-inline-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px;
+    gap: 8px;
     align-items: end;
-    border: 1px solid rgba(226, 232, 240, 0.65);
-    border-radius: 8px;
-    background: #ffffff;
-    padding: 3px 4px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.78);
+    padding: 8px;
 }
 
 .classification-justification-input.form-control-sm,
 .interviewee-inline-input.form-control-sm {
-    padding-top: 2px;
-    padding-bottom: 2px;
-    font-size: 0.72rem;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    font-size: 0.76rem;
 }
 
 .interviewee-inline-field {
     display: grid;
-    gap: 2px;
+    gap: 4px;
     min-width: 0;
+    margin: 0;
 }
 
 .interviewee-inline-field__label {
     font-size: 0.64rem;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-    line-height: 1;
-    color: var(--text-muted);
+    font-weight: 800;
+    letter-spacing: 0.045em;
+    line-height: 1.1;
+    text-transform: uppercase;
+    color: var(--text-secondary);
 }
 
 .interviewee-inline-remove-btn {
@@ -12866,6 +12882,21 @@ body.access-gate-active .access-gate {
 
 .interviewee-inline-add-btn {
     justify-self: start;
+    border-radius: 999px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-white);
+    color: var(--secondary-blue-dark);
+    font: inherit;
+    font-size: 0.74rem;
+    font-weight: 800;
+    padding: 5px 10px;
+    line-height: 1.2;
+}
+
+.interviewee-inline-add-btn:hover {
+    border-color: rgba(29, 78, 216, 0.24);
+    background: rgba(59, 130, 246, 0.08);
+    color: var(--secondary-blue-dark);
 }
 
 @media (max-width: 760px) {
@@ -14066,6 +14097,14 @@ body.access-gate-active .access-gate {
 
 .jump-link-btn--secondary:hover .jump-link {
     color: #1f2937 !important;
+}
+
+.jump-link-btn:disabled,
+.jump-link-btn:disabled:hover {
+    cursor: not-allowed;
+    opacity: 0.55;
+    transform: none;
+    box-shadow: none !important;
 }
 
 .guidance-page__back {

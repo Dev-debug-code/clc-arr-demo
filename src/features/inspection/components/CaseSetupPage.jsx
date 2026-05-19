@@ -7,10 +7,14 @@ import {
 } from '../config.js';
 import { DEMO_PRACTICE_PROFILES } from '../../../data/demoPracticeProfiles.js';
 
+const BASE_URL = import.meta.env.BASE_URL ?? '/';
+
 const FOCUS_AREA_GUIDANCE_PATHS = {
-  aml: '/assets/case-files/CLC_Anti_Money_Laundering_Guidance_Jan2025.pdf',
-  lenders: '/assets/case-files/20240110-Acting-for-Lenders-and-Prevention-and-Detection-of-Mortgage-Fraud-Guidance.pdf',
-  'code-of-conduct': '/assets/case-files/Code-of-Conduct.pdf'
+  aml: `${BASE_URL}assets/case-files/CLC_Anti_Money_Laundering_Guidance_Jan2025.pdf`,
+  lenders: `${BASE_URL}assets/case-files/20240110-Acting-for-Lenders-and-Prevention-and-Detection-of-Mortgage-Fraud-Guidance.pdf`,
+  'code-of-conduct': `${BASE_URL}assets/case-files/Code-of-Conduct.pdf`,
+  'client-care': `${BASE_URL}assets/case-files/Code-of-Conduct.pdf`,
+  complaints: `${BASE_URL}assets/case-files/Code-of-Conduct.pdf`
 };
 
 export default function CaseSetupPage({
@@ -59,7 +63,7 @@ export default function CaseSetupPage({
   const openFocusAreaGuidance = (areaId) => {
     const path = FOCUS_AREA_GUIDANCE_PATHS[areaId];
     if (!path || typeof window === 'undefined') return;
-    const targetUrl = new URL(path, window.location.href).toString();
+    const targetUrl = new URL(path, window.location.origin).toString();
     window.open(targetUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -200,7 +204,7 @@ export default function CaseSetupPage({
         <label>
           Focus areas
           <p className="panel-subtitle" style={{ margin: '6px 0 10px' }}>
-            All code areas start selected. Use the quick-select buttons to scope the inspection.
+            The risk-register focus areas start selected. Other code areas remain visible so the inspection scope can be widened.
           </p>
           <div className="case-setup-focus-list">
             {FOCUS_AREA_OPTIONS.map((area) => (
@@ -217,8 +221,11 @@ export default function CaseSetupPage({
                   type="button"
                   className="jump-link-btn jump-link-btn--secondary case-setup-guidance-btn"
                   onClick={() => openFocusAreaGuidance(area.id)}
+                  disabled={!FOCUS_AREA_GUIDANCE_PATHS[area.id]}
                 >
-                  <span className="jump-link">Jump to guidance</span>
+                  <span className="jump-link">
+                    {FOCUS_AREA_GUIDANCE_PATHS[area.id] ? 'Jump to guidance' : 'Guidance pending'}
+                  </span>
                 </button>
               </div>
             ))}

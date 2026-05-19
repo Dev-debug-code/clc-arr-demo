@@ -35,6 +35,11 @@ function deriveCodeAreaDisplayLabel(codeArea) {
   if (codeArea === 'aml') return 'Anti-Money Laundering';
   if (codeArea === 'lenders') return 'Acting for Lenders';
   if (codeArea === 'code-of-conduct') return 'Code of Conduct';
+  if (codeArea === 'accounts') return 'Accounts';
+  if (codeArea === 'client-care') return 'Client Care';
+  if (codeArea === 'complaints') return 'Complaints';
+  if (codeArea === 'management') return 'Management and Supervision';
+  if (codeArea === 'undertakings') return 'Undertakings';
   return coerceText(codeArea) || 'General';
 }
 
@@ -84,7 +89,12 @@ export const DEMO_REQUIREMENT_BY_ID = new Map(
 export const DEMO_FOCUS_AREAS = [
   { id: 'aml', label: 'Anti-Money Laundering' },
   { id: 'lenders', label: 'Acting for Lenders' },
-  { id: 'code-of-conduct', label: 'Code of Conduct' }
+  { id: 'code-of-conduct', label: 'Code of Conduct' },
+  { id: 'accounts', label: 'Accounts' },
+  { id: 'client-care', label: 'Client Care' },
+  { id: 'complaints', label: 'Complaints' },
+  { id: 'management', label: 'Management and Supervision' },
+  { id: 'undertakings', label: 'Undertakings' }
 ];
 
 export const DEMO_REQUIREMENT_OPTIONS = DEMO_REQUIREMENT_CATALOG.map(

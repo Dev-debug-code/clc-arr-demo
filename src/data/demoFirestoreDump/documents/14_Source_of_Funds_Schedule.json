@@ -42,10 +42,10 @@
       "page": 1,
       "pageno": 0,
       "bbox": [
-        438,
-        362,
+        30,
+        150,
         815,
-        402
+        465
       ],
       "category": "Evidence Status Summary",
       "title": "Source-of-Funds Schedule Records Unresolved Evidence Gaps",
@@ -57,10 +57,10 @@
       "page": 1,
       "pageno": 0,
       "bbox": [
-        35,
-        150,
-        820,
-        310
+        30,
+        260,
+        815,
+        465
       ],
       "category": "Source-of-Funds Schedule",
       "title": "Good Practice: Source-of-Funds Schedule Clearly Records Gaps",

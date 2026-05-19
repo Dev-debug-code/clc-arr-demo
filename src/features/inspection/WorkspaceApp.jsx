@@ -79,6 +79,7 @@ import {
   RISK_REGISTER_PRESET,
   REVIEW_REASON_OPTIONS,
   SEVERITY_LABEL_MAP,
+  normalizeFocusAreaOptionId,
   STEP_CASE_SETUP,
   STEP_DOCUMENTS,
   STEP_HISTORY,
@@ -500,7 +501,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const [isCreatingCase, setIsCreatingCase] = useState(false);
   const [caseCreateError, setCaseCreateError] = useState('');
   const [selectedFocusAreaIds, setSelectedFocusAreaIds] = useState(
-    () => new Set(FOCUS_AREA_OPTIONS.map((area) => area.id))
+    () => new Set(RISK_REGISTER_PRESET.map(normalizeFocusAreaOptionId).filter(Boolean))
   );
   const currentUserRole = useMemo(
     () => normalizeUserRole(forcedUserRole || currentUserProfile?.role),
@@ -696,7 +697,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
               : prev.actingForLender,
           amlTier: syncedAmlTier,
           focusAreas: Array.isArray(snapshot.caseMetaPatch.focusAreas)
-            ? snapshot.caseMetaPatch.focusAreas
+            ? snapshot.caseMetaPatch.focusAreas.map(normalizeFocusAreaOptionId).filter(Boolean)
             : prev.focusAreas,
           knownParties: Array.isArray(snapshot.caseMetaPatch.knownParties)
             ? snapshot.caseMetaPatch.knownParties
@@ -704,9 +705,15 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
         }));
 
         if (Array.isArray(snapshot.caseMetaPatch.focusAreas)) {
-          const selectedAreaSet = new Set(snapshot.caseMetaPatch.focusAreas.map((entry) => String(entry || '').trim()));
+          const selectedAreaSet = new Set(
+            snapshot.caseMetaPatch.focusAreas.map(normalizeFocusAreaOptionId).filter(Boolean)
+          );
           setSelectedFocusAreaIds(selectedAreaSet);
-          setNotAssessedAreas(snapshot.caseExists ? [] : FOCUS_AREA_OPTIONS.filter((area) => !selectedAreaSet.has(area.id)).map((area) => area.label));
+          setNotAssessedAreas(
+            snapshot.caseExists
+              ? []
+              : FOCUS_AREA_OPTIONS.filter((area) => !selectedAreaSet.has(area.id)).map((area) => area.label)
+          );
         } else {
           setSelectedFocusAreaIds(new Set());
           setNotAssessedAreas([]);
@@ -1923,23 +1930,17 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const persistedNotAssessedAreas = useMemo(() => {
     const selectedFocusAreas = new Set(
       (Array.isArray(currentCaseMeta.focusAreas) ? currentCaseMeta.focusAreas : [])
-        .map((entry) => normalizeCodeAreaId(entry))
-        .filter(Boolean)
-    );
-    const requirementAreaIds = new Set(
-      Object.keys(requirementsByCodeArea)
-        .map((entry) => normalizeCodeAreaId(entry))
+        .map((entry) => normalizeFocusAreaOptionId(entry))
         .filter(Boolean)
     );
 
     if (selectedFocusAreas.size > 0) {
-      const scopedAreaIds =
-        requirementAreaIds.size > 0
-          ? Array.from(requirementAreaIds)
-          : FOCUS_AREA_OPTIONS.map((area) => area.id);
-      return scopedAreaIds
+      return FOCUS_AREA_OPTIONS.map((area) => area.id)
         .filter((areaId) => !selectedFocusAreas.has(areaId))
-        .map((areaId) => ({ id: areaId, label: formatCodeAreaLabel(areaId) }))
+        .map((areaId) => ({
+          id: areaId,
+          label: codeAreaDisplayMap.get(areaId) || formatCodeAreaLabel(areaId)
+        }))
         .sort((left, right) => left.label.localeCompare(right.label))
         .map((area) => area.label);
     }
@@ -1951,7 +1952,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
           .map((entry) => `${formatCodeAreaLabel(codeAreaId)}: ${safeText(entry.label, entry.id)}`)
       )
       .filter(Boolean);
-  }, [currentCaseMeta.focusAreas, formatCodeAreaLabel, normalizeCodeAreaId, requirementsByCodeArea, safeText]);
+  }, [codeAreaDisplayMap, currentCaseMeta.focusAreas, formatCodeAreaLabel, requirementsByCodeArea, safeText]);
   const effectiveNotAssessedAreas = isActiveCasePersisted ? persistedNotAssessedAreas : notAssessedAreas;
   const requirementsById = useMemo(() => {
     const lookup = new Map();
@@ -3078,7 +3079,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     }
     if (isCreatingCase) return;
     setCaseCreateError('');
-    const uncheckedAreas = FOCUS_AREA_OPTIONS.filter((area) => !selectedFocusAreaIds.has(area.id)).map(
+    const normalizedSelectedFocusAreaIds = new Set(
+      Array.from(selectedFocusAreaIds).map(normalizeFocusAreaOptionId).filter(Boolean)
+    );
+    const uncheckedAreas = FOCUS_AREA_OPTIONS.filter((area) => !normalizedSelectedFocusAreaIds.has(area.id)).map(
       (area) => area.label
     );
     const nextCaseId = `case-${Date.now()}`;
@@ -3096,7 +3100,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     const nextHolp = caseSetupHolp.trim();
     const nextHofa = caseSetupHofa.trim();
     const nextPreviousInspection = caseSetupPreviousInspection || 'N/A';
-    const nextFocusAreaIds = Array.from(selectedFocusAreaIds);
+    const nextFocusAreaIds = Array.from(normalizedSelectedFocusAreaIds);
     const nextPreInspectionConcerns = caseSetupConcerns.trim();
 
     setIsCreatingCase(true);
@@ -4939,9 +4943,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   };
 
   const handleApplyAmlPreset = () => {
-    setSelectedFocusAreaIds(new Set(RISK_REGISTER_PRESET));
+    const presetAreaIds = RISK_REGISTER_PRESET.map(normalizeFocusAreaOptionId).filter(Boolean);
+    setSelectedFocusAreaIds(new Set(presetAreaIds));
     setNotAssessedAreas(
-      FOCUS_AREA_OPTIONS.filter((area) => !RISK_REGISTER_PRESET.includes(area.id)).map((area) => area.label)
+      FOCUS_AREA_OPTIONS.filter((area) => !presetAreaIds.includes(area.id)).map((area) => area.label)
     );
     setCaseSetupRiskLevel('medium');
     setCaseSetupTransactionType((prev) => prev || CASE_META.transactionType);
@@ -4951,9 +4956,10 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
 
   const handleApplyPracticePreset = (profile) => {
     if (!profile) return;
-    setSelectedFocusAreaIds(new Set(profile.focusAreas || []));
+    const profileFocusAreaIds = (profile.focusAreas || []).map(normalizeFocusAreaOptionId).filter(Boolean);
+    setSelectedFocusAreaIds(new Set(profileFocusAreaIds));
     setNotAssessedAreas(
-      FOCUS_AREA_OPTIONS.filter((area) => !(profile.focusAreas || []).includes(area.id)).map((area) => area.label)
+      FOCUS_AREA_OPTIONS.filter((area) => !profileFocusAreaIds.includes(area.id)).map((area) => area.label)
     );
     setCaseSetupConcerns(profile.preInspectionConcerns || '');
   };
@@ -4971,7 +4977,7 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
     setCaseSetupConcerns('');
     setCaseSetupQuestionnaireFile('');
     setCaseSetupQuestionnaireFileBlob(null);
-    setSelectedFocusAreaIds(new Set(FOCUS_AREA_OPTIONS.map((area) => area.id)));
+    setSelectedFocusAreaIds(new Set(RISK_REGISTER_PRESET.map(normalizeFocusAreaOptionId).filter(Boolean)));
     if (caseSetupFileInputRef.current) {
       caseSetupFileInputRef.current.value = '';
     }
@@ -5386,7 +5392,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       setReggieViewerReturnContext(returnContext);
       setShowDocBoxes(false);
       setIsViewerFocusMode(false);
-      setReggieOpen(false);
     };
 
     const sourceLowerSet = new Set(uniqueSources.map((entry) => entry.toLowerCase()));
@@ -5430,7 +5435,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       setActiveGuidanceContext(guidanceContext);
       setGuidanceReturnContext(returnContext);
       setViewerOriginStep(returnContext.viewerOriginStep ?? STEP_OVERVIEW);
-      setReggieOpen(false);
       setCurrentStep(STEP_VIEWER);
     }
   };

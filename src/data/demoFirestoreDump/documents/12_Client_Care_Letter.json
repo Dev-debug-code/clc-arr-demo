@@ -35,10 +35,10 @@
       "page": 2,
       "pageno": 1,
       "bbox": [
-        40,
-        80,
-        560,
-        250
+        90,
+        1750,
+        1600,
+        2020
       ],
       "category": "Acting for Your Mortgage Lender",
       "title": "Terms Permit Disclosure of Material Facts to the Lender",
@@ -50,10 +50,10 @@
       "page": 1,
       "pageno": 0,
       "bbox": [
-        40,
-        220,
-        560,
-        470
+        90,
+        402,
+        1600,
+        900
       ],
       "category": "Fees and Disbursements",
       "title": "Client Care Letter Gives Written Fee Estimate",
@@ -65,10 +65,10 @@
       "page": 1,
       "pageno": 0,
       "bbox": [
-        40,
-        220,
-        560,
-        510
+        90,
+        100,
+        1600,
+        270
       ],
       "category": "Fees and Disbursements",
       "title": "Client Is Told About Fee Arrangements",
@@ -80,10 +80,10 @@
       "page": 1,
       "pageno": 0,
       "bbox": [
-        40,
-        220,
-        560,
-        510
+        90,
+        270,
+        1600,
+        408
       ],
       "category": "Fees and Disbursements",
       "title": "Client Is Told About Changes to Costs",
@@ -95,10 +95,10 @@
       "page": 2,
       "pageno": 1,
       "bbox": [
-        40,
-        250,
-        560,
-        470
+        90,
+        990,
+        1600,
+        1420
       ],
       "category": "Complaints Procedure",
       "title": "Complaints Procedure Is Given in Writing",
@@ -110,29 +110,14 @@
       "page": 2,
       "pageno": 1,
       "bbox": [
-        40,
-        420,
-        560,
-        650
+        90,
+        470,
+        1600,
+        990
       ],
       "category": "Legal Ombudsman",
       "title": "Legal Ombudsman Escalation Details Are Provided",
       "details": "The client care letter gives Legal Ombudsman escalation rights, contact details, and time limits.",
-      "severity": "compliant"
-    },
-    {
-      "id": "COMP-COC-006",
-      "page": 1,
-      "pageno": 0,
-      "bbox": [
-        40,
-        220,
-        560,
-        510
-      ],
-      "category": "Fees and Disbursements",
-      "title": "Payment Arrangements Are Explained to the Client",
-      "details": "The client care letter records that fees and disbursements will be paid from completion monies on completion, or directly by the client within 28 days if the transaction does not proceed.",
       "severity": "compliant"
     }
   ],
