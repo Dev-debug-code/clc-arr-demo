@@ -440,7 +440,6 @@ export const getUploadReviewDecision = (uploadItem) => {
     return normalized.reviewDecision;
   }
   if (!isUploadClassificationResolved(normalized)) return '';
-  if (hasIncompleteUploadInterviewees(normalized)) return '';
   if (normalized.status === 'removed') return 'remove';
   if (normalized.confirmed === true || normalized.status === 'verified') return 'confirm';
   const lowConfidenceFlag =
@@ -450,5 +449,4 @@ export const getUploadReviewDecision = (uploadItem) => {
 
 export const isUploadIncludedInFindingsGeneration = (uploadItem) =>
   getUploadReviewDecision(uploadItem) === 'confirm' &&
-  isUploadClassificationResolved(uploadItem) &&
-  !hasIncompleteUploadInterviewees(uploadItem);
+  isUploadClassificationResolved(uploadItem);

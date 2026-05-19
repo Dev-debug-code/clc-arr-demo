@@ -1613,8 +1613,8 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
       : AI_PROCESSING_MESSAGES;
   const analysisTitle =
     analysisMode === PROCESSING_MODE_CLASSIFICATION
-      ? 'AI classification in progress'
-      : 'AI findings generation in progress';
+      ? 'Classification in progress'
+      : 'Findings generation in progress';
   const analysisCompletionLabel =
     analysisMode === PROCESSING_MODE_CLASSIFICATION ? 'Classification Review' : 'Findings';
   const analysisStageIndex = Math.min(
@@ -2777,7 +2777,6 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
   const isUploadReadyForConfirmation = useCallback((uploadItem) => {
     if (!uploadItem || uploadItem.status === 'queued') return false;
     if (!isUploadClassificationResolved(uploadItem)) return false;
-    if (hasIncompleteUploadInterviewees(uploadItem)) return false;
     return true;
   }, []);
 
@@ -5588,9 +5587,9 @@ export default function WorkspaceApp({ currentUser, onSignOut }) {
             : 'I am scanning the linked documents now and cross-checking for the strongest grounded answer.'
       };
 
-      scheduleReggieChatMessage(chatId, planningMessage, 1200, { scope });
-      scheduleReggieChatMessage(chatId, crossCheckMessage, 3600, { scope });
-      scheduleReggieChatMessage(chatId, assistantMessage, 7200, { scope });
+      scheduleReggieChatMessage(chatId, planningMessage, 2000, { scope });
+      scheduleReggieChatMessage(chatId, crossCheckMessage, 5000, { scope });
+      scheduleReggieChatMessage(chatId, assistantMessage, 8000, { scope });
     },
     [
       appendReggieMessage,

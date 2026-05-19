@@ -272,9 +272,7 @@ export default function DocumentsUploadPhase({
     ? 'Select Confirm or Remove for all documents before generating findings.'
     : unclassifiedUploadCount > 0
       ? `Classify all ${unclassifiedUploadCount} remaining document${unclassifiedUploadCount === 1 ? '' : 's'} first.`
-      : incompleteInterviewUploadCount > 0
-        ? `Complete the interview details for ${incompleteInterviewUploadCount} transcript${incompleteInterviewUploadCount === 1 ? '' : 's'} before continuing.`
-        : '';
+      : '';
 
   useEffect(() => {
     if (!generateFindingsBlockedReason) {
@@ -558,7 +556,6 @@ export default function DocumentsUploadPhase({
                                         handleUpdateUploadInterviewee(item.id, interviewee.id, 'name', event.target.value)
                                       }
                                       placeholder="Jane Smith"
-                                      required
                                     />
                                   </label>
                                   <label className="interviewee-inline-field">
@@ -571,7 +568,6 @@ export default function DocumentsUploadPhase({
                                         handleUpdateUploadInterviewee(item.id, interviewee.id, 'role', event.target.value)
                                       }
                                       placeholder="MLRO / Compliance Officer"
-                                      required
                                     />
                                   </label>
                                   <label className="interviewee-inline-field">
