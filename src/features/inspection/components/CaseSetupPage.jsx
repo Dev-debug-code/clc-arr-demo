@@ -63,7 +63,8 @@ export default function CaseSetupPage({
   const openFocusAreaGuidance = (areaId) => {
     const path = FOCUS_AREA_GUIDANCE_PATHS[areaId];
     if (!path || typeof window === 'undefined') return;
-    const targetUrl = new URL(path, window.location.origin).toString();
+    const baseUrl = typeof document !== 'undefined' ? document.baseURI : window.location.href;
+    const targetUrl = new URL(path, baseUrl).toString();
     window.open(targetUrl, '_blank', 'noopener,noreferrer');
   };
 
